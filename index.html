@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Particle Environment with Snake</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Roboto', Arial, sans-serif; background-color: #0e0e0e; }
+    canvas { display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <script>
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const gridSize = 20;
+    const particleSize = 0.05;
+    let snake = [{ x: 10, y: 10 }];
+    let direction = { x: 1, y: 0 };
+    let food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
+    let particles;
+
+    function createParticleGrid() {
+      const particleGeometry = new THREE.BufferGeometry();
+      const particleMaterial = new THREE.PointsMaterial({ size: particleSize, vertexColors: true });
+      const positions = [];
+      const colors = [];
+
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          positions.push((x - gridSize / 2) * particleSize, (y - gridSize / 2) * particleSize, 0);
+          colors.push(0, 0, 0);
+        }
+      }
+      
+      particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      
+      particles = new THREE.Points(particleGeometry, particleMaterial);
+      scene.add(particles);
+    }
+
+    function updateSnake() {
+      let head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+      if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        resetGame();
+        return;
+      }
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
+      } else {
+        snake.pop();
+      }
+    }
+
+    function resetGame() {
+      snake = [{ x: 10, y: 10 }];
+      direction = { x: 1, y: 0 };
+      food = { x: Math.floor(Math.random() * gridSize), y: Math.floor(Math.random() * gridSize) };
+    }
+
+    function updateParticles() {
+      const colors = particles.geometry.attributes.color.array;
+      colors.fill(0);
+      
+      snake.forEach(segment => {
+        let index = (segment.y * gridSize + segment.x) * 3;
+        colors[index] = 0; colors[index + 1] = 1; colors[index + 2] = 0;
+      });
+      let foodIndex = (food.y * gridSize + food.x) * 3;
+      colors[foodIndex] = 1; colors[foodIndex + 1] = 0; colors[foodIndex + 2] = 0;
+      
+      particles.geometry.attributes.color.needsUpdate = true;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      updateSnake();
+      updateParticles();
+      renderer.render(scene, camera);
+    }
+
+    createParticleGrid();
+    camera.position.z = 2;
+    animate();
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'ArrowUp' && direction.y === 0) direction = { x: 0, y: 1 };
+      if (event.key === 'ArrowDown' && direction.y === 0) direction = { x: 0, y: -1 };
+      if (event.key === 'ArrowLeft' && direction.x === 0) direction = { x: -1, y: 0 };
+      if (event.key === 'ArrowRight' && direction.x === 0) direction = { x: 1, y: 0 };
+    });
+  </script>
+</body>
+</html>
