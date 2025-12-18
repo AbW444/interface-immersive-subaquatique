@@ -13,7 +13,11 @@
       background-color: #ffffff; /* FOND BLANC */
       position: relative;
     }
-    canvas { display: block; }
+    canvas {
+      display: block;
+      position: relative;
+      z-index: 1;
+    }
 
     /* ===============================================
        ARRIÈRE-PLANS JONAS
@@ -30,7 +34,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      z-index: -1;
+      z-index: 0;
       opacity: 0;
       transition: opacity 0.5s ease;
       pointer-events: none;
@@ -51,7 +55,7 @@
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      z-index: -1;
+      z-index: 0;
       opacity: 0;
       transition: opacity 0.5s ease;
       pointer-events: none;
@@ -267,10 +271,10 @@
 
     // Initialisation de la scène, caméra et rendu
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff); // FOND BLANC
+    // Pas de fond de scène - transparent pour voir les arrière-plans Jonas
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true pour transparence
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
