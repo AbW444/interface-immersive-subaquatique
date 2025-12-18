@@ -27,12 +27,11 @@
     #jonas-background {
       position: fixed;
       top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1720px;
-      height: 880px;
+      left: 0;
+      width: 100%;
+      min-height: 100vh;
       background-image: url('./Ressources/fond_jonas.png?v=2');
-      background-size: contain;
+      background-size: cover;
       background-position: top center;
       background-repeat: no-repeat;
       z-index: 0;
@@ -49,12 +48,11 @@
     #jonas-background-negatif {
       position: fixed;
       top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1720px;
-      height: 880px;
+      left: 0;
+      width: 100%;
+      min-height: 100vh;
       background-image: url('./Ressources/fond_jonas_negatif.png?v=2');
-      background-size: contain;
+      background-size: cover;
       background-position: top center;
       background-repeat: no-repeat;
       z-index: 0;
@@ -75,99 +73,189 @@
 
     #settings-panel {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: rgba(0, 0, 0, 0.95);
-      color: white;
-      padding: 30px 40px;
-      border-radius: 8px;
-      border: 2px solid white;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.9);
+      color: #ffffff;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
       z-index: 1000;
       display: none;
-      min-width: 400px;
+      width: 290px;
       font-family: 'Roboto', Arial, sans-serif;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
 
     #settings-panel.visible {
       display: block;
     }
 
-    #settings-panel h2 {
-      margin: 0 0 25px 0;
-      font-size: 24px;
-      font-weight: 700;
-      text-align: center;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+    .settings-content {
+      padding: 20px;
+      max-height: calc(100vh - 80px);
+      overflow-y: auto;
+    }
+
+    .settings-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .settings-content::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .settings-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
     }
 
     .param-control {
       margin-bottom: 20px;
     }
 
-    .param-control label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 12px;
+    .param-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .param-label {
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       font-weight: 500;
+      color: #999;
+    }
+
+    .param-value-display {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .param-value {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      min-width: 35px;
+      text-align: right;
+    }
+
+    .param-buttons {
+      display: flex;
+      gap: 2px;
+    }
+
+    .param-btn {
+      width: 18px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .param-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .param-slider-container {
+      position: relative;
     }
 
     .param-control input[type="range"] {
       width: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: white;
+      height: 2px;
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.2);
       outline: none;
       -webkit-appearance: none;
+      cursor: pointer;
     }
 
     .param-control input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: white;
+      background: #fff;
       cursor: pointer;
     }
 
     .param-control input[type="range"]::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      background: white;
+      background: #fff;
       cursor: pointer;
       border: none;
     }
 
-    .param-value {
-      display: inline-block;
-      float: right;
-      font-weight: 700;
-      font-size: 12px;
+    .param-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
     }
 
-    .close-button {
+    .param-checkbox input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .param-checkbox label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 500;
+      color: #999;
+      cursor: pointer;
+    }
+
+    .settings-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 20px 0;
+    }
+
+    .settings-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
       margin-top: 20px;
+    }
+
+    .settings-btn {
       width: 100%;
-      padding: 12px;
-      background-color: white;
-      color: black;
-      border: none;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.5px;
       cursor: pointer;
-      transition: background-color 0.3s;
+      transition: all 0.2s;
     }
 
-    .close-button:hover {
-      background-color: #e0e0e0;
+    .settings-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .settings-btn.primary {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
     }
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
@@ -345,49 +433,128 @@
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
   <div id="settings-panel">
-    <h2>Paramètres</h2>
+    <div class="settings-content">
 
-    <div class="param-control">
-      <label>
-        Densité
-        <span class="param-value" id="density-value">1.00</span>
-      </label>
-      <input type="range" id="density-slider" min="0.1" max="1" step="0.05" value="1">
+      <!-- Point Size -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Point Size</span>
+          <div class="param-value-display">
+            <span class="param-value" id="size-value">0.02</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="size" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="size" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="size-slider" min="0.005" max="0.15" step="0.005" value="0.02">
+        </div>
+      </div>
+
+      <!-- Particle Density -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Particle Density</span>
+          <div class="param-value-display">
+            <span class="param-value" id="density-value">1.0</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="density" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="density" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="density-slider" min="0.1" max="1" step="0.05" value="1">
+        </div>
+      </div>
+
+      <!-- Depth Spread -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Depth Spread</span>
+          <div class="param-value-display">
+            <span class="param-value" id="disparity-value">8.0</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="disparity" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="disparity" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="disparity-slider" min="0" max="30" step="0.5" value="8">
+        </div>
+      </div>
+
+      <!-- Breath Speed -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Breath Speed</span>
+          <div class="param-value-display">
+            <span class="param-value" id="movement-value">0.02</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="movement" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="movement" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="movement-slider" min="0" max="0.15" step="0.005" value="0.02">
+        </div>
+      </div>
+
+      <!-- Brightness (Saturation) -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Brightness</span>
+          <div class="param-value-display">
+            <span class="param-value" id="saturation-value">2.0</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="saturation" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="saturation" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="saturation-slider" min="0" max="5" step="0.1" value="2">
+        </div>
+      </div>
+
+      <!-- Zoom Level -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Zoom Level</span>
+          <div class="param-value-display">
+            <span class="param-value" id="zoom-value">0.0</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="zoom" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="zoom" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="zoom-slider" min="0" max="1" step="0.05" value="0">
+        </div>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <!-- Hide Background -->
+      <div class="param-checkbox">
+        <input type="checkbox" id="hide-bg-checkbox">
+        <label for="hide-bg-checkbox">Hide Background</label>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <!-- Buttons -->
+      <div class="settings-buttons">
+        <button class="settings-btn primary" id="apply-btn">Apply</button>
+        <button class="settings-btn" id="reset-defaults-btn">Reset to Defaults</button>
+        <button class="settings-btn" id="reset-camera-btn">Reset Camera</button>
+      </div>
+
     </div>
-
-    <div class="param-control">
-      <label>
-        Disparité (profondeur)
-        <span class="param-value" id="disparity-value">8.0</span>
-      </label>
-      <input type="range" id="disparity-slider" min="0" max="20" step="0.5" value="8">
-    </div>
-
-    <div class="param-control">
-      <label>
-        Taille des particules
-        <span class="param-value" id="size-value">0.02</span>
-      </label>
-      <input type="range" id="size-slider" min="0.005" max="0.1" step="0.005" value="0.02">
-    </div>
-
-    <div class="param-control">
-      <label>
-        Mouvement
-        <span class="param-value" id="movement-value">0.02</span>
-      </label>
-      <input type="range" id="movement-slider" min="0" max="0.1" step="0.005" value="0.02">
-    </div>
-
-    <div class="param-control">
-      <label>
-        Saturation chromatique
-        <span class="param-value" id="saturation-value">2.0</span>
-      </label>
-      <input type="range" id="saturation-slider" min="0" max="5" step="0.1" value="2">
-    </div>
-
-    <button class="close-button" id="close-settings">Fermer</button>
   </div>
 
   <!-- ===============================================
@@ -754,59 +921,107 @@
        =============================================== */
 
     const settingsPanel = document.getElementById('settings-panel');
-    const closeSettingsBtn = document.getElementById('close-settings');
 
-    // Bouton fermer
-    closeSettingsBtn.addEventListener('click', () => {
-      settingsPanel.classList.remove('visible');
+    // Valeurs par défaut
+    const defaultParams = {
+      size: 0.02,
+      density: 1.0,
+      disparity: 8.0,
+      movement: 0.02,
+      saturation: 2.0,
+      zoom: 0.0
+    };
+
+    // Helper pour mettre à jour un paramètre
+    function updateParam(param, value, updateSlider = true) {
+      const slider = document.getElementById(`${param}-slider`);
+      const valueDisplay = document.getElementById(`${param}-value`);
+
+      const min = parseFloat(slider.min);
+      const max = parseFloat(slider.max);
+      value = Math.max(min, Math.min(max, value));
+
+      if (param === 'size') {
+        particleParams.size = value;
+        valueDisplay.textContent = value.toFixed(3);
+        if (particles) particles.material.size = value;
+      } else if (param === 'density') {
+        particleParams.density = value;
+        valueDisplay.textContent = value.toFixed(1);
+        loadImage(currentImageIndex);
+      } else if (param === 'disparity') {
+        particleParams.disparity = value;
+        valueDisplay.textContent = value.toFixed(1);
+        loadImage(currentImageIndex);
+      } else if (param === 'movement') {
+        particleParams.movement = value;
+        valueDisplay.textContent = value.toFixed(3);
+      } else if (param === 'saturation') {
+        particleParams.saturation = value;
+        valueDisplay.textContent = value.toFixed(1);
+        loadImage(currentImageIndex);
+      } else if (param === 'zoom') {
+        targetZoomLevel = value;
+        valueDisplay.textContent = value.toFixed(1);
+      }
+
+      if (updateSlider) {
+        slider.value = value;
+      }
+    }
+
+    // Sliders
+    ['size', 'density', 'disparity', 'movement', 'saturation', 'zoom'].forEach(param => {
+      const slider = document.getElementById(`${param}-slider`);
+      slider.addEventListener('input', (e) => {
+        updateParam(param, parseFloat(e.target.value), false);
+      });
     });
 
-    // Slider densité
-    const densitySlider = document.getElementById('density-slider');
-    const densityValue = document.getElementById('density-value');
-    densitySlider.addEventListener('input', (e) => {
-      particleParams.density = parseFloat(e.target.value);
-      densityValue.textContent = particleParams.density.toFixed(2);
-      loadImage(currentImageIndex); // Recharger l'image avec les nouveaux paramètres
+    // Boutons +/-
+    document.querySelectorAll('.param-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const param = btn.dataset.param;
+        const action = btn.dataset.action;
+        const slider = document.getElementById(`${param}-slider`);
+        const step = parseFloat(slider.step);
+        const currentValue = parseFloat(slider.value);
+
+        const newValue = action === 'increase' ? currentValue + step : currentValue - step;
+        updateParam(param, newValue);
+      });
     });
 
-    // Slider disparité
-    const disparitySlider = document.getElementById('disparity-slider');
-    const disparityValue = document.getElementById('disparity-value');
-    disparitySlider.addEventListener('input', (e) => {
-      particleParams.disparity = parseFloat(e.target.value);
-      disparityValue.textContent = particleParams.disparity.toFixed(1);
-      loadImage(currentImageIndex);
-    });
-
-    // Slider taille
-    const sizeSlider = document.getElementById('size-slider');
-    const sizeValue = document.getElementById('size-value');
-    sizeSlider.addEventListener('input', (e) => {
-      particleParams.size = parseFloat(e.target.value);
-      sizeValue.textContent = particleParams.size.toFixed(3);
-      // Mettre à jour directement la taille sans recharger
-      if (particles) {
-        particles.material.size = particleParams.size;
+    // Hide Background checkbox
+    const hideBgCheckbox = document.getElementById('hide-bg-checkbox');
+    hideBgCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        jonasBackground.classList.remove('visible');
+        jonasBackgroundNegatif.classList.remove('visible');
+        jonasBackgroundVisible = false;
+        jonasBackgroundNegatifVisible = false;
       }
     });
 
-    // Slider mouvement
-    const movementSlider = document.getElementById('movement-slider');
-    const movementValue = document.getElementById('movement-value');
-    movementSlider.addEventListener('input', (e) => {
-      particleParams.movement = parseFloat(e.target.value);
-      movementValue.textContent = particleParams.movement.toFixed(3);
-      // Pas besoin de recharger, le changement sera appliqué dans la boucle animate()
+    // Apply button
+    document.getElementById('apply-btn').addEventListener('click', () => {
+      // Recharger avec tous les paramètres
+      loadImage(currentImageIndex);
     });
 
-    // Slider saturation
-    const saturationSlider = document.getElementById('saturation-slider');
-    const saturationValue = document.getElementById('saturation-value');
-    saturationSlider.addEventListener('input', (e) => {
-      particleParams.saturation = parseFloat(e.target.value);
-      saturationValue.textContent = particleParams.saturation.toFixed(1);
+    // Reset to Defaults
+    document.getElementById('reset-defaults-btn').addEventListener('click', () => {
+      Object.keys(defaultParams).forEach(param => {
+        updateParam(param, defaultParams[param]);
+      });
       loadImage(currentImageIndex);
+    });
+
+    // Reset Camera
+    document.getElementById('reset-camera-btn').addEventListener('click', () => {
+      targetZoomLevel = 0;
+      updateParam('zoom', 0);
+      sceneGroup.rotation.set(0, 0, 0);
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
