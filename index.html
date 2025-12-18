@@ -15,7 +15,17 @@
     }
     canvas { display: block; }
 
+    /* ===============================================
+       ARRIÈRE-PLANS JONAS - DÉSACTIVÉS TEMPORAIREMENT
+       ===============================================
+       Les fichiers fond_jonas.png et fond_jonas_negatif.png
+       ne sont pas encore dans le dossier Ressources.
+       Décommentez ces sections une fois les fichiers ajoutés.
+    */
+
+    /*
     /* Arrière-plan Jonas (activable avec la touche J) */
+    /*
     #jonas-background {
       position: fixed;
       top: 0;
@@ -37,6 +47,7 @@
     }
 
     /* Arrière-plan Jonas négatif (activable avec la touche N) */
+    /*
     #jonas-background-negatif {
       position: fixed;
       top: 0;
@@ -56,6 +67,9 @@
     #jonas-background-negatif.visible {
       opacity: 1;
     }
+    */
+
+    /* FIN SECTION ARRIÈRE-PLANS JONAS */
 
     /* ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS UI SUPPRIMÉS
@@ -224,11 +238,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Arrière-plan Jonas (activable avec touche J) -->
+  <!-- ARRIÈRE-PLANS JONAS DÉSACTIVÉS - Décommentez une fois les fichiers ajoutés
   <div id="jonas-background"></div>
-
-  <!-- Arrière-plan Jonas négatif (activable avec touche N) -->
   <div id="jonas-background-negatif"></div>
+  -->
 
   <!-- ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS HTML SUPPRIMÉS
@@ -275,8 +288,8 @@
     scene.add(sceneGroup);
 
     let particles;
-    let currentImageIndex = 0;
-    const maxImageIndex = 7;
+    let currentImageIndex = 1; // Commence à 1 (IMG_001)
+    const maxImageIndex = 3; // 3 images : IMG_001, IMG_002, IMG_003
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
@@ -298,7 +311,7 @@
 
     // Fonction de chargement d'image
     function loadImage(imageIndex) {
-      const imagePath = `./Ressources/test_${String(imageIndex).padStart(3, '0')}.jpg`;
+      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg`;
 
       textureLoader.load(imagePath, function (texture) {
         const canvas = document.createElement('canvas');
@@ -310,7 +323,8 @@
         context.drawImage(texture.image, 0, 0, imgWidth, imgHeight);
         const imgData = context.getImageData(0, 0, imgWidth, imgHeight);
 
-        if (imageIndex === 4 && referenceHeight === null) {
+        // Définir la hauteur de référence avec l'image 2 (IMG_002)
+        if (imageIndex === 2 && referenceHeight === null) {
           referenceHeight = imgHeight;
         }
 
@@ -465,7 +479,7 @@
     scene.add(ambientLight);
 
     // Précharger l'image de référence
-    const referencePath = `./Ressources/test_004.jpg`;
+    const referencePath = `./Ressources/IMG_002.jpg`;
     textureLoader.load(referencePath, function (texture) {
       referenceHeight = texture.image.height;
       loadImage(currentImageIndex);
@@ -522,6 +536,14 @@
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
     }, { passive: false });
 
+    /* ===============================================
+       ARRIÈRE-PLANS JONAS - DÉSACTIVÉS TEMPORAIREMENT
+       ===============================================
+       Décommentez cette section une fois les fichiers
+       fond_jonas.png et fond_jonas_negatif.png ajoutés.
+    */
+
+    /*
     // Touche J pour afficher/masquer l'arrière-plan Jonas
     let jonasBackgroundVisible = false;
     const jonasBackground = document.getElementById('jonas-background');
@@ -559,6 +581,9 @@
         }
       }
     });
+    */
+
+    /* FIN SECTION ARRIÈRE-PLANS JONAS */
 
     /* ===============================================
        SECTION DÉSACTIVÉE - INTERACTIONS UTILISATEUR
