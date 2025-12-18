@@ -491,7 +491,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="size-slider" min="0.005" max="0.15" step="0.005" value="0.02">
+          <input type="range" id="size-slider" min="0" max="0.04" step="0.002" value="0.02">
         </div>
       </div>
 
@@ -508,7 +508,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="density-slider" min="0.1" max="1" step="0.05" value="1">
+          <input type="range" id="density-slider" min="0" max="2" step="0.05" value="1">
         </div>
       </div>
 
@@ -525,7 +525,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="disparity-slider" min="0" max="30" step="0.5" value="8">
+          <input type="range" id="disparity-slider" min="0" max="16" step="0.5" value="8">
         </div>
       </div>
 
@@ -542,7 +542,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="movement-slider" min="0" max="0.15" step="0.005" value="0.02">
+          <input type="range" id="movement-slider" min="0" max="0.04" step="0.002" value="0.02">
         </div>
       </div>
 
@@ -559,7 +559,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="saturation-slider" min="0" max="5" step="0.1" value="2">
+          <input type="range" id="saturation-slider" min="0" max="4" step="0.1" value="2">
         </div>
       </div>
 
@@ -568,7 +568,7 @@
         <div class="param-header">
           <span class="param-label">Zoom Level</span>
           <div class="param-value-display">
-            <span class="param-value" id="zoom-value">0.0</span>
+            <span class="param-value" id="zoom-value">0.5</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="zoom" data-action="decrease">▼</button>
               <button class="param-btn" data-param="zoom" data-action="increase">▲</button>
@@ -576,7 +576,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="zoom-slider" min="0" max="1" step="0.05" value="0">
+          <input type="range" id="zoom-slider" min="0" max="1" step="0.05" value="0.5">
         </div>
       </div>
 
@@ -664,8 +664,8 @@
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
-    let zoomLevel = 0;
-    let targetZoomLevel = 0;
+    let zoomLevel = 0.5;
+    let targetZoomLevel = 0.5;
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
@@ -993,14 +993,14 @@
 
     const settingsPanel = document.getElementById('settings-panel');
 
-    // Valeurs par défaut
+    // Valeurs par défaut (toutes au milieu de leur plage)
     const defaultParams = {
-      size: 0.02,
-      density: 1.0,
-      disparity: 8.0,
-      movement: 0.02,
-      saturation: 2.0,
-      zoom: 0.0
+      size: 0.02,         // milieu de 0 à 0.04
+      density: 1.0,       // milieu de 0 à 2
+      disparity: 8.0,     // milieu de 0 à 16
+      movement: 0.02,     // milieu de 0 à 0.04
+      saturation: 2.0,    // milieu de 0 à 4
+      zoom: 0.5           // milieu de 0 à 1
     };
 
     // Helper pour mettre à jour un paramètre
