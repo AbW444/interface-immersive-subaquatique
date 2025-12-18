@@ -11,8 +11,30 @@
       overflow: hidden;
       font-family: 'Roboto', Arial, sans-serif;
       background-color: #ffffff; /* FOND BLANC */
+      position: relative;
     }
     canvas { display: block; }
+
+    /* Arrière-plan Jonas (activable avec la touche J) */
+    #jonas-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('./Ressources/fond_jonas.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    #jonas-background.visible {
+      opacity: 1;
+    }
 
     /* ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS UI SUPPRIMÉS
@@ -181,6 +203,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Arrière-plan Jonas (activable avec touche J) -->
+  <div id="jonas-background"></div>
+
   <!-- ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS HTML SUPPRIMÉS
        =============================================== -->
@@ -472,6 +497,22 @@
       // Limiter entre 0 et 1
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
     }, { passive: false });
+
+    // Touche J pour afficher/masquer l'arrière-plan Jonas
+    let jonasBackgroundVisible = false;
+    const jonasBackground = document.getElementById('jonas-background');
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'j' || event.key === 'J') {
+        jonasBackgroundVisible = !jonasBackgroundVisible;
+
+        if (jonasBackgroundVisible) {
+          jonasBackground.classList.add('visible');
+        } else {
+          jonasBackground.classList.remove('visible');
+        }
+      }
+    });
 
     /* ===============================================
        SECTION DÉSACTIVÉE - INTERACTIONS UTILISATEUR
