@@ -27,12 +27,13 @@
     #jonas-background {
       position: fixed;
       top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1720px;
+      height: 880px;
       background-image: url('./Ressources/fond_jonas.png');
-      background-size: cover;
-      background-position: center;
+      background-size: contain;
+      background-position: top center;
       background-repeat: no-repeat;
       z-index: 0;
       opacity: 0;
@@ -48,12 +49,13 @@
     #jonas-background-negatif {
       position: fixed;
       top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1720px;
+      height: 880px;
       background-image: url('./Ressources/fond_jonas_negatif.png');
-      background-size: cover;
-      background-position: center;
+      background-size: contain;
+      background-position: top center;
       background-repeat: no-repeat;
       z-index: 0;
       opacity: 0;
@@ -66,6 +68,109 @@
     }
 
     /* FIN SECTION ARRIÈRE-PLANS JONAS */
+
+    /* ===============================================
+       INTERFACE DE PARAMÉTRAGE
+       =============================================== */
+
+    #settings-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.95);
+      color: white;
+      padding: 30px 40px;
+      border-radius: 8px;
+      border: 2px solid white;
+      z-index: 1000;
+      display: none;
+      min-width: 400px;
+      font-family: 'Roboto', Arial, sans-serif;
+    }
+
+    #settings-panel.visible {
+      display: block;
+    }
+
+    #settings-panel h2 {
+      margin: 0 0 25px 0;
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .param-control {
+      margin-bottom: 20px;
+    }
+
+    .param-control label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    .param-control input[type="range"] {
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: white;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .param-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+    }
+
+    .param-control input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    .param-value {
+      display: inline-block;
+      float: right;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .close-button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: white;
+      color: black;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .close-button:hover {
+      background-color: #e0e0e0;
+    }
+
+    /* FIN INTERFACE DE PARAMÉTRAGE */
 
     /* ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS UI SUPPRIMÉS
@@ -238,6 +343,53 @@
   <div id="jonas-background"></div>
   <div id="jonas-background-negatif"></div>
 
+  <!-- INTERFACE DE PARAMÉTRAGE -->
+  <div id="settings-panel">
+    <h2>Paramètres</h2>
+
+    <div class="param-control">
+      <label>
+        Densité
+        <span class="param-value" id="density-value">1.00</span>
+      </label>
+      <input type="range" id="density-slider" min="0.1" max="1" step="0.05" value="1">
+    </div>
+
+    <div class="param-control">
+      <label>
+        Disparité (profondeur)
+        <span class="param-value" id="disparity-value">8.0</span>
+      </label>
+      <input type="range" id="disparity-slider" min="0" max="20" step="0.5" value="8">
+    </div>
+
+    <div class="param-control">
+      <label>
+        Taille des particules
+        <span class="param-value" id="size-value">0.02</span>
+      </label>
+      <input type="range" id="size-slider" min="0.005" max="0.1" step="0.005" value="0.02">
+    </div>
+
+    <div class="param-control">
+      <label>
+        Mouvement
+        <span class="param-value" id="movement-value">0.02</span>
+      </label>
+      <input type="range" id="movement-slider" min="0" max="0.1" step="0.005" value="0.02">
+    </div>
+
+    <div class="param-control">
+      <label>
+        Saturation chromatique
+        <span class="param-value" id="saturation-value">2.0</span>
+      </label>
+      <input type="range" id="saturation-slider" min="0" max="5" step="0.1" value="2">
+    </div>
+
+    <button class="close-button" id="close-settings">Fermer</button>
+  </div>
+
   <!-- ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS HTML SUPPRIMÉS
        =============================================== -->
@@ -295,8 +447,17 @@
 
     const textureLoader = new THREE.TextureLoader();
 
+    // Paramètres modifiables pour les particules
+    let particleParams = {
+      density: 1.0,        // Densité (1.0 = tous les pixels, 0.5 = un pixel sur deux, etc.)
+      disparity: 8.0,      // Disparité en profondeur Z
+      size: 0.02,          // Taille des particules
+      movement: 0.02,      // Amplitude du mouvement
+      saturation: 2.0      // Saturation chromatique
+    };
+
     // Saturation des couleurs
-    function saturateColor(r, g, b, intensity = 2.0) {
+    function saturateColor(r, g, b, intensity) {
       const avg = (r + g + b) / 3;
       r = avg + (r - avg) * intensity;
       g = avg + (g - avg) * intensity;
@@ -311,26 +472,22 @@
       textureLoader.load(imagePath, function (texture) {
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
-        const imgWidth = texture.image.width;
-        const imgHeight = texture.image.height;
-        canvas.width = imgWidth;
-        canvas.height = imgHeight;
-        context.drawImage(texture.image, 0, 0, imgWidth, imgHeight);
-        const imgData = context.getImageData(0, 0, imgWidth, imgHeight);
 
-        // Définir la hauteur de référence avec l'image 2 (IMG_002)
-        if (imageIndex === 2 && referenceHeight === null) {
-          referenceHeight = imgHeight;
-        }
+        // Redimensionner à 1720x880px
+        const targetWidth = 1720;
+        const targetHeight = 880;
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
 
-        let scaleFactor = 50;
-        if (referenceHeight !== null) {
-          scaleFactor = (50 * (imgHeight / referenceHeight)) / 1.15;
-        }
+        // Dessiner l'image redimensionnée
+        context.drawImage(texture.image, 0, 0, targetWidth, targetHeight);
+        const imgData = context.getImageData(0, 0, targetWidth, targetHeight);
+
+        const scaleFactor = 50;
 
         const particleGeometry = new THREE.BufferGeometry();
         const particleMaterial = new THREE.PointsMaterial({
-          size: 0.02,
+          size: particleParams.size,
           vertexColors: true,
           transparent: true,
           opacity: 1
@@ -339,23 +496,26 @@
         const particleVertices = [];
         const particleColors = [];
 
-        for (let y = 0; y < imgHeight; y++) {
-          for (let x = 0; x < imgWidth; x++) {
-            const i = (y * imgWidth + x) * 4;
+        // Appliquer la densité pour échantillonner les pixels
+        const step = Math.max(1, Math.floor(1 / particleParams.density));
+
+        for (let y = 0; y < targetHeight; y += step) {
+          for (let x = 0; x < targetWidth; x += step) {
+            const i = (y * targetWidth + x) * 4;
             let r = imgData.data[i] / 255;
             let g = imgData.data[i + 1] / 255;
             let b = imgData.data[i + 2] / 255;
             const a = imgData.data[i + 3] / 255;
 
             if (a > 0.5) {
-              const saturated = saturateColor(r, g, b);
+              const saturated = saturateColor(r, g, b, particleParams.saturation);
               r = saturated.r;
               g = saturated.g;
               b = saturated.b;
 
-              const posX = (x - imgWidth / 2) / scaleFactor;
-              const posY = (y - imgHeight / 2) / scaleFactor;
-              const posZ = (Math.random() - 0.5) * 8;
+              const posX = (x - targetWidth / 2) / scaleFactor;
+              const posY = (y - targetHeight / 2) / scaleFactor;
+              const posZ = (Math.random() - 0.5) * particleParams.disparity;
               particleVertices.push(posX, posY, posZ);
               particleColors.push(r, g, b);
             }
@@ -473,15 +633,8 @@
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
-    // Précharger l'image de référence
-    const referencePath = `./Ressources/IMG_002.jpg`;
-    textureLoader.load(referencePath, function (texture) {
-      referenceHeight = texture.image.height;
-      loadImage(currentImageIndex);
-    }, undefined, function (err) {
-      console.error('Erreur lors du préchargement de l\'image de référence:', err);
-      loadImage(currentImageIndex);
-    });
+    // Charger la première image
+    loadImage(currentImageIndex);
 
     // Position de la caméra
     camera.position.set(0, 0, 0);
@@ -503,7 +656,7 @@
       if (particles) {
         const positions = particles.geometry.attributes.position.array;
         for (let i = 0; i < positions.length; i += 3) {
-          positions[i + 2] += (Math.random() - 0.5) * 0.02;
+          positions[i + 2] += (Math.random() - 0.5) * particleParams.movement;
         }
         particles.geometry.attributes.position.needsUpdate = true;
       }
@@ -544,6 +697,23 @@
     const jonasBackgroundNegatif = document.getElementById('jonas-background-negatif');
 
     window.addEventListener('keydown', (event) => {
+      // Flèche gauche - Image précédente
+      if (event.key === 'ArrowLeft') {
+        currentImageIndex = currentImageIndex === 1 ? maxImageIndex : currentImageIndex - 1;
+        loadImage(currentImageIndex);
+      }
+
+      // Flèche droite - Image suivante
+      if (event.key === 'ArrowRight') {
+        currentImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
+        loadImage(currentImageIndex);
+      }
+
+      // Touche I - Ouvrir/fermer l'interface de paramétrage
+      if (event.key === 'i' || event.key === 'I') {
+        settingsPanel.classList.toggle('visible');
+      }
+
       // Touche J - Arrière-plan normal
       if (event.key === 'j' || event.key === 'J') {
         jonasBackgroundVisible = !jonasBackgroundVisible;
@@ -574,6 +744,68 @@
     });
 
     /* FIN SECTION ARRIÈRE-PLANS JONAS */
+
+    /* ===============================================
+       INTERFACE DE PARAMÉTRAGE
+       =============================================== */
+
+    const settingsPanel = document.getElementById('settings-panel');
+    const closeSettingsBtn = document.getElementById('close-settings');
+
+    // Bouton fermer
+    closeSettingsBtn.addEventListener('click', () => {
+      settingsPanel.classList.remove('visible');
+    });
+
+    // Slider densité
+    const densitySlider = document.getElementById('density-slider');
+    const densityValue = document.getElementById('density-value');
+    densitySlider.addEventListener('input', (e) => {
+      particleParams.density = parseFloat(e.target.value);
+      densityValue.textContent = particleParams.density.toFixed(2);
+      loadImage(currentImageIndex); // Recharger l'image avec les nouveaux paramètres
+    });
+
+    // Slider disparité
+    const disparitySlider = document.getElementById('disparity-slider');
+    const disparityValue = document.getElementById('disparity-value');
+    disparitySlider.addEventListener('input', (e) => {
+      particleParams.disparity = parseFloat(e.target.value);
+      disparityValue.textContent = particleParams.disparity.toFixed(1);
+      loadImage(currentImageIndex);
+    });
+
+    // Slider taille
+    const sizeSlider = document.getElementById('size-slider');
+    const sizeValue = document.getElementById('size-value');
+    sizeSlider.addEventListener('input', (e) => {
+      particleParams.size = parseFloat(e.target.value);
+      sizeValue.textContent = particleParams.size.toFixed(3);
+      // Mettre à jour directement la taille sans recharger
+      if (particles) {
+        particles.material.size = particleParams.size;
+      }
+    });
+
+    // Slider mouvement
+    const movementSlider = document.getElementById('movement-slider');
+    const movementValue = document.getElementById('movement-value');
+    movementSlider.addEventListener('input', (e) => {
+      particleParams.movement = parseFloat(e.target.value);
+      movementValue.textContent = particleParams.movement.toFixed(3);
+      // Pas besoin de recharger, le changement sera appliqué dans la boucle animate()
+    });
+
+    // Slider saturation
+    const saturationSlider = document.getElementById('saturation-slider');
+    const saturationValue = document.getElementById('saturation-value');
+    saturationSlider.addEventListener('input', (e) => {
+      particleParams.saturation = parseFloat(e.target.value);
+      saturationValue.textContent = particleParams.saturation.toFixed(1);
+      loadImage(currentImageIndex);
+    });
+
+    /* FIN INTERFACE DE PARAMÉTRAGE */
 
     /* ===============================================
        SECTION DÉSACTIVÉE - INTERACTIONS UTILISATEUR
