@@ -551,7 +551,7 @@
         <div class="param-header">
           <span class="param-label">Brightness</span>
           <div class="param-value-display">
-            <span class="param-value" id="saturation-value">2.0</span>
+            <span class="param-value" id="saturation-value">1.0</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="saturation" data-action="decrease">▼</button>
               <button class="param-btn" data-param="saturation" data-action="increase">▲</button>
@@ -559,33 +559,25 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="saturation-slider" min="0" max="4" step="0.1" value="2">
+          <input type="range" id="saturation-slider" min="0" max="4" step="0.1" value="1">
         </div>
       </div>
 
-      <!-- Zoom Level -->
+      <!-- Hide Black -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Zoom Level</span>
+          <span class="param-label">Hide Black</span>
           <div class="param-value-display">
-            <span class="param-value" id="zoom-value">0.5</span>
+            <span class="param-value" id="hideBlack-value">0.0</span>
             <div class="param-buttons">
-              <button class="param-btn" data-param="zoom" data-action="decrease">▼</button>
-              <button class="param-btn" data-param="zoom" data-action="increase">▲</button>
+              <button class="param-btn" data-param="hideBlack" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="hideBlack" data-action="increase">▲</button>
             </div>
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="zoom-slider" min="0" max="1" step="0.05" value="0.5">
+          <input type="range" id="hideBlack-slider" min="0" max="1" step="0.05" value="0">
         </div>
-      </div>
-
-      <div class="settings-divider"></div>
-
-      <!-- Hide Background -->
-      <div class="param-checkbox">
-        <input type="checkbox" id="hide-bg-checkbox">
-        <label for="hide-bg-checkbox">Hide Background</label>
       </div>
 
       <div class="settings-divider"></div>
@@ -664,8 +656,8 @@
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
-    let zoomLevel = 0.5;
-    let targetZoomLevel = 0.5;
+    let zoomLevel = 0;
+    let targetZoomLevel = 0;
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
@@ -677,7 +669,8 @@
       disparity: 8.0,      // Disparité en profondeur Z
       size: 0.02,          // Taille des particules
       movement: 0.02,      // Amplitude du mouvement
-      saturation: 2.0      // Saturation chromatique
+      saturation: 1.0,     // Saturation chromatique
+      hideBlack: 0.0       // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
     };
 
     // Saturation des couleurs
@@ -741,11 +734,18 @@
               g = saturated.g;
               b = saturated.b;
 
-              const posX = (x - targetWidth / 2) / scaleFactor;
-              const posY = (y - targetHeight / 2) / scaleFactor;
-              const posZ = (Math.random() - 0.5) * particleParams.disparity;
-              particleVertices.push(posX, posY, posZ);
-              particleColors.push(r, g, b);
+              // Calculer la luminosité du pixel (0 = noir, 1 = blanc)
+              const brightness = (r + g + b) / 3;
+
+              // Filtrer les pixels noirs selon le seuil hideBlack
+              // Si hideBlack = 0.3, on cache tous les pixels avec brightness < 0.3
+              if (brightness >= particleParams.hideBlack) {
+                const posX = (x - targetWidth / 2) / scaleFactor;
+                const posY = (y - targetHeight / 2) / scaleFactor;
+                const posZ = (Math.random() - 0.5) * particleParams.disparity;
+                particleVertices.push(posX, posY, posZ);
+                particleColors.push(r, g, b);
+              }
             }
           }
         }
@@ -928,6 +928,13 @@
     const jonasBackgroundNegatif = document.getElementById('jonas-background-negatif');
     const jonasBgColorNegatif = document.getElementById('jonas-bg-color-negatif');
 
+    // Activer le fond noir + typo blanche au chargement (comme touche N)
+    window.addEventListener('load', () => {
+      jonasBgColorNegatif.classList.add('visible');
+      jonasBackgroundNegatif.classList.add('visible');
+      jonasBackgroundNegatifVisible = true;
+    });
+
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
       if (event.key === 'ArrowLeft') {
@@ -993,14 +1000,14 @@
 
     const settingsPanel = document.getElementById('settings-panel');
 
-    // Valeurs par défaut (toutes au milieu de leur plage)
+    // Valeurs par défaut
     const defaultParams = {
       size: 0.02,         // milieu de 0 à 0.04
       density: 1.0,       // milieu de 0 à 2
       disparity: 8.0,     // milieu de 0 à 16
       movement: 0.02,     // milieu de 0 à 0.04
-      saturation: 2.0,    // milieu de 0 à 4
-      zoom: 0.5           // milieu de 0 à 1
+      saturation: 1.0,    // 1.0 au lieu de 2.0
+      hideBlack: 0.0      // 0 = aucun pixel masqué
     };
 
     // Helper pour mettre à jour un paramètre
@@ -1031,9 +1038,10 @@
         particleParams.saturation = value;
         valueDisplay.textContent = value.toFixed(1);
         loadImage(currentImageIndex);
-      } else if (param === 'zoom') {
-        targetZoomLevel = value;
-        valueDisplay.textContent = value.toFixed(1);
+      } else if (param === 'hideBlack') {
+        particleParams.hideBlack = value;
+        valueDisplay.textContent = value.toFixed(2);
+        loadImage(currentImageIndex);
       }
 
       if (updateSlider) {
@@ -1042,7 +1050,7 @@
     }
 
     // Sliders
-    ['size', 'density', 'disparity', 'movement', 'saturation', 'zoom'].forEach(param => {
+    ['size', 'density', 'disparity', 'movement', 'saturation', 'hideBlack'].forEach(param => {
       const slider = document.getElementById(`${param}-slider`);
       slider.addEventListener('input', (e) => {
         updateParam(param, parseFloat(e.target.value), false);
@@ -1063,20 +1071,6 @@
       });
     });
 
-    // Hide Background checkbox
-    const hideBgCheckbox = document.getElementById('hide-bg-checkbox');
-    hideBgCheckbox.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        // Masquer tous les arrière-plans
-        jonasBgColor.classList.remove('visible');
-        jonasBackground.classList.remove('visible');
-        jonasBgColorNegatif.classList.remove('visible');
-        jonasBackgroundNegatif.classList.remove('visible');
-        jonasBackgroundVisible = false;
-        jonasBackgroundNegatifVisible = false;
-      }
-    });
-
     // Apply button
     document.getElementById('apply-btn').addEventListener('click', () => {
       // Recharger avec tous les paramètres
@@ -1093,8 +1087,8 @@
 
     // Reset Camera
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
-      targetZoomLevel = 0;
-      updateParam('zoom', 0);
+      targetZoomLevel = 0.5;
+      sceneGroup.position.set(0, 0, -25);
       sceneGroup.rotation.set(0, 0, 0);
     });
 
