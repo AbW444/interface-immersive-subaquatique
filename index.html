@@ -23,7 +23,25 @@
        ARRIÈRE-PLANS JONAS
        =============================================== */
 
-    /* Arrière-plan Jonas (activable avec la touche J) */
+    /* Fond de couleur pour Jonas normal (blanc) */
+    #jonas-bg-color {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      min-height: 100vh;
+      background-color: #ffffff;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    #jonas-bg-color.visible {
+      opacity: 1;
+    }
+
+    /* Typo Jonas (noire sur transparent) - Touche J */
     #jonas-background {
       position: fixed;
       top: 0;
@@ -38,13 +56,32 @@
       opacity: 0;
       transition: opacity 0.5s ease;
       pointer-events: none;
+      mix-blend-mode: multiply;
     }
 
     #jonas-background.visible {
       opacity: 1;
     }
 
-    /* Arrière-plan Jonas négatif (activable avec la touche N) */
+    /* Fond de couleur pour Jonas négatif (noir) */
+    #jonas-bg-color-negatif {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      min-height: 100vh;
+      background-color: #000000;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    #jonas-bg-color-negatif.visible {
+      opacity: 1;
+    }
+
+    /* Typo Jonas négatif (blanche sur transparent) - Touche N */
     #jonas-background-negatif {
       position: fixed;
       top: 0;
@@ -59,6 +96,7 @@
       opacity: 0;
       transition: opacity 0.5s ease;
       pointer-events: none;
+      mix-blend-mode: screen;
     }
 
     #jonas-background-negatif.visible {
@@ -428,7 +466,12 @@
 </head>
 <body>
   <!-- ARRIÈRE-PLANS JONAS -->
+  <!-- Fond blanc + typo noire (touche J) -->
+  <div id="jonas-bg-color"></div>
   <div id="jonas-background"></div>
+
+  <!-- Fond noir + typo blanche (touche N) -->
+  <div id="jonas-bg-color-negatif"></div>
   <div id="jonas-background-negatif"></div>
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
@@ -593,9 +636,23 @@
     // Pas de fond de scène - transparent pour voir les arrière-plans Jonas
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true pour transparence
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+
+    // Créer le renderer avec gestion d'erreur
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+    } catch (error) {
+      console.error('WebGL error:', error);
+      document.body.innerHTML = '<div style="color: white; padding: 20px; font-family: Arial;">WebGL n\'est pas disponible. Essayez de rafraîchir la page (Ctrl+F5) ou redémarrez votre navigateur.</div>';
+      throw error;
+    }
 
     // GROUPE pour contenir les particules
     const sceneGroup = new THREE.Group();
@@ -696,8 +753,11 @@
         particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particleVertices, 3));
         particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(particleColors, 3));
 
+        // Nettoyer les anciennes particules pour éviter les fuites mémoire
         if (particles) {
           sceneGroup.remove(particles);
+          if (particles.geometry) particles.geometry.dispose();
+          if (particles.material) particles.material.dispose();
         }
 
         particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -859,13 +919,14 @@
        ARRIÈRE-PLANS JONAS
        =============================================== */
 
-    // Touche J pour afficher/masquer l'arrière-plan Jonas
+    // Arrière-plans Jonas
     let jonasBackgroundVisible = false;
     const jonasBackground = document.getElementById('jonas-background');
+    const jonasBgColor = document.getElementById('jonas-bg-color');
 
-    // Touche N pour afficher/masquer l'arrière-plan Jonas négatif
     let jonasBackgroundNegatifVisible = false;
     const jonasBackgroundNegatif = document.getElementById('jonas-background-negatif');
+    const jonasBgColorNegatif = document.getElementById('jonas-bg-color-negatif');
 
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
@@ -885,30 +946,40 @@
         settingsPanel.classList.toggle('visible');
       }
 
-      // Touche J - Arrière-plan normal
+      // Touche J - Fond blanc + Typo noire
       if (event.key === 'j' || event.key === 'J') {
         jonasBackgroundVisible = !jonasBackgroundVisible;
 
         if (jonasBackgroundVisible) {
+          // Afficher fond blanc + typo noire
+          jonasBgColor.classList.add('visible');
           jonasBackground.classList.add('visible');
           // Masquer le négatif si visible
+          jonasBgColorNegatif.classList.remove('visible');
           jonasBackgroundNegatif.classList.remove('visible');
           jonasBackgroundNegatifVisible = false;
         } else {
+          // Tout masquer
+          jonasBgColor.classList.remove('visible');
           jonasBackground.classList.remove('visible');
         }
       }
 
-      // Touche N - Arrière-plan négatif
+      // Touche N - Fond noir + Typo blanche
       if (event.key === 'n' || event.key === 'N') {
         jonasBackgroundNegatifVisible = !jonasBackgroundNegatifVisible;
 
         if (jonasBackgroundNegatifVisible) {
+          // Afficher fond noir + typo blanche
+          jonasBgColorNegatif.classList.add('visible');
           jonasBackgroundNegatif.classList.add('visible');
           // Masquer le normal si visible
+          jonasBgColor.classList.remove('visible');
           jonasBackground.classList.remove('visible');
           jonasBackgroundVisible = false;
         } else {
+          // Tout masquer
+          jonasBgColorNegatif.classList.remove('visible');
           jonasBackgroundNegatif.classList.remove('visible');
         }
       }
@@ -996,7 +1067,10 @@
     const hideBgCheckbox = document.getElementById('hide-bg-checkbox');
     hideBgCheckbox.addEventListener('change', (e) => {
       if (e.target.checked) {
+        // Masquer tous les arrière-plans
+        jonasBgColor.classList.remove('visible');
         jonasBackground.classList.remove('visible');
+        jonasBgColorNegatif.classList.remove('visible');
         jonasBackgroundNegatif.classList.remove('visible');
         jonasBackgroundVisible = false;
         jonasBackgroundNegatifVisible = false;
