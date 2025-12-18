@@ -230,6 +230,12 @@
     const maxImageIndex = 7;
     let referenceHeight = null;
 
+    // Variables pour le zoom progressif avec scroll
+    let zoomLevel = 0;
+    let targetZoomLevel = 0;
+    const minZoom = -25; // Position loin
+    const maxZoom = -2;  // Position proche
+
     const textureLoader = new THREE.TextureLoader();
 
     // Saturation des couleurs
@@ -427,6 +433,14 @@
     function animate() {
       requestAnimationFrame(animate);
 
+      // Zoom fluide progressif (interpolation vers la cible)
+      if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
+        // Lerp fluide vers la position cible
+        zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
+        // Calculer la position Z interpolée
+        sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
+      }
+
       // Mouvement subtil des particules
       if (particles) {
         const positions = particles.geometry.attributes.position.array;
@@ -446,6 +460,18 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+    // Zoom progressif avec la molette de la souris
+    window.addEventListener('wheel', (event) => {
+      event.preventDefault();
+
+      // Vitesse de scroll pour un contrôle optimal
+      const scrollSpeed = 0.0004;
+      targetZoomLevel -= event.deltaY * scrollSpeed; // scroll up = rapprochement
+
+      // Limiter entre 0 et 1
+      targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+    }, { passive: false });
 
     /* ===============================================
        SECTION DÉSACTIVÉE - INTERACTIONS UTILISATEUR
