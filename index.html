@@ -500,7 +500,7 @@
         <div class="param-header">
           <span class="param-label">Particle Density</span>
           <div class="param-value-display">
-            <span class="param-value" id="density-value">0.7</span>
+            <span class="param-value" id="density-value">0.4</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="density" data-action="decrease">▼</button>
               <button class="param-btn" data-param="density" data-action="increase">▲</button>
@@ -508,7 +508,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="density-slider" min="0" max="2" step="0.05" value="0.7">
+          <input type="range" id="density-slider" min="0" max="2" step="0.05" value="0.4" disabled>
         </div>
       </div>
 
@@ -669,7 +669,7 @@
 
     // Paramètres modifiables pour les particules
     let particleParams = {
-      density: 0.7,        // Densité réduite (0.7 = état 01)
+      density: 0.4,        // Densité bloquée à 0.4
       disparity: 0.0,      // Disparité en profondeur Z
       size: 0.02,          // Taille des particules
       movement: 0.0,       // Pas de mouvement
@@ -679,7 +679,7 @@
 
     // États de l'EPP (écran-particules-pixel)
     const etat01 = {
-      density: 0.7,        // Réduit de 1.0 -> 0.7
+      density: 0.4,        // Bloqué à 0.4
       disparity: 0.0,
       size: 0.02,
       movement: 0.0,       // Pas de mouvement
@@ -688,7 +688,7 @@
     };
 
     const etat02 = {
-      density: 1.2,        // Réduit de 1.6 -> 1.2
+      density: 0.4,        // Bloqué à 0.4
       disparity: 9.0,
       size: 0.02,
       movement: 0.0,       // Pas de mouvement (était 0.04)
@@ -1118,7 +1118,7 @@
     // Valeurs par défaut (état 01)
     const defaultParams = {
       size: 0.02,
-      density: 0.7,      // Réduit pour correspondre à l'état 01
+      density: 0.4,      // Bloqué à 0.4
       disparity: 0.0,
       movement: 0.0,
       saturation: 1.0,
@@ -1157,9 +1157,10 @@
         valueDisplay.textContent = value.toFixed(3);
         if (particles) particles.material.size = value;
       } else if (param === 'density') {
-        particleParams.density = value;
-        valueDisplay.textContent = value.toFixed(1);
-        loadImage(currentImageIndex);
+        // Density est bloquée à 0.4 - ignorer les changements
+        particleParams.density = 0.4;
+        valueDisplay.textContent = '0.4';
+        return; // Ne pas recharger l'image
       } else if (param === 'disparity') {
         particleParams.disparity = value;
         valueDisplay.textContent = value.toFixed(1);
@@ -1192,8 +1193,17 @@
 
     // Boutons +/-
     document.querySelectorAll('.param-btn').forEach(btn => {
+      const param = btn.dataset.param;
+
+      // Désactiver les boutons de densité
+      if (param === 'density') {
+        btn.disabled = true;
+        btn.style.opacity = '0.3';
+        btn.style.cursor = 'not-allowed';
+        return;
+      }
+
       btn.addEventListener('click', () => {
-        const param = btn.dataset.param;
         const action = btn.dataset.action;
         const slider = document.getElementById(`${param}-slider`);
         const step = parseFloat(slider.step);
