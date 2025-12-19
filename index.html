@@ -931,8 +931,6 @@
     // Variables pour optimisations Phase 1
     let lastUIUpdate = 0;
     const UI_UPDATE_INTERVAL = 100; // ms (Opt #1 - Throttle UI)
-    let reloadTimeout = null;
-    const RELOAD_DEBOUNCE = 300; // ms (Opt #3 - Debounce reload)
     let hasInitialRender = false; // Pour forcer un premier render
 
     // Animation
@@ -973,15 +971,12 @@
         const densityChange = Math.abs(particleParams.density - lastDensity);
         const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
 
-        // Opt #2 - Seuils augmentés : 0.4 pour density, 3.0 pour disparity
-        if (densityChange > 0.4 || disparityChange > 3.0) {
-          // Opt #3 - Debounce : attendre 300ms avant de recharger
-          clearTimeout(reloadTimeout);
-          reloadTimeout = setTimeout(() => {
-            lastDensity = particleParams.density;
-            lastDisparity = particleParams.disparity;
-            loadImage(currentImageIndex);
-          }, RELOAD_DEBOUNCE);
+        // Opt #2 - Seuils augmentés : 0.3 pour density, 2.0 pour disparity
+        // (rechargement immédiat sans debounce pour fluidité visuelle)
+        if (densityChange > 0.3 || disparityChange > 2.0) {
+          lastDensity = particleParams.density;
+          lastDisparity = particleParams.disparity;
+          loadImage(currentImageIndex);
         }
 
         needsRender = true;
