@@ -663,6 +663,10 @@
 
     const textureLoader = new THREE.TextureLoader();
 
+    // Canvas réutilisable pour optimisation (Phase 1 - Opt #4)
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenContext = offscreenCanvas.getContext('2d');
+
     // Paramètres modifiables pour les particules
     let particleParams = {
       density: 1.0,        // Densité (1.0 = tous les pixels, 0.5 = un pixel sur deux, etc.)
@@ -734,18 +738,15 @@
       const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
 
       textureLoader.load(imagePath, function (texture) {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-
-        // Redimensionner à 1720x880px
+        // Réutiliser le canvas existant (Phase 1 - Opt #4)
         const targetWidth = 1720;
         const targetHeight = 880;
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
+        offscreenCanvas.width = targetWidth;
+        offscreenCanvas.height = targetHeight;
 
         // Dessiner l'image redimensionnée
-        context.drawImage(texture.image, 0, 0, targetWidth, targetHeight);
-        const imgData = context.getImageData(0, 0, targetWidth, targetHeight);
+        offscreenContext.drawImage(texture.image, 0, 0, targetWidth, targetHeight);
+        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
 
         const scaleFactor = 50;
 
@@ -811,6 +812,9 @@
         // Initialiser le temps pour l'animation
         particles.userData.time = 0;
         sceneGroup.add(particles);
+
+        // Forcer le render de la nouvelle image (Opt #5)
+        hasInitialRender = false;
       }, undefined, function (err) {
         console.error(`Une erreur est survenue lors du chargement de l'image ${imageIndex}:`, err);
       });
@@ -924,9 +928,25 @@
     let lastDensity = particleParams.density;
     let lastDisparity = particleParams.disparity;
 
+    // Variables pour optimisations Phase 1
+    let lastUIUpdate = 0;
+    const UI_UPDATE_INTERVAL = 100; // ms (Opt #1 - Throttle UI)
+    let reloadTimeout = null;
+    const RELOAD_DEBOUNCE = 300; // ms (Opt #3 - Debounce reload)
+    let hasInitialRender = false; // Pour forcer un premier render
+
     // Animation
     function animate() {
       requestAnimationFrame(animate);
+
+      const now = performance.now();
+      let needsRender = false; // (Opt #5 - Early exit)
+
+      // Forcer le render initial quand les particules sont chargées
+      if (particles && !hasInitialRender) {
+        needsRender = true;
+        hasInitialRender = true;
+      }
 
       // Zoom fluide progressif (interpolation vers la cible)
       if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
@@ -938,8 +958,11 @@
         // Mettre à jour les paramètres en fonction du zoom
         updateParamsFromZoom(zoomLevel);
 
-        // Mettre à jour l'affichage de l'UI
-        updateUIValues();
+        // Mettre à jour l'affichage de l'UI (Opt #1 - Throttle à 100ms)
+        if (now - lastUIUpdate > UI_UPDATE_INTERVAL) {
+          updateUIValues();
+          lastUIUpdate = now;
+        }
 
         // Mettre à jour la taille des particules en temps réel
         if (particles) {
@@ -950,13 +973,18 @@
         const densityChange = Math.abs(particleParams.density - lastDensity);
         const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
 
-        // Seuils : 0.2 pour density, 1.5 pour disparity
-        if (densityChange > 0.2 || disparityChange > 1.5) {
-          lastDensity = particleParams.density;
-          lastDisparity = particleParams.disparity;
-          lastReloadZoom = zoomLevel;
-          loadImage(currentImageIndex);
+        // Opt #2 - Seuils augmentés : 0.4 pour density, 3.0 pour disparity
+        if (densityChange > 0.4 || disparityChange > 3.0) {
+          // Opt #3 - Debounce : attendre 300ms avant de recharger
+          clearTimeout(reloadTimeout);
+          reloadTimeout = setTimeout(() => {
+            lastDensity = particleParams.density;
+            lastDisparity = particleParams.disparity;
+            loadImage(currentImageIndex);
+          }, RELOAD_DEBOUNCE);
         }
+
+        needsRender = true;
       }
 
       // Mouvement subtil des particules (oscillation autour de la position initiale)
@@ -965,20 +993,26 @@
 
         const positions = particles.geometry.attributes.position.array;
         const initialPositions = particles.geometry.attributes.initialPosition.array;
+        const time = particles.userData.time;
+        const movementDouble = particleParams.movement * 2; // (Opt #7 - Pré-calculer)
 
         for (let i = 0; i < positions.length; i += 3) {
           // Oscillation sinusoïdale autour de la position initiale sur l'axe Z
           // Utilise un offset unique par particule pour éviter la synchronisation
           const offset = i * 0.1;
-          const oscillation = Math.sin(particles.userData.time + offset) * particleParams.movement * 2;
+          const oscillation = Math.sin(time + offset) * movementDouble;
 
           // Restaurer la position initiale + ajouter l'oscillation
           positions[i + 2] = initialPositions[i + 2] + oscillation;
         }
         particles.geometry.attributes.position.needsUpdate = true;
+        needsRender = true;
       }
 
-      renderer.render(scene, camera);
+      // (Opt #5 - Early exit) Ne render que si nécessaire
+      if (needsRender) {
+        renderer.render(scene, camera);
+      }
     }
     animate();
 
