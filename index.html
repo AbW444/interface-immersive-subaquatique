@@ -732,31 +732,6 @@
     // Version des images (incrémenter ce nombre quand vous changez les images)
     const IMAGE_VERSION = 2;
 
-    // Phase 2A - Opt: Geometry Reuse
-    // Mettre à jour seulement les positions Z (disparity) sans recréer la géométrie
-    function updateDisparity() {
-      if (!particles) return;
-
-      const positions = particles.geometry.attributes.position.array;
-      const initialPositions = particles.geometry.attributes.initialPosition.array;
-      const count = positions.length / 3;
-
-      // Mettre à jour uniquement les positions Z avec la nouvelle disparity
-      for (let i = 0; i < count; i++) {
-        const index = i * 3;
-        // Conserver X et Y, régénérer Z avec seed déterministe
-        const seed = (positions[index] * 1000 + positions[index + 1] * 1000) % 1000;
-        const randomZ = (Math.sin(seed) * 0.5 + 0.5) - 0.5; // -0.5 à 0.5
-        const newZ = randomZ * particleParams.disparity;
-
-        positions[index + 2] = newZ;
-        initialPositions[index + 2] = newZ;
-      }
-
-      particles.geometry.attributes.position.needsUpdate = true;
-      particles.geometry.attributes.initialPosition.needsUpdate = true;
-    }
-
     // Fonction de chargement d'image
     function loadImage(imageIndex) {
       // Ajouter une version pour éviter le cache du navigateur
@@ -786,27 +761,19 @@
         const particleVertices = [];
         const particleColors = [];
 
-        // Phase 2A - Vertex Reduction: Optimiser la boucle de génération
-        // Pré-calculer les constantes pour éviter les calculs répétés
+        // Appliquer la densité pour échantillonner les pixels
         const step = Math.max(1, Math.floor(1 / particleParams.density));
-        const halfWidth = targetWidth / 2;
-        const halfHeight = targetHeight / 2;
-        const invScaleFactor = 1 / scaleFactor;
-        const data = imgData.data;
-        const saturation = particleParams.saturation;
-        const hideBlack = particleParams.hideBlack;
-        const disparity = particleParams.disparity;
 
         for (let y = 0; y < targetHeight; y += step) {
           for (let x = 0; x < targetWidth; x += step) {
             const i = (y * targetWidth + x) * 4;
-            let r = data[i] / 255;
-            let g = data[i + 1] / 255;
-            let b = data[i + 2] / 255;
-            const a = data[i + 3] / 255;
+            let r = imgData.data[i] / 255;
+            let g = imgData.data[i + 1] / 255;
+            let b = imgData.data[i + 2] / 255;
+            const a = imgData.data[i + 3] / 255;
 
             if (a > 0.5) {
-              const saturated = saturateColor(r, g, b, saturation);
+              const saturated = saturateColor(r, g, b, particleParams.saturation);
               r = saturated.r;
               g = saturated.g;
               b = saturated.b;
@@ -815,10 +782,11 @@
               const brightness = (r + g + b) / 3;
 
               // Filtrer les pixels noirs selon le seuil hideBlack
-              if (brightness >= hideBlack) {
-                const posX = (x - halfWidth) * invScaleFactor;
-                const posY = (y - halfHeight) * invScaleFactor;
-                const posZ = (Math.random() - 0.5) * disparity;
+              // Si hideBlack = 0.3, on cache tous les pixels avec brightness < 0.3
+              if (brightness >= particleParams.hideBlack) {
+                const posX = (x - targetWidth / 2) / scaleFactor;
+                const posY = (y - targetHeight / 2) / scaleFactor;
+                const posZ = (Math.random() - 0.5) * particleParams.disparity;
                 particleVertices.push(posX, posY, posZ);
                 particleColors.push(r, g, b);
               }
@@ -999,20 +967,16 @@
           particles.material.size = particleParams.size;
         }
 
-        // Phase 2A - Geometry Reuse: détecter quel paramètre a changé
+        // Recharger l'image uniquement si density ou disparity changent significativement
         const densityChange = Math.abs(particleParams.density - lastDensity);
         const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
 
-        // Si density change significativement (0.3) → recréer complètement
-        if (densityChange > 0.3) {
+        // Opt #2 - Seuils augmentés : 0.3 pour density, 2.0 pour disparity
+        // (rechargement immédiat sans debounce pour fluidité visuelle)
+        if (densityChange > 0.3 || disparityChange > 2.0) {
           lastDensity = particleParams.density;
           lastDisparity = particleParams.disparity;
           loadImage(currentImageIndex);
-        }
-        // Sinon, si seul disparity change (2.0) → juste update Z (20-30% plus rapide)
-        else if (disparityChange > 2.0) {
-          lastDisparity = particleParams.disparity;
-          updateDisparity();
         }
 
         needsRender = true;
