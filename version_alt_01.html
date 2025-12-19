@@ -944,17 +944,36 @@
         // Mettre à jour la taille des particules en temps réel
         if (particles) {
           particles.material.size = particleParams.size;
+
+          // Mettre à jour les positions Z pour simuler la disparity SANS recharger
+          const positions = particles.geometry.attributes.position.array;
+          const initialPositions = particles.geometry.attributes.initialPosition.array;
+
+          for (let i = 0; i < positions.length; i += 3) {
+            // Recalculer Z avec la nouvelle disparity (seed déterministe)
+            const randomSeed = Math.sin(i * 12345.6789); // -1 à 1
+            const newZ = randomSeed * particleParams.disparity;
+
+            // Mettre à jour la position de base ET la position actuelle
+            initialPositions[i + 2] = newZ;
+
+            // Si movement > 0, l'oscillation sera appliquée dans le bloc suivant
+            // Sinon on met à jour directement la position
+            if (particleParams.movement === 0) {
+              positions[i + 2] = newZ;
+            }
+          }
+
+          particles.geometry.attributes.position.needsUpdate = true;
+          particles.geometry.attributes.initialPosition.needsUpdate = true;
         }
 
-        // Recharger l'image uniquement si density ou disparity changent significativement
+        // Recharger l'image uniquement si la densité change significativement
         const densityChange = Math.abs(particleParams.density - lastDensity);
-        const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
 
-        // Seuils : 0.2 pour density, 1.5 pour disparity
-        if (densityChange > 0.2 || disparityChange > 1.5) {
+        if (densityChange > 0.3) {
           lastDensity = particleParams.density;
           lastDisparity = particleParams.disparity;
-          lastReloadZoom = zoomLevel;
           loadImage(currentImageIndex);
         }
       }
