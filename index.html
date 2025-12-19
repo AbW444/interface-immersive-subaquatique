@@ -753,6 +753,9 @@
         particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particleVertices, 3));
         particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(particleColors, 3));
 
+        // Stocker les positions initiales pour le mouvement oscillant
+        particleGeometry.setAttribute('initialPosition', new THREE.Float32BufferAttribute(particleVertices.slice(), 3));
+
         // Nettoyer les anciennes particules pour éviter les fuites mémoire
         if (particles) {
           sceneGroup.remove(particles);
@@ -762,6 +765,8 @@
 
         particles = new THREE.Points(particleGeometry, particleMaterial);
         particles.rotation.x = Math.PI;
+        // Initialiser le temps pour l'animation
+        particles.userData.time = 0;
         sceneGroup.add(particles);
       }, undefined, function (err) {
         console.error(`Une erreur est survenue lors du chargement de l'image ${imageIndex}:`, err);
@@ -883,11 +888,21 @@
         sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
       }
 
-      // Mouvement subtil des particules
-      if (particles) {
+      // Mouvement subtil des particules (oscillation autour de la position initiale)
+      if (particles && particleParams.movement > 0) {
+        particles.userData.time += 0.01;
+
         const positions = particles.geometry.attributes.position.array;
+        const initialPositions = particles.geometry.attributes.initialPosition.array;
+
         for (let i = 0; i < positions.length; i += 3) {
-          positions[i + 2] += (Math.random() - 0.5) * particleParams.movement;
+          // Oscillation sinusoïdale autour de la position initiale sur l'axe Z
+          // Utilise un offset unique par particule pour éviter la synchronisation
+          const offset = i * 0.1;
+          const oscillation = Math.sin(particles.userData.time + offset) * particleParams.movement * 2;
+
+          // Restaurer la position initiale + ajouter l'oscillation
+          positions[i + 2] = initialPositions[i + 2] + oscillation;
         }
         particles.geometry.attributes.position.needsUpdate = true;
       }
