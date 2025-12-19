@@ -919,8 +919,10 @@
     camera.position.set(0, 0, 0);
     sceneGroup.position.set(0, 0, -25);
 
-    // Variable pour tracker le dernier zoom qui a déclenché un reload
+    // Variables pour optimiser le rechargement
     let lastReloadZoom = 0;
+    let lastDensity = particleParams.density;
+    let lastDisparity = particleParams.disparity;
 
     // Animation
     function animate() {
@@ -944,8 +946,14 @@
           particles.material.size = particleParams.size;
         }
 
-        // Recharger l'image si density ou disparity ont suffisamment changé
-        if (Math.abs(zoomLevel - lastReloadZoom) > 0.1) {
+        // Recharger l'image uniquement si density ou disparity changent significativement
+        const densityChange = Math.abs(particleParams.density - lastDensity);
+        const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
+
+        // Seuils : 0.2 pour density, 1.5 pour disparity
+        if (densityChange > 0.2 || disparityChange > 1.5) {
+          lastDensity = particleParams.density;
+          lastDisparity = particleParams.disparity;
           lastReloadZoom = zoomLevel;
           loadImage(currentImageIndex);
         }
