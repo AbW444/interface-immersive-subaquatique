@@ -517,7 +517,7 @@
         <div class="param-header">
           <span class="param-label">Depth Spread</span>
           <div class="param-value-display">
-            <span class="param-value" id="disparity-value">8.0</span>
+            <span class="param-value" id="disparity-value">0.0</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="disparity" data-action="decrease">▼</button>
               <button class="param-btn" data-param="disparity" data-action="increase">▲</button>
@@ -525,7 +525,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="disparity-slider" min="0" max="16" step="0.5" value="8">
+          <input type="range" id="disparity-slider" min="0" max="16" step="0.5" value="0">
         </div>
       </div>
 
@@ -534,7 +534,7 @@
         <div class="param-header">
           <span class="param-label">Breath Speed</span>
           <div class="param-value-display">
-            <span class="param-value" id="movement-value">0.02</span>
+            <span class="param-value" id="movement-value">0.000</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="movement" data-action="decrease">▼</button>
               <button class="param-btn" data-param="movement" data-action="increase">▲</button>
@@ -542,7 +542,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="movement-slider" min="0" max="0.04" step="0.002" value="0.02">
+          <input type="range" id="movement-slider" min="0" max="0.04" step="0.002" value="0">
         </div>
       </div>
 
@@ -666,12 +666,55 @@
     // Paramètres modifiables pour les particules
     let particleParams = {
       density: 1.0,        // Densité (1.0 = tous les pixels, 0.5 = un pixel sur deux, etc.)
-      disparity: 8.0,      // Disparité en profondeur Z
+      disparity: 0.0,      // Disparité en profondeur Z
       size: 0.02,          // Taille des particules
-      movement: 0.02,      // Amplitude du mouvement
+      movement: 0.0,       // Amplitude du mouvement
       saturation: 1.0,     // Saturation chromatique
       hideBlack: 0.0       // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
     };
+
+    // États de l'EPP (écran-particules-pixel)
+    const etat01 = {
+      density: 1.0,
+      disparity: 0.0,
+      size: 0.02,
+      movement: 0.0,
+      saturation: 1.0,
+      hideBlack: 0.0
+    };
+
+    const etat02 = {
+      density: 1.6,
+      disparity: 9.0,
+      size: 0.02,
+      movement: 0.04,
+      saturation: 1.0,
+      hideBlack: 0.0
+    };
+
+    // Fonction d'easing (ease-in-out cubic)
+    function easeInOutCubic(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // Interpolation linéaire
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    // Mettre à jour les paramètres en fonction du zoom
+    function updateParamsFromZoom(zoomNormalized) {
+      const t = easeInOutCubic(zoomNormalized); // Appliquer l'easing
+
+      particleParams.density = lerp(etat01.density, etat02.density, t);
+      particleParams.disparity = lerp(etat01.disparity, etat02.disparity, t);
+      particleParams.size = lerp(etat01.size, etat02.size, t);
+      particleParams.movement = lerp(etat01.movement, etat02.movement, t);
+      particleParams.saturation = lerp(etat01.saturation, etat02.saturation, t);
+      particleParams.hideBlack = lerp(etat01.hideBlack, etat02.hideBlack, t);
+    }
 
     // Saturation des couleurs
     function saturateColor(r, g, b, intensity) {
@@ -876,6 +919,9 @@
     camera.position.set(0, 0, 0);
     sceneGroup.position.set(0, 0, -25);
 
+    // Variable pour tracker le dernier zoom qui a déclenché un reload
+    let lastReloadZoom = 0;
+
     // Animation
     function animate() {
       requestAnimationFrame(animate);
@@ -886,6 +932,23 @@
         zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
         // Calculer la position Z interpolée
         sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
+
+        // Mettre à jour les paramètres en fonction du zoom
+        updateParamsFromZoom(zoomLevel);
+
+        // Mettre à jour l'affichage de l'UI
+        updateUIValues();
+
+        // Mettre à jour la taille des particules en temps réel
+        if (particles) {
+          particles.material.size = particleParams.size;
+        }
+
+        // Recharger l'image si density ou disparity ont suffisamment changé
+        if (Math.abs(zoomLevel - lastReloadZoom) > 0.1) {
+          lastReloadZoom = zoomLevel;
+          loadImage(currentImageIndex);
+        }
       }
 
       // Mouvement subtil des particules (oscillation autour de la position initiale)
@@ -1015,15 +1078,33 @@
 
     const settingsPanel = document.getElementById('settings-panel');
 
-    // Valeurs par défaut
+    // Valeurs par défaut (état 01)
     const defaultParams = {
-      size: 0.02,         // milieu de 0 à 0.04
-      density: 1.0,       // milieu de 0 à 2
-      disparity: 8.0,     // milieu de 0 à 16
-      movement: 0.02,     // milieu de 0 à 0.04
-      saturation: 1.0,    // 1.0 au lieu de 2.0
-      hideBlack: 0.0      // 0 = aucun pixel masqué
+      size: 0.02,
+      density: 1.0,
+      disparity: 0.0,
+      movement: 0.0,
+      saturation: 1.0,
+      hideBlack: 0.0
     };
+
+    // Fonction pour mettre à jour l'affichage de l'UI
+    function updateUIValues() {
+      document.getElementById('size-value').textContent = particleParams.size.toFixed(3);
+      document.getElementById('density-value').textContent = particleParams.density.toFixed(1);
+      document.getElementById('disparity-value').textContent = particleParams.disparity.toFixed(1);
+      document.getElementById('movement-value').textContent = particleParams.movement.toFixed(3);
+      document.getElementById('saturation-value').textContent = particleParams.saturation.toFixed(1);
+      document.getElementById('hideBlack-value').textContent = particleParams.hideBlack.toFixed(2);
+
+      // Mettre à jour les sliders aussi
+      document.getElementById('size-slider').value = particleParams.size;
+      document.getElementById('density-slider').value = particleParams.density;
+      document.getElementById('disparity-slider').value = particleParams.disparity;
+      document.getElementById('movement-slider').value = particleParams.movement;
+      document.getElementById('saturation-slider').value = particleParams.saturation;
+      document.getElementById('hideBlack-slider').value = particleParams.hideBlack;
+    }
 
     // Helper pour mettre à jour un paramètre
     function updateParam(param, value, updateSlider = true) {
