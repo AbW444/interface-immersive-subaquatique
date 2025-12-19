@@ -677,49 +677,6 @@
       hideBlack: 0.0       // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
     };
 
-    // États de l'EPP (écran-particules-pixel)
-    const etat01 = {
-      density: 0.4,        // Bloqué à 0.4
-      disparity: 0.0,
-      size: 0.02,
-      movement: 0.0,       // Pas de mouvement
-      saturation: 1.0,
-      hideBlack: 0.0
-    };
-
-    const etat02 = {
-      density: 0.4,        // Bloqué à 0.4
-      disparity: 9.0,
-      size: 0.02,
-      movement: 0.0,       // Pas de mouvement (était 0.04)
-      saturation: 1.0,
-      hideBlack: 0.0
-    };
-
-    // Fonction d'easing (ease-in-out cubic)
-    function easeInOutCubic(t) {
-      return t < 0.5
-        ? 4 * t * t * t
-        : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
-
-    // Interpolation linéaire
-    function lerp(a, b, t) {
-      return a + (b - a) * t;
-    }
-
-    // Mettre à jour les paramètres en fonction du zoom
-    function updateParamsFromZoom(zoomNormalized) {
-      const t = easeInOutCubic(zoomNormalized); // Appliquer l'easing
-
-      particleParams.density = lerp(etat01.density, etat02.density, t);
-      particleParams.disparity = lerp(etat01.disparity, etat02.disparity, t);
-      particleParams.size = lerp(etat01.size, etat02.size, t);
-      particleParams.movement = lerp(etat01.movement, etat02.movement, t);
-      particleParams.saturation = lerp(etat01.saturation, etat02.saturation, t);
-      particleParams.hideBlack = lerp(etat01.hideBlack, etat02.hideBlack, t);
-    }
-
     // Saturation des couleurs
     function saturateColor(r, g, b, intensity) {
       const avg = (r + g + b) / 3;
@@ -923,21 +880,13 @@
     camera.position.set(0, 0, 0);
     sceneGroup.position.set(0, 0, -25);
 
-    // Variables pour optimiser le rechargement
-    let lastReloadZoom = 0;
-    let lastDensity = particleParams.density;
-    let lastDisparity = particleParams.disparity;
-
-    // Variables pour optimisations Phase 1
-    let lastUIUpdate = 0;
-    const UI_UPDATE_INTERVAL = 100; // ms (Opt #1 - Throttle UI)
+    // Variables pour optimisations
     let hasInitialRender = false; // Pour forcer un premier render
 
     // Animation
     function animate() {
       requestAnimationFrame(animate);
 
-      const now = performance.now();
       let needsRender = false; // (Opt #5 - Early exit)
 
       // Forcer le render initial quand les particules sont chargées
@@ -952,32 +901,6 @@
         zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
         // Calculer la position Z interpolée
         sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
-
-        // Mettre à jour les paramètres en fonction du zoom
-        updateParamsFromZoom(zoomLevel);
-
-        // Mettre à jour l'affichage de l'UI (Opt #1 - Throttle à 100ms)
-        if (now - lastUIUpdate > UI_UPDATE_INTERVAL) {
-          updateUIValues();
-          lastUIUpdate = now;
-        }
-
-        // Mettre à jour la taille des particules en temps réel
-        if (particles) {
-          particles.material.size = particleParams.size;
-        }
-
-        // Recharger l'image uniquement si density ou disparity changent significativement
-        const densityChange = Math.abs(particleParams.density - lastDensity);
-        const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
-
-        // Opt #2 - Seuils augmentés : 0.3 pour density, 2.0 pour disparity
-        // (rechargement immédiat sans debounce pour fluidité visuelle)
-        if (densityChange > 0.3 || disparityChange > 2.0) {
-          lastDensity = particleParams.density;
-          lastDisparity = particleParams.disparity;
-          loadImage(currentImageIndex);
-        }
 
         needsRender = true;
       }
