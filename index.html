@@ -580,6 +580,23 @@
         </div>
       </div>
 
+      <!-- Grid Randomness -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Grid Randomness</span>
+          <div class="param-value-display">
+            <span class="param-value" id="randomness-value">0.00</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="randomness" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="randomness" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="randomness-slider" min="0" max="2" step="0.05" value="0">
+        </div>
+      </div>
+
       <div class="settings-divider"></div>
 
       <!-- Buttons -->
@@ -674,7 +691,8 @@
       size: 0.02,          // Taille des particules
       movement: 0.0,       // Pas de mouvement
       saturation: 1.0,     // Saturation chromatique
-      hideBlack: 0.0       // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
+      hideBlack: 0.0,      // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
+      randomness: 0.0      // Aléatoire du positionnement (0 = grille parfaite, 1 = désorganisé)
     };
 
     // Saturation des couleurs
@@ -741,9 +759,19 @@
               // Filtrer les pixels noirs selon le seuil hideBlack
               // Si hideBlack = 0.3, on cache tous les pixels avec brightness < 0.3
               if (brightness >= particleParams.hideBlack) {
-                const posX = (x - targetWidth / 2) / scaleFactor;
-                const posY = (y - targetHeight / 2) / scaleFactor;
+                // Position de base sur la grille
+                let posX = (x - targetWidth / 2) / scaleFactor;
+                let posY = (y - targetHeight / 2) / scaleFactor;
                 const posZ = (Math.random() - 0.5) * particleParams.disparity;
+
+                // Ajouter un offset aléatoire basé sur le paramètre randomness
+                if (particleParams.randomness > 0) {
+                  const randomOffsetX = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetY = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  posX += randomOffsetX;
+                  posY += randomOffsetY;
+                }
+
                 particleVertices.push(posX, posY, posZ);
                 particleColors.push(r, g, b);
               }
@@ -1045,7 +1073,8 @@
       disparity: 0.0,
       movement: 0.0,
       saturation: 1.0,
-      hideBlack: 0.0
+      hideBlack: 0.0,
+      randomness: 0.0
     };
 
     // Fonction pour mettre à jour l'affichage de l'UI
@@ -1056,6 +1085,7 @@
       document.getElementById('movement-value').textContent = particleParams.movement.toFixed(3);
       document.getElementById('saturation-value').textContent = particleParams.saturation.toFixed(1);
       document.getElementById('hideBlack-value').textContent = particleParams.hideBlack.toFixed(2);
+      document.getElementById('randomness-value').textContent = particleParams.randomness.toFixed(2);
 
       // Mettre à jour les sliders aussi
       document.getElementById('size-slider').value = particleParams.size;
@@ -1064,6 +1094,7 @@
       document.getElementById('movement-slider').value = particleParams.movement;
       document.getElementById('saturation-slider').value = particleParams.saturation;
       document.getElementById('hideBlack-slider').value = particleParams.hideBlack;
+      document.getElementById('randomness-slider').value = particleParams.randomness;
     }
 
     // Helper pour mettre à jour un paramètre
@@ -1099,6 +1130,10 @@
         particleParams.hideBlack = value;
         valueDisplay.textContent = value.toFixed(2);
         loadImage(currentImageIndex);
+      } else if (param === 'randomness') {
+        particleParams.randomness = value;
+        valueDisplay.textContent = value.toFixed(2);
+        loadImage(currentImageIndex);
       }
 
       if (updateSlider) {
@@ -1107,7 +1142,7 @@
     }
 
     // Sliders
-    ['size', 'density', 'disparity', 'movement', 'saturation', 'hideBlack'].forEach(param => {
+    ['size', 'density', 'disparity', 'movement', 'saturation', 'hideBlack', 'randomness'].forEach(param => {
       const slider = document.getElementById(`${param}-slider`);
       slider.addEventListener('input', (e) => {
         updateParam(param, parseFloat(e.target.value), false);
