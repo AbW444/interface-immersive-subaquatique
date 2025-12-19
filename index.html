@@ -500,7 +500,7 @@
         <div class="param-header">
           <span class="param-label">Particle Density</span>
           <div class="param-value-display">
-            <span class="param-value" id="density-value">1.0</span>
+            <span class="param-value" id="density-value">0.7</span>
             <div class="param-buttons">
               <button class="param-btn" data-param="density" data-action="decrease">▼</button>
               <button class="param-btn" data-param="density" data-action="increase">▲</button>
@@ -508,7 +508,7 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="density-slider" min="0" max="2" step="0.05" value="1">
+          <input type="range" id="density-slider" min="0" max="2" step="0.05" value="0.7">
         </div>
       </div>
 
@@ -669,29 +669,29 @@
 
     // Paramètres modifiables pour les particules
     let particleParams = {
-      density: 1.0,        // Densité (1.0 = tous les pixels, 0.5 = un pixel sur deux, etc.)
+      density: 0.7,        // Densité réduite (0.7 = état 01)
       disparity: 0.0,      // Disparité en profondeur Z
       size: 0.02,          // Taille des particules
-      movement: 0.0,       // Amplitude du mouvement
+      movement: 0.0,       // Pas de mouvement
       saturation: 1.0,     // Saturation chromatique
       hideBlack: 0.0       // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
     };
 
     // États de l'EPP (écran-particules-pixel)
     const etat01 = {
-      density: 1.0,
+      density: 0.7,        // Réduit de 1.0 -> 0.7
       disparity: 0.0,
       size: 0.02,
-      movement: 0.0,
+      movement: 0.0,       // Pas de mouvement
       saturation: 1.0,
       hideBlack: 0.0
     };
 
     const etat02 = {
-      density: 1.6,
+      density: 1.2,        // Réduit de 1.6 -> 1.2
       disparity: 9.0,
       size: 0.02,
-      movement: 0.04,
+      movement: 0.0,       // Pas de mouvement (était 0.04)
       saturation: 1.0,
       hideBlack: 0.0
     };
@@ -732,6 +732,31 @@
     // Version des images (incrémenter ce nombre quand vous changez les images)
     const IMAGE_VERSION = 2;
 
+    // Phase 2A - Opt: Geometry Reuse
+    // Mettre à jour seulement les positions Z (disparity) sans recréer la géométrie
+    function updateDisparity() {
+      if (!particles) return;
+
+      const positions = particles.geometry.attributes.position.array;
+      const initialPositions = particles.geometry.attributes.initialPosition.array;
+      const count = positions.length / 3;
+
+      // Mettre à jour uniquement les positions Z avec la nouvelle disparity
+      for (let i = 0; i < count; i++) {
+        const index = i * 3;
+        // Conserver X et Y, régénérer Z avec seed déterministe
+        const seed = (positions[index] * 1000 + positions[index + 1] * 1000) % 1000;
+        const randomZ = (Math.sin(seed) * 0.5 + 0.5) - 0.5; // -0.5 à 0.5
+        const newZ = randomZ * particleParams.disparity;
+
+        positions[index + 2] = newZ;
+        initialPositions[index + 2] = newZ;
+      }
+
+      particles.geometry.attributes.position.needsUpdate = true;
+      particles.geometry.attributes.initialPosition.needsUpdate = true;
+    }
+
     // Fonction de chargement d'image
     function loadImage(imageIndex) {
       // Ajouter une version pour éviter le cache du navigateur
@@ -761,19 +786,27 @@
         const particleVertices = [];
         const particleColors = [];
 
-        // Appliquer la densité pour échantillonner les pixels
+        // Phase 2A - Vertex Reduction: Optimiser la boucle de génération
+        // Pré-calculer les constantes pour éviter les calculs répétés
         const step = Math.max(1, Math.floor(1 / particleParams.density));
+        const halfWidth = targetWidth / 2;
+        const halfHeight = targetHeight / 2;
+        const invScaleFactor = 1 / scaleFactor;
+        const data = imgData.data;
+        const saturation = particleParams.saturation;
+        const hideBlack = particleParams.hideBlack;
+        const disparity = particleParams.disparity;
 
         for (let y = 0; y < targetHeight; y += step) {
           for (let x = 0; x < targetWidth; x += step) {
             const i = (y * targetWidth + x) * 4;
-            let r = imgData.data[i] / 255;
-            let g = imgData.data[i + 1] / 255;
-            let b = imgData.data[i + 2] / 255;
-            const a = imgData.data[i + 3] / 255;
+            let r = data[i] / 255;
+            let g = data[i + 1] / 255;
+            let b = data[i + 2] / 255;
+            const a = data[i + 3] / 255;
 
             if (a > 0.5) {
-              const saturated = saturateColor(r, g, b, particleParams.saturation);
+              const saturated = saturateColor(r, g, b, saturation);
               r = saturated.r;
               g = saturated.g;
               b = saturated.b;
@@ -782,11 +815,10 @@
               const brightness = (r + g + b) / 3;
 
               // Filtrer les pixels noirs selon le seuil hideBlack
-              // Si hideBlack = 0.3, on cache tous les pixels avec brightness < 0.3
-              if (brightness >= particleParams.hideBlack) {
-                const posX = (x - targetWidth / 2) / scaleFactor;
-                const posY = (y - targetHeight / 2) / scaleFactor;
-                const posZ = (Math.random() - 0.5) * particleParams.disparity;
+              if (brightness >= hideBlack) {
+                const posX = (x - halfWidth) * invScaleFactor;
+                const posY = (y - halfHeight) * invScaleFactor;
+                const posZ = (Math.random() - 0.5) * disparity;
                 particleVertices.push(posX, posY, posZ);
                 particleColors.push(r, g, b);
               }
@@ -967,16 +999,20 @@
           particles.material.size = particleParams.size;
         }
 
-        // Recharger l'image uniquement si density ou disparity changent significativement
+        // Phase 2A - Geometry Reuse: détecter quel paramètre a changé
         const densityChange = Math.abs(particleParams.density - lastDensity);
         const disparityChange = Math.abs(particleParams.disparity - lastDisparity);
 
-        // Opt #2 - Seuils augmentés : 0.3 pour density, 2.0 pour disparity
-        // (rechargement immédiat sans debounce pour fluidité visuelle)
-        if (densityChange > 0.3 || disparityChange > 2.0) {
+        // Si density change significativement (0.3) → recréer complètement
+        if (densityChange > 0.3) {
           lastDensity = particleParams.density;
           lastDisparity = particleParams.disparity;
           loadImage(currentImageIndex);
+        }
+        // Sinon, si seul disparity change (2.0) → juste update Z (20-30% plus rapide)
+        else if (disparityChange > 2.0) {
+          lastDisparity = particleParams.disparity;
+          updateDisparity();
         }
 
         needsRender = true;
@@ -1118,7 +1154,7 @@
     // Valeurs par défaut (état 01)
     const defaultParams = {
       size: 0.02,
-      density: 1.0,
+      density: 0.7,      // Réduit pour correspondre à l'état 01
       disparity: 0.0,
       movement: 0.0,
       saturation: 1.0,
