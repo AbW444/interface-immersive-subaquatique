@@ -1014,12 +1014,12 @@
     };
 
     // Système de parcours UX avec états multiples
-    let uxJourneyMode = localStorage.getItem('uxJourneyMode') === 'true' || false;
+    let uxJourneyMode = false;
     let currentStateIndex = -1; // État actuellement sélectionné (-1 = aucun)
-    let selectedCurveType = localStorage.getItem('selectedCurveType') || 'easeIn';
+    let selectedCurveType = 'easeIn';
 
-    // États par défaut
-    const defaultStates = [
+    // États par défaut (toujours utilisés, pas de localStorage)
+    let uxStates = [
       {
         "name": "État 1",
         "size": 0.04,
@@ -1105,16 +1105,6 @@
         "movementMode": 2
       }
     ];
-
-    // Charger les états depuis localStorage ou utiliser les valeurs par défaut
-    let uxStates = JSON.parse(localStorage.getItem('uxStates')) || defaultStates;
-
-    // Fonction pour sauvegarder les états dans localStorage
-    function saveStatesToLocalStorage() {
-      localStorage.setItem('uxStates', JSON.stringify(uxStates));
-      localStorage.setItem('uxJourneyMode', uxJourneyMode);
-      localStorage.setItem('selectedCurveType', selectedCurveType);
-    }
 
     // Fonctions d'easing pour différentes courbes
     function linear(t) {
@@ -1856,7 +1846,6 @@
       };
 
       uxStates.push(newState);
-      saveStatesToLocalStorage();
       // Ne pas sélectionner automatiquement le nouvel état
       renderUXStates();
     });
@@ -1866,7 +1855,6 @@
       if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
         // Sauvegarder les paramètres actuels dans l'état sélectionné
         saveCurrentState();
-        saveStatesToLocalStorage();
         console.log(`État ${currentStateIndex + 1} mis à jour avec les paramètres actuels`);
       }
     });
@@ -1874,13 +1862,11 @@
     // Sélecteur de courbe
     uxCurveSelect.addEventListener('change', (e) => {
       selectedCurveType = e.target.value;
-      saveStatesToLocalStorage();
     });
 
     // Bouton activer/désactiver le parcours UX
     uxToggleBtn.addEventListener('click', () => {
       uxJourneyMode = !uxJourneyMode;
-      saveStatesToLocalStorage();
 
       if (uxJourneyMode) {
         // Activer le mode
