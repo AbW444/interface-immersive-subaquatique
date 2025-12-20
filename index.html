@@ -1153,70 +1153,112 @@
     // Version des images (incrémenter ce nombre quand vous changez les images)
     const IMAGE_VERSION = 2;
 
-    // Fonction de chargement d'image
+    // Cache pour les images pré-chargées
+    const imageCache = new Map(); // imageIndex -> ImageData
+    const textureCache = {
+      circle: null,
+      square: null
+    };
+    let imagesPreloaded = false;
+
+    // Pré-charger toutes les images au démarrage
+    function preloadAllImages() {
+      const targetWidth = 1720;
+      const targetHeight = 880;
+      const loadPromises = [];
+
+      for (let idx = 1; idx <= maxImageIndex; idx++) {
+        const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+
+        const promise = new Promise((resolve, reject) => {
+          textureLoader.load(imagePath, function (texture) {
+            // Canvas temporaire pour cette image
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
+            const tempContext = tempCanvas.getContext('2d');
+
+            // Calculer le ratio pour rogner (crop) au lieu d'étirer
+            const srcWidth = texture.image.width;
+            const srcHeight = texture.image.height;
+            const targetRatio = targetWidth / targetHeight;
+            const srcRatio = srcWidth / srcHeight;
+
+            let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+            if (srcRatio > targetRatio) {
+              cropWidth = srcHeight * targetRatio;
+              cropX = (srcWidth - cropWidth) / 2;
+            } else {
+              cropHeight = srcWidth / targetRatio;
+              cropY = (srcHeight - cropHeight) / 2;
+            }
+
+            // Dessiner et extraire ImageData
+            tempContext.drawImage(
+              texture.image,
+              cropX, cropY, cropWidth, cropHeight,
+              0, 0, targetWidth, targetHeight
+            );
+            const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
+
+            // Stocker dans le cache
+            imageCache.set(idx, imgData);
+            resolve();
+          }, undefined, reject);
+        });
+
+        loadPromises.push(promise);
+      }
+
+      return Promise.all(loadPromises).then(() => {
+        imagesPreloaded = true;
+        console.log(`✅ ${maxImageIndex} images pré-chargées en cache`);
+      });
+    }
+
+    // Créer et cacher les textures de particules
+    function createParticleTexture(shape) {
+      if (textureCache[shape]) {
+        return textureCache[shape];
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+
+      if (shape === 'square') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(0, 0, 64, 64);
+      } else {
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      textureCache[shape] = texture;
+      return texture;
+    }
+
+    // Fonction de chargement d'image optimisée avec cache
     function loadImage(imageIndex) {
-      // Ajouter une version pour éviter le cache du navigateur
-      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      const targetWidth = 1720;
+      const targetHeight = 880;
 
-      textureLoader.load(imagePath, function (texture) {
-        // Réutiliser le canvas existant (Phase 1 - Opt #4)
-        const targetWidth = 1720;
-        const targetHeight = 880;
-        offscreenCanvas.width = targetWidth;
-        offscreenCanvas.height = targetHeight;
-
-        // Calculer le ratio pour rogner (crop) au lieu d'étirer
-        const srcWidth = texture.image.width;
-        const srcHeight = texture.image.height;
-        const targetRatio = targetWidth / targetHeight;
-        const srcRatio = srcWidth / srcHeight;
-
-        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
-
-        if (srcRatio > targetRatio) {
-          // Image source trop large, rogner les côtés
-          cropWidth = srcHeight * targetRatio;
-          cropX = (srcWidth - cropWidth) / 2;
-        } else {
-          // Image source trop haute, rogner haut et bas
-          cropHeight = srcWidth / targetRatio;
-          cropY = (srcHeight - cropHeight) / 2;
-        }
-
-        // Dessiner l'image rognée et redimensionnée
-        offscreenContext.drawImage(
-          texture.image,
-          cropX, cropY, cropWidth, cropHeight,  // source crop
-          0, 0, targetWidth, targetHeight        // destination
-        );
-        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+      // Fonction interne pour construire la géométrie à partir d'ImageData
+      function buildGeometry(imgData) {
 
         const scaleFactor = 50;
-
         const particleGeometry = new THREE.BufferGeometry();
 
-        // Créer une texture selon la forme sélectionnée
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-
-        if (particleParams.shape === 'square') {
-          // Carré : remplir tout le canvas en blanc
-          ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-          ctx.fillRect(0, 0, 64, 64);
-        } else {
-          // Cercle : dessiner un cercle avec dégradé radial
-          const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-          gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-          gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-          gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, 64, 64);
-        }
-
-        const particleTexture = new THREE.CanvasTexture(canvas);
-        particleTexture.needsUpdate = true;
+        // Utiliser la texture cachée au lieu de la recréer
+        const particleTexture = createParticleTexture(particleParams.shape);
 
         const particleMaterial = new THREE.PointsMaterial({
           size: particleParams.size,
@@ -1298,8 +1340,48 @@
 
         // Forcer le render de la nouvelle image (Opt #5)
         hasInitialRender = false;
+      }
+
+      // Chemin optimisé: utiliser cache si disponible
+      if (imageCache.has(imageIndex)) {
+        const cachedImgData = imageCache.get(imageIndex);
+        buildGeometry(cachedImgData);
+        return;
+      }
+
+      // Fallback: charger l'image si pas en cache
+      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      textureLoader.load(imagePath, function (texture) {
+        offscreenCanvas.width = targetWidth;
+        offscreenCanvas.height = targetHeight;
+
+        const srcWidth = texture.image.width;
+        const srcHeight = texture.image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const srcRatio = srcWidth / srcHeight;
+
+        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+        if (srcRatio > targetRatio) {
+          cropWidth = srcHeight * targetRatio;
+          cropX = (srcWidth - cropWidth) / 2;
+        } else {
+          cropHeight = srcWidth / targetRatio;
+          cropY = (srcHeight - cropHeight) / 2;
+        }
+
+        offscreenContext.drawImage(
+          texture.image,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, targetWidth, targetHeight
+        );
+        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+
+        // Stocker en cache pour future utilisation
+        imageCache.set(imageIndex, imgData);
+        buildGeometry(imgData);
       }, undefined, function (err) {
-        console.error(`Une erreur est survenue lors du chargement de l'image ${imageIndex}:`, err);
+        console.error(`Erreur chargement image ${imageIndex}:`, err);
       });
     }
 
@@ -1399,8 +1481,14 @@
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
-    // Charger la première image
-    loadImage(currentImageIndex);
+    // Pré-charger toutes les images en arrière-plan, puis charger la première
+    preloadAllImages().then(() => {
+      loadImage(currentImageIndex);
+    }).catch(err => {
+      console.error('Erreur pré-chargement:', err);
+      // Fallback: charger quand même la première image
+      loadImage(currentImageIndex);
+    });
 
     // Position de la caméra (mobile) et sceneGroup (fixe)
     camera.position.set(0, 0, 25); // Caméra commence loin en arrière
@@ -1665,7 +1753,7 @@
           needsReload =
             (densityDiff > 0.01 || densityDiff < -0.01) ||
             (disparityDiff > 0.1 || disparityDiff < -0.1) ||
-            (saturationDiff > 0.05 || saturationDiff < -0.05) ||
+            (saturationDiff > 0.2 || saturationDiff < -0.2) ||  // Seuil augmenté: saturation varie peu (1.0→1.3)
             (hideBlackDiff > 0.01 || hideBlackDiff < -0.01) ||
             (randomnessDiff > 0.01 || randomnessDiff < -0.01);
         }
