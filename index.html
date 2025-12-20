@@ -1168,8 +1168,30 @@
         offscreenCanvas.width = targetWidth;
         offscreenCanvas.height = targetHeight;
 
-        // Dessiner l'image redimensionnée
-        offscreenContext.drawImage(texture.image, 0, 0, targetWidth, targetHeight);
+        // Calculer le ratio pour rogner (crop) au lieu d'étirer
+        const srcWidth = texture.image.width;
+        const srcHeight = texture.image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const srcRatio = srcWidth / srcHeight;
+
+        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+        if (srcRatio > targetRatio) {
+          // Image source trop large, rogner les côtés
+          cropWidth = srcHeight * targetRatio;
+          cropX = (srcWidth - cropWidth) / 2;
+        } else {
+          // Image source trop haute, rogner haut et bas
+          cropHeight = srcWidth / targetRatio;
+          cropY = (srcHeight - cropHeight) / 2;
+        }
+
+        // Dessiner l'image rognée et redimensionnée
+        offscreenContext.drawImage(
+          texture.image,
+          cropX, cropY, cropWidth, cropHeight,  // source crop
+          0, 0, targetWidth, targetHeight        // destination
+        );
         const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
 
         const scaleFactor = 50;
@@ -1661,6 +1683,11 @@
             } else {
               currentStateIndex = currentStateIndex === uxStates.length - 1 ? 0 : currentStateIndex + 1;
             }
+          }
+
+          // Sauter directement au niveau de zoom de l'état (saccade)
+          if (uxJourneyMode && uxStates.length > 1) {
+            targetZoomLevel = currentStateIndex / (uxStates.length - 1);
           }
 
           // Mettre à jour l'affichage
