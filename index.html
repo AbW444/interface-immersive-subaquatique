@@ -1014,37 +1014,107 @@
     };
 
     // Système de parcours UX avec états multiples
-    let uxJourneyMode = false;
+    let uxJourneyMode = localStorage.getItem('uxJourneyMode') === 'true' || false;
     let currentStateIndex = -1; // État actuellement sélectionné (-1 = aucun)
-    let selectedCurveType = 'easeIn'; // Type de courbe sélectionné
+    let selectedCurveType = localStorage.getItem('selectedCurveType') || 'easeIn';
 
-    // Tableau des états de lecture
-    let uxStates = [
+    // États par défaut
+    const defaultStates = [
       {
-        name: 'État 1',
-        size: 0.040,
-        density: 0.8,
-        disparity: 0.0,
-        movement: 0.0,
-        randomness: 0.40,
-        saturation: 1.0,
-        hideBlack: 0.0,
-        shape: 'circle',
-        movementMode: 2  // XY
+        "name": "État 1",
+        "size": 0.04,
+        "density": 0.8,
+        "disparity": 0,
+        "movement": 0,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
       },
       {
-        name: 'État 2',
-        size: 0.040,
-        density: 0.8,
-        disparity: 0.0,
-        movement: 0.0,
-        randomness: 0.0,
-        saturation: 1.0,
-        hideBlack: 0.0,
-        shape: 'circle',
-        movementMode: 2  // XY
+        "name": "État 2",
+        "size": 0.039999999869791684,
+        "density": 0.7982222188946767,
+        "disparity": 0.4799997184245186,
+        "movement": 0,
+        "randomness": 0.931555552228004,
+        "saturation": 1.0444444227430583,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 3",
+        "size": 0.03999999960937498,
+        "density": 0.6,
+        "disparity": 2.5,
+        "movement": 0,
+        "randomness": 0.7946666965060707,
+        "saturation": 1.1333332899305573,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 4",
+        "size": 0.03679999739583301,
+        "density": 0.7271110554832144,
+        "disparity": 3.6799991910808045,
+        "movement": 0.12799986935767527,
+        "randomness": 0.3271110798972604,
+        "saturation": 1.1333332356770933,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 5",
+        "size": 0.036,
+        "density": 0.6,
+        "disparity": 2,
+        "movement": 0.18488872448884158,
+        "randomness": 0.33975306428832913,
+        "saturation": 1.1925924768518499,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 6",
+        "size": 0.037333333496093746,
+        "density": 0.661333335177949,
+        "disparity": 2.7733333642577858,
+        "movement": 0.2512591521187228,
+        "randomness": 0.354502039016935,
+        "saturation": 1.128394976731292,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 7",
+        "size": 0.037333333496093746,
+        "density": 0.661333335177949,
+        "disparity": 2.7733333642577858,
+        "movement": 0.5,
+        "randomness": 0.354502039016935,
+        "saturation": 1.128394976731292,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
       }
     ];
+
+    // Charger les états depuis localStorage ou utiliser les valeurs par défaut
+    let uxStates = JSON.parse(localStorage.getItem('uxStates')) || defaultStates;
+
+    // Fonction pour sauvegarder les états dans localStorage
+    function saveStatesToLocalStorage() {
+      localStorage.setItem('uxStates', JSON.stringify(uxStates));
+      localStorage.setItem('uxJourneyMode', uxJourneyMode);
+      localStorage.setItem('selectedCurveType', selectedCurveType);
+    }
 
     // Fonctions d'easing pour différentes courbes
     function linear(t) {
@@ -1673,6 +1743,7 @@
       };
 
       uxStates.push(newState);
+      saveStatesToLocalStorage();
       // Ne pas sélectionner automatiquement le nouvel état
       renderUXStates();
     });
@@ -1682,6 +1753,7 @@
       if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
         // Sauvegarder les paramètres actuels dans l'état sélectionné
         saveCurrentState();
+        saveStatesToLocalStorage();
         console.log(`État ${currentStateIndex + 1} mis à jour avec les paramètres actuels`);
       }
     });
@@ -1689,11 +1761,13 @@
     // Sélecteur de courbe
     uxCurveSelect.addEventListener('change', (e) => {
       selectedCurveType = e.target.value;
+      saveStatesToLocalStorage();
     });
 
     // Bouton activer/désactiver le parcours UX
     uxToggleBtn.addEventListener('click', () => {
       uxJourneyMode = !uxJourneyMode;
+      saveStatesToLocalStorage();
 
       if (uxJourneyMode) {
         // Activer le mode
@@ -1710,6 +1784,16 @@
         console.log('Mode parcours UX désactivé');
       }
     });
+
+    // Restaurer l'état de l'interface au chargement
+    if (uxJourneyMode) {
+      uxToggleBtn.textContent = 'Désactiver';
+      uxToggleBtn.classList.add('active');
+    } else {
+      uxToggleBtn.textContent = 'Actif';
+      uxToggleBtn.classList.remove('active');
+    }
+    uxCurveSelect.value = selectedCurveType;
 
     /* FIN GESTION INTERFACE ÉTATS DE LECTURE */
 
