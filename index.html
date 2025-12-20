@@ -1403,9 +1403,9 @@
     // Charger la première image
     loadImage(currentImageIndex);
 
-    // Position de la caméra
-    camera.position.set(0, 0, 0);
-    sceneGroup.position.set(0, 0, -25);
+    // Position de la caméra (mobile) et sceneGroup (fixe)
+    camera.position.set(0, 0, 25); // Caméra commence loin en arrière
+    sceneGroup.position.set(0, 0, 0); // Particules fixes à l'origine
 
     // Variables pour optimisations
     let hasInitialRender = false; // Pour forcer un premier render
@@ -1426,8 +1426,8 @@
       if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
         // Lerp fluide vers la position cible
         zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
-        // Calculer la position Z interpolée
-        sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
+        // Déplacer la caméra (au lieu du sceneGroup) : de z=25 (loin) à z=0 (proche)
+        camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
         needsRender = true;
       }
@@ -2075,8 +2075,8 @@
     // Reset Camera
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
       targetZoomLevel = 0.5;
-      sceneGroup.position.set(0, 0, -25);
       sceneGroup.rotation.set(0, 0, 0);
+      // La position de la caméra sera automatiquement interpolée par animate()
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
