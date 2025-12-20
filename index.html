@@ -991,15 +991,27 @@
     let uxStates = [
       {
         name: 'État 1',
+        size: 0.02,
+        density: 0.8,
         disparity: 0.0,
         movement: 0.0,
-        randomness: 0.0
+        randomness: 0.40,
+        saturation: 1.0,
+        hideBlack: 0.0,
+        shape: 'circle',
+        movementMode: 2  // XY
       },
       {
         name: 'État 2',
-        disparity: 4.5,
-        movement: 0.4,
-        randomness: 0.4
+        size: 0.040,
+        density: 0.8,
+        disparity: 0.0,
+        movement: 0.0,
+        randomness: 0.0,
+        saturation: 1.0,
+        hideBlack: 0.0,
+        shape: 'circle',
+        movementMode: 2  // XY
       }
     ];
 
@@ -1407,14 +1419,38 @@
         const fromState = uxStates[fromStateIndex];
         const toState = uxStates[toStateIndex];
 
+        // Interpoler les paramètres numériques
+        particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
+        particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
         particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
         particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
         particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
+        particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
+        particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
+
+        // Pour les paramètres non-interpolables (shape, movementMode), prendre celui de l'état le plus proche
+        if (easedProgress < 0.5) {
+          particleParams.shape = fromState.shape;
+          particleParams.movementMode = fromState.movementMode;
+        } else {
+          particleParams.shape = toState.shape;
+          particleParams.movementMode = toState.movementMode;
+        }
+
+        // Mettre à jour les boutons de forme
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.shape === particleParams.shape);
+        });
+
+        // Mettre à jour les boutons de mode de mouvement
+        document.querySelectorAll('.movement-mode-btn').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.dataset.mode) === particleParams.movementMode);
+        });
 
         // Mettre à jour l'interface
         updateUIValues();
 
-        // Recharger l'image pour les paramètres qui le nécessitent (disparity, randomness)
+        // Recharger l'image pour les paramètres qui le nécessitent
         loadImage(currentImageIndex);
       }
     }, { passive: false });
@@ -1520,18 +1556,41 @@
     // Fonction pour sauvegarder les paramètres actuels dans l'état sélectionné
     function saveCurrentState() {
       if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
+        uxStates[currentStateIndex].size = particleParams.size;
+        uxStates[currentStateIndex].density = particleParams.density;
         uxStates[currentStateIndex].disparity = particleParams.disparity;
         uxStates[currentStateIndex].movement = particleParams.movement;
         uxStates[currentStateIndex].randomness = particleParams.randomness;
+        uxStates[currentStateIndex].saturation = particleParams.saturation;
+        uxStates[currentStateIndex].hideBlack = particleParams.hideBlack;
+        uxStates[currentStateIndex].shape = particleParams.shape;
+        uxStates[currentStateIndex].movementMode = particleParams.movementMode;
       }
     }
 
     // Fonction pour charger un état
     function loadState(index) {
       if (index >= 0 && index < uxStates.length) {
+        particleParams.size = uxStates[index].size;
+        particleParams.density = uxStates[index].density;
         particleParams.disparity = uxStates[index].disparity;
         particleParams.movement = uxStates[index].movement;
         particleParams.randomness = uxStates[index].randomness;
+        particleParams.saturation = uxStates[index].saturation;
+        particleParams.hideBlack = uxStates[index].hideBlack;
+        particleParams.shape = uxStates[index].shape;
+        particleParams.movementMode = uxStates[index].movementMode;
+
+        // Mettre à jour les boutons de forme
+        document.querySelectorAll('.shape-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.shape === particleParams.shape);
+        });
+
+        // Mettre à jour les boutons de mode de mouvement
+        document.querySelectorAll('.movement-mode-btn').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.dataset.mode) === particleParams.movementMode);
+        });
+
         updateUIValues();
         loadImage(currentImageIndex);
       }
@@ -1568,9 +1627,15 @@
       // Créer un nouvel état avec les paramètres actuels
       const newState = {
         name: `État ${uxStates.length + 1}`,
+        size: particleParams.size,
+        density: particleParams.density,
         disparity: particleParams.disparity,
         movement: particleParams.movement,
-        randomness: particleParams.randomness
+        randomness: particleParams.randomness,
+        saturation: particleParams.saturation,
+        hideBlack: particleParams.hideBlack,
+        shape: particleParams.shape,
+        movementMode: particleParams.movementMode
       };
 
       uxStates.push(newState);
