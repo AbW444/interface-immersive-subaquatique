@@ -1528,6 +1528,59 @@
     const cachedShapeButtons = document.querySelectorAll('.shape-btn');
     const cachedMovementButtons = document.querySelectorAll('.movement-mode-btn');
 
+    // Cache des éléments UI pour updateUIValues (optimisation majeure)
+    const uiElements = {
+      sizeValue: document.getElementById('size-value'),
+      densityValue: document.getElementById('density-value'),
+      disparityValue: document.getElementById('disparity-value'),
+      movementValue: document.getElementById('movement-value'),
+      saturationValue: document.getElementById('saturation-value'),
+      hideBlackValue: document.getElementById('hideBlack-value'),
+      randomnessValue: document.getElementById('randomness-value'),
+      sizeSlider: document.getElementById('size-slider'),
+      densitySlider: document.getElementById('density-slider'),
+      disparitySlider: document.getElementById('disparity-slider'),
+      movementSlider: document.getElementById('movement-slider'),
+      saturationSlider: document.getElementById('saturation-slider'),
+      hideBlackSlider: document.getElementById('hideBlack-slider'),
+      randomnessSlider: document.getElementById('randomness-slider')
+    };
+
+    // Throttle pour updateUIValues
+    let uiUpdateScheduled = false;
+    function throttledUpdateUIValues() {
+      if (!uiUpdateScheduled) {
+        uiUpdateScheduled = true;
+        requestAnimationFrame(() => {
+          updateUIValues();
+          uiUpdateScheduled = false;
+        });
+      }
+    }
+
+    // Throttle pour les mises à jour de boutons
+    let buttonUpdateScheduled = false;
+    let pendingButtonUpdates = { shape: null, movement: null };
+    function throttledUpdateButtons(shape, movementMode) {
+      pendingButtonUpdates.shape = shape;
+      pendingButtonUpdates.movement = movementMode;
+
+      if (!buttonUpdateScheduled) {
+        buttonUpdateScheduled = true;
+        requestAnimationFrame(() => {
+          // Mettre à jour les boutons de forme
+          cachedShapeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.shape === pendingButtonUpdates.shape);
+          });
+          // Mettre à jour les boutons de mode de mouvement
+          cachedMovementButtons.forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.mode) === pendingButtonUpdates.movement);
+          });
+          buttonUpdateScheduled = false;
+        });
+      }
+    }
+
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
 
@@ -1581,18 +1634,11 @@
           particles.material.size = particleParams.size;
         }
 
-        // Mettre à jour les boutons de forme (cache utilisé)
-        cachedShapeButtons.forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.shape === particleParams.shape);
-        });
+        // Mettre à jour les boutons (throttled pour fluidité maximale)
+        throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
 
-        // Mettre à jour les boutons de mode de mouvement (cache utilisé)
-        cachedMovementButtons.forEach(btn => {
-          btn.classList.toggle('active', parseInt(btn.dataset.mode) === particleParams.movementMode);
-        });
-
-        // Mettre à jour l'interface
-        updateUIValues();
+        // Mettre à jour l'interface (throttled pour fluidité)
+        throttledUpdateUIValues();
 
         // Détection de changement: ne recharger que si paramètres lourds ont changé
         const needsReload =
@@ -1920,24 +1966,24 @@
       movementMode: 1
     };
 
-    // Fonction pour mettre à jour l'affichage de l'UI
+    // Fonction pour mettre à jour l'affichage de l'UI (utilise cache)
     function updateUIValues() {
-      document.getElementById('size-value').textContent = particleParams.size.toFixed(3);
-      document.getElementById('density-value').textContent = particleParams.density.toFixed(1);
-      document.getElementById('disparity-value').textContent = particleParams.disparity.toFixed(1);
-      document.getElementById('movement-value').textContent = particleParams.movement.toFixed(3);
-      document.getElementById('saturation-value').textContent = particleParams.saturation.toFixed(1);
-      document.getElementById('hideBlack-value').textContent = particleParams.hideBlack.toFixed(2);
-      document.getElementById('randomness-value').textContent = particleParams.randomness.toFixed(2);
+      uiElements.sizeValue.textContent = particleParams.size.toFixed(3);
+      uiElements.densityValue.textContent = particleParams.density.toFixed(1);
+      uiElements.disparityValue.textContent = particleParams.disparity.toFixed(1);
+      uiElements.movementValue.textContent = particleParams.movement.toFixed(3);
+      uiElements.saturationValue.textContent = particleParams.saturation.toFixed(1);
+      uiElements.hideBlackValue.textContent = particleParams.hideBlack.toFixed(2);
+      uiElements.randomnessValue.textContent = particleParams.randomness.toFixed(2);
 
       // Mettre à jour les sliders aussi
-      document.getElementById('size-slider').value = particleParams.size;
-      document.getElementById('density-slider').value = particleParams.density;
-      document.getElementById('disparity-slider').value = particleParams.disparity;
-      document.getElementById('movement-slider').value = particleParams.movement;
-      document.getElementById('saturation-slider').value = particleParams.saturation;
-      document.getElementById('hideBlack-slider').value = particleParams.hideBlack;
-      document.getElementById('randomness-slider').value = particleParams.randomness;
+      uiElements.sizeSlider.value = particleParams.size;
+      uiElements.densitySlider.value = particleParams.density;
+      uiElements.disparitySlider.value = particleParams.disparity;
+      uiElements.movementSlider.value = particleParams.movement;
+      uiElements.saturationSlider.value = particleParams.saturation;
+      uiElements.hideBlackSlider.value = particleParams.hideBlack;
+      uiElements.randomnessSlider.value = particleParams.randomness;
     }
 
     // Helper pour mettre à jour un paramètre
