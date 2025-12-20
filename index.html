@@ -1685,6 +1685,9 @@
             }
           }
 
+          // Charger les paramètres de l'état sélectionné
+          loadState(currentStateIndex);
+
           // Sauter directement au niveau de zoom de l'état (saccade)
           if (uxJourneyMode && uxStates.length > 1) {
             targetZoomLevel = currentStateIndex / (uxStates.length - 1);
