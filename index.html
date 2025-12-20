@@ -470,6 +470,34 @@
       border-color: rgba(255, 255, 255, 0.5);
     }
 
+    .ux-apply-btn {
+      width: 100%;
+      padding: 15px;
+      background: rgba(85, 255, 255, 0.15);
+      border: 2px solid rgba(85, 255, 255, 0.4);
+      color: #55ffff;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .ux-apply-btn:hover:not(:disabled) {
+      background: rgba(85, 255, 255, 0.25);
+      border-color: rgba(85, 255, 255, 0.6);
+    }
+
+    .ux-apply-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #666;
+    }
+
     .ux-curve-selector {
       margin-bottom: 20px;
     }
@@ -903,6 +931,9 @@
       <!-- Bouton ajouter état -->
       <button class="ux-add-state-btn" id="ux-add-state">+</button>
 
+      <!-- Bouton appliquer les paramètres -->
+      <button class="ux-apply-btn" id="ux-apply-state" disabled>Apply</button>
+
       <!-- Sélecteur de courbe -->
       <div class="ux-curve-selector">
         <div class="ux-curve-label">Type de Courbe</div>
@@ -984,7 +1015,7 @@
 
     // Système de parcours UX avec états multiples
     let uxJourneyMode = false;
-    let currentStateIndex = 0; // État actuellement sélectionné
+    let currentStateIndex = -1; // État actuellement sélectionné (-1 = aucun)
     let selectedCurveType = 'easeIn'; // Type de courbe sélectionné
 
     // Tableau des états de lecture
@@ -1550,6 +1581,7 @@
     const uxStatesPanel = document.getElementById('ux-states-panel');
     const uxStatesList = document.getElementById('ux-states-list');
     const uxAddStateBtn = document.getElementById('ux-add-state');
+    const uxApplyBtn = document.getElementById('ux-apply-state');
     const uxCurveSelect = document.getElementById('ux-curve-type');
     const uxToggleBtn = document.getElementById('ux-toggle');
 
@@ -1607,13 +1639,18 @@
         }
         btn.textContent = state.name;
         btn.addEventListener('click', () => {
-          // Sauvegarder l'état actuel avant de changer
-          saveCurrentState();
-          // Charger le nouvel état
-          currentStateIndex = index;
-          loadState(index);
+          // Sélectionner/désélectionner l'état
+          if (currentStateIndex === index) {
+            // Désélectionner si on clique sur le même
+            currentStateIndex = -1;
+          } else {
+            // Sélectionner l'état
+            currentStateIndex = index;
+          }
           // Mettre à jour l'affichage
           renderUXStates();
+          // Activer/désactiver le bouton APPLY
+          uxApplyBtn.disabled = currentStateIndex === -1;
         });
         uxStatesList.appendChild(btn);
       });
@@ -1621,26 +1658,32 @@
 
     // Bouton ajouter un état
     uxAddStateBtn.addEventListener('click', () => {
-      // Sauvegarder l'état actuel
-      saveCurrentState();
-
-      // Créer un nouvel état avec les paramètres actuels
+      // Créer un nouvel état avec les paramètres par défaut
       const newState = {
         name: `État ${uxStates.length + 1}`,
-        size: particleParams.size,
-        density: particleParams.density,
-        disparity: particleParams.disparity,
-        movement: particleParams.movement,
-        randomness: particleParams.randomness,
-        saturation: particleParams.saturation,
-        hideBlack: particleParams.hideBlack,
-        shape: particleParams.shape,
-        movementMode: particleParams.movementMode
+        size: 0.02,
+        density: 0.4,
+        disparity: 0.0,
+        movement: 0.0,
+        randomness: 0.0,
+        saturation: 1.0,
+        hideBlack: 0.0,
+        shape: 'circle',
+        movementMode: 1
       };
 
       uxStates.push(newState);
-      currentStateIndex = uxStates.length - 1;
+      // Ne pas sélectionner automatiquement le nouvel état
       renderUXStates();
+    });
+
+    // Bouton appliquer les paramètres
+    uxApplyBtn.addEventListener('click', () => {
+      if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
+        // Sauvegarder les paramètres actuels dans l'état sélectionné
+        saveCurrentState();
+        console.log(`État ${currentStateIndex + 1} mis à jour avec les paramètres actuels`);
+      }
     });
 
     // Sélecteur de courbe
