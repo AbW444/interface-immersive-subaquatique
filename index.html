@@ -1014,9 +1014,9 @@
     };
 
     // Système de parcours UX avec états multiples
-    let uxJourneyMode = false;
+    let uxJourneyMode = true; // Activé par défaut
     let currentStateIndex = -1; // État actuellement sélectionné (-1 = aucun)
-    let selectedCurveType = 'easeIn';
+    let selectedCurveType = 'linear'; // Linéaire par défaut
 
     // États par défaut (toujours utilisés, pas de localStorage)
     let uxStates = [
