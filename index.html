@@ -817,17 +817,28 @@
 
         const particleGeometry = new THREE.BufferGeometry();
 
-        // Créer une texture pour la forme carrée si nécessaire
-        let particleTexture = null;
+        // Créer une texture selon la forme sélectionnée
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+
         if (particleParams.shape === 'square') {
-          const canvas = document.createElement('canvas');
-          canvas.width = 32;
-          canvas.height = 32;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, 32, 32);
-          particleTexture = new THREE.CanvasTexture(canvas);
+          // Carré : remplir tout le canvas en blanc
+          ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+          ctx.fillRect(0, 0, 64, 64);
+        } else {
+          // Cercle : dessiner un cercle avec dégradé radial
+          const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+          gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+          gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 64, 64);
         }
+
+        const particleTexture = new THREE.CanvasTexture(canvas);
+        particleTexture.needsUpdate = true;
 
         const particleMaterial = new THREE.PointsMaterial({
           size: particleParams.size,
@@ -835,7 +846,9 @@
           transparent: true,
           opacity: 1,
           map: particleTexture,
-          sizeAttenuation: true
+          sizeAttenuation: true,
+          depthWrite: false,
+          blending: THREE.NormalBlending
         });
 
         const particleVertices = [];
