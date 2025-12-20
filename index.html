@@ -362,6 +362,173 @@
     /* FIN INTERFACE DE PARAMÉTRAGE */
 
     /* ===============================================
+       INTERFACE ÉTATS DE LECTURE (Touche M)
+       =============================================== */
+
+    #ux-states-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.95);
+      color: #ffffff;
+      padding: 0;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      z-index: 2000;
+      display: none;
+      width: 400px;
+      font-family: 'Roboto', Arial, sans-serif;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+    }
+
+    #ux-states-panel.visible {
+      display: block;
+    }
+
+    .ux-states-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+    }
+
+    .ux-states-title {
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .ux-states-content {
+      padding: 20px;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .ux-states-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .ux-states-content::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .ux-states-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    .ux-states-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .ux-state-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .ux-state-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .ux-state-btn.active {
+      background: rgba(85, 255, 255, 0.2);
+      border-color: rgba(85, 255, 255, 0.6);
+      color: #55ffff;
+    }
+
+    .ux-add-state-btn {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .ux-add-state-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ux-curve-selector {
+      margin-bottom: 20px;
+    }
+
+    .ux-curve-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 500;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    .ux-curve-select {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .ux-curve-select option {
+      background: #000;
+      color: #fff;
+    }
+
+    .ux-toggle-btn {
+      width: 100%;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-radius: 4px;
+    }
+
+    .ux-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .ux-toggle-btn.active {
+      background: rgba(85, 255, 255, 0.25);
+      border-color: rgba(85, 255, 255, 0.6);
+      color: #55ffff;
+    }
+
+    /* FIN INTERFACE ÉTATS DE LECTURE */
+
+    /* ===============================================
        SECTION DÉSACTIVÉE - ÉLÉMENTS UI SUPPRIMÉS
        ===============================================
        Cette section contient tous les éléments UI qui ont été désactivés :
@@ -722,6 +889,36 @@
   -->
   <!-- FIN SECTION DÉSACTIVÉE -->
 
+  <!-- INTERFACE ÉTATS DE LECTURE (Touche M) -->
+  <div id="ux-states-panel">
+    <div class="ux-states-header">
+      <h2 class="ux-states-title">États de Lecture</h2>
+    </div>
+    <div class="ux-states-content">
+      <!-- Liste des états -->
+      <div id="ux-states-list" class="ux-states-list">
+        <!-- Les boutons d'états seront ajoutés dynamiquement -->
+      </div>
+
+      <!-- Bouton ajouter état -->
+      <button class="ux-add-state-btn" id="ux-add-state">+</button>
+
+      <!-- Sélecteur de courbe -->
+      <div class="ux-curve-selector">
+        <div class="ux-curve-label">Type de Courbe</div>
+        <select class="ux-curve-select" id="ux-curve-type">
+          <option value="linear">Linéaire</option>
+          <option value="easeIn" selected>Ease In (Accélération)</option>
+          <option value="easeOut">Ease Out (Décélération)</option>
+          <option value="easeInOut">Ease In-Out (S-Curve)</option>
+        </select>
+      </div>
+
+      <!-- Bouton activer/désactiver -->
+      <button class="ux-toggle-btn" id="ux-toggle">Actif</button>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===============================================
@@ -785,26 +982,53 @@
       movementMode: 1      // Mode de mouvement (1: Z, 2: XY, 3: XYZ, 4: WAVE, 5: SPIRAL)
     };
 
-    // Mode parcours UX (touche M)
+    // Système de parcours UX avec états multiples
     let uxJourneyMode = false;
+    let currentStateIndex = 0; // État actuellement sélectionné
+    let selectedCurveType = 'easeIn'; // Type de courbe sélectionné
 
-    // État 1 : Début du parcours (scroll = 0)
-    const uxState1 = {
-      disparity: 0.0,
-      movement: 0.0,
-      randomness: 0.0
-    };
+    // Tableau des états de lecture
+    let uxStates = [
+      {
+        name: 'État 1',
+        disparity: 0.0,
+        movement: 0.0,
+        randomness: 0.0
+      },
+      {
+        name: 'État 2',
+        disparity: 4.5,
+        movement: 0.4,
+        randomness: 0.4
+      }
+    ];
 
-    // État 2 : Fin du parcours (scroll max)
-    const uxState2 = {
-      disparity: 4.5,
-      movement: 0.4,
-      randomness: 0.4
-    };
+    // Fonctions d'easing pour différentes courbes
+    function linear(t) {
+      return t;
+    }
 
-    // Fonction d'easing ease-in (accélération progressive)
     function easeIn(t) {
       return t * t;
+    }
+
+    function easeOut(t) {
+      return 1 - Math.pow(1 - t, 2);
+    }
+
+    function easeInOut(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    // Fonction pour appliquer la courbe sélectionnée
+    function applyCurve(t) {
+      switch(selectedCurveType) {
+        case 'linear': return linear(t);
+        case 'easeIn': return easeIn(t);
+        case 'easeOut': return easeOut(t);
+        case 'easeInOut': return easeInOut(t);
+        default: return t;
+      }
     }
 
     // Saturation des couleurs
@@ -1164,14 +1388,28 @@
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
 
       // Mode parcours UX : interpoler les paramètres selon le zoom
-      if (uxJourneyMode) {
-        // Appliquer easing ease-in à la progression
-        const easedProgress = easeIn(targetZoomLevel);
+      if (uxJourneyMode && uxStates.length >= 2) {
+        // Calculer la progression globale (0 = premier état, 1 = dernier état)
+        const globalProgress = targetZoomLevel;
 
-        // Interpoler entre état 1 et état 2
-        particleParams.disparity = uxState1.disparity + (uxState2.disparity - uxState1.disparity) * easedProgress;
-        particleParams.movement = uxState1.movement + (uxState2.movement - uxState1.movement) * easedProgress;
-        particleParams.randomness = uxState1.randomness + (uxState2.randomness - uxState1.randomness) * easedProgress;
+        // Déterminer entre quels états on se trouve
+        const stateCount = uxStates.length;
+        const scaledProgress = globalProgress * (stateCount - 1);
+        const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
+        const fromStateIndex = Math.floor(stateIndexFloat);
+        const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
+        const localProgress = stateIndexFloat - fromStateIndex;
+
+        // Appliquer la courbe sélectionnée à la progression locale
+        const easedProgress = applyCurve(localProgress);
+
+        // Interpoler entre les deux états
+        const fromState = uxStates[fromStateIndex];
+        const toState = uxStates[toStateIndex];
+
+        particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
+        particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
+        particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
 
         // Mettre à jour l'interface
         updateUIValues();
@@ -1257,27 +1495,115 @@
         }
       }
 
-      // Touche M - Activer/désactiver le mode parcours UX
+      // Touche M - Ouvrir l'interface États de Lecture
       if (event.key === 'm' || event.key === 'M') {
-        uxJourneyMode = !uxJourneyMode;
-
-        if (uxJourneyMode) {
-          // Activer le mode : réinitialiser au début (état 1)
-          targetZoomLevel = 0;
-          particleParams.disparity = uxState1.disparity;
-          particleParams.movement = uxState1.movement;
-          particleParams.randomness = uxState1.randomness;
-          updateUIValues();
-          loadImage(currentImageIndex);
-          console.log('Mode parcours UX activé - Utilisez la molette pour progresser');
-        } else {
-          // Désactiver le mode
-          console.log('Mode parcours UX désactivé');
+        const uxStatesPanel = document.getElementById('ux-states-panel');
+        uxStatesPanel.classList.toggle('visible');
+        if (uxStatesPanel.classList.contains('visible')) {
+          renderUXStates();
         }
       }
     });
 
     /* FIN SECTION ARRIÈRE-PLANS JONAS */
+
+    /* ===============================================
+       GESTION INTERFACE ÉTATS DE LECTURE
+       =============================================== */
+
+    const uxStatesPanel = document.getElementById('ux-states-panel');
+    const uxStatesList = document.getElementById('ux-states-list');
+    const uxAddStateBtn = document.getElementById('ux-add-state');
+    const uxCurveSelect = document.getElementById('ux-curve-type');
+    const uxToggleBtn = document.getElementById('ux-toggle');
+
+    // Fonction pour sauvegarder les paramètres actuels dans l'état sélectionné
+    function saveCurrentState() {
+      if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
+        uxStates[currentStateIndex].disparity = particleParams.disparity;
+        uxStates[currentStateIndex].movement = particleParams.movement;
+        uxStates[currentStateIndex].randomness = particleParams.randomness;
+      }
+    }
+
+    // Fonction pour charger un état
+    function loadState(index) {
+      if (index >= 0 && index < uxStates.length) {
+        particleParams.disparity = uxStates[index].disparity;
+        particleParams.movement = uxStates[index].movement;
+        particleParams.randomness = uxStates[index].randomness;
+        updateUIValues();
+        loadImage(currentImageIndex);
+      }
+    }
+
+    // Fonction pour rendre les boutons d'états
+    function renderUXStates() {
+      uxStatesList.innerHTML = '';
+      uxStates.forEach((state, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'ux-state-btn';
+        if (index === currentStateIndex) {
+          btn.classList.add('active');
+        }
+        btn.textContent = state.name;
+        btn.addEventListener('click', () => {
+          // Sauvegarder l'état actuel avant de changer
+          saveCurrentState();
+          // Charger le nouvel état
+          currentStateIndex = index;
+          loadState(index);
+          // Mettre à jour l'affichage
+          renderUXStates();
+        });
+        uxStatesList.appendChild(btn);
+      });
+    }
+
+    // Bouton ajouter un état
+    uxAddStateBtn.addEventListener('click', () => {
+      // Sauvegarder l'état actuel
+      saveCurrentState();
+
+      // Créer un nouvel état avec les paramètres actuels
+      const newState = {
+        name: `État ${uxStates.length + 1}`,
+        disparity: particleParams.disparity,
+        movement: particleParams.movement,
+        randomness: particleParams.randomness
+      };
+
+      uxStates.push(newState);
+      currentStateIndex = uxStates.length - 1;
+      renderUXStates();
+    });
+
+    // Sélecteur de courbe
+    uxCurveSelect.addEventListener('change', (e) => {
+      selectedCurveType = e.target.value;
+    });
+
+    // Bouton activer/désactiver le parcours UX
+    uxToggleBtn.addEventListener('click', () => {
+      uxJourneyMode = !uxJourneyMode;
+
+      if (uxJourneyMode) {
+        // Activer le mode
+        uxToggleBtn.textContent = 'Désactiver';
+        uxToggleBtn.classList.add('active');
+        targetZoomLevel = 0;
+        // Charger le premier état
+        loadState(0);
+        console.log('Mode parcours UX activé');
+      } else {
+        // Désactiver le mode
+        uxToggleBtn.textContent = 'Actif';
+        uxToggleBtn.classList.remove('active');
+        console.log('Mode parcours UX désactivé');
+      }
+    });
+
+    /* FIN GESTION INTERFACE ÉTATS DE LECTURE */
 
     /* ===============================================
        INTERFACE DE PARAMÉTRAGE
