@@ -368,8 +368,8 @@
     #ux-states-panel {
       position: fixed;
       top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      left: 20px;
+      transform: translateY(-50%);
       background-color: rgba(0, 0, 0, 0.95);
       color: #ffffff;
       padding: 0;
@@ -985,7 +985,7 @@
 
     let particles;
     let currentImageIndex = 1; // Commence à 1 (IMG_001)
-    const maxImageIndex = 3; // 3 images : IMG_001, IMG_002, IMG_003
+    const maxImageIndex = 4; // 4 images : IMG_001, IMG_002, IMG_003, IMG_004
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
@@ -1638,6 +1638,35 @@
         uxStatesPanel.classList.toggle('visible');
         if (uxStatesPanel.classList.contains('visible')) {
           renderUXStates();
+        }
+      }
+
+      // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        const uxStatesPanel = document.getElementById('ux-states-panel');
+        if (uxStatesPanel.classList.contains('visible') && uxStates.length > 0) {
+          event.preventDefault();
+
+          if (event.key === 'ArrowUp') {
+            // État précédent
+            if (currentStateIndex === -1) {
+              currentStateIndex = uxStates.length - 1;
+            } else {
+              currentStateIndex = currentStateIndex === 0 ? uxStates.length - 1 : currentStateIndex - 1;
+            }
+          } else {
+            // État suivant
+            if (currentStateIndex === -1) {
+              currentStateIndex = 0;
+            } else {
+              currentStateIndex = currentStateIndex === uxStates.length - 1 ? 0 : currentStateIndex + 1;
+            }
+          }
+
+          // Mettre à jour l'affichage
+          renderUXStates();
+          // Activer le bouton APPLY
+          uxApplyBtn.disabled = false;
         }
       }
     });
