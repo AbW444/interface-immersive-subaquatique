@@ -296,6 +296,69 @@
       border-color: rgba(255, 255, 255, 0.3);
     }
 
+    /* Boutons de forme (rond/carré) */
+    .shape-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .shape-btn {
+      flex: 1;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .shape-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .shape-btn.active {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Boutons de mode de mouvement */
+    .movement-mode-buttons {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+      margin-top: 10px;
+    }
+
+    .movement-mode-btn {
+      height: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .movement-mode-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .movement-mode-btn.active {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
     /* FIN INTERFACE DE PARAMÉTRAGE */
 
     /* ===============================================
@@ -495,6 +558,17 @@
         </div>
       </div>
 
+      <!-- Particle Shape -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Particle Shape</span>
+        </div>
+        <div class="shape-buttons">
+          <button class="shape-btn active" data-shape="circle">●</button>
+          <button class="shape-btn" data-shape="square">■</button>
+        </div>
+      </div>
+
       <!-- Particle Density -->
       <div class="param-control">
         <div class="param-header">
@@ -542,7 +616,21 @@
           </div>
         </div>
         <div class="param-slider-container">
-          <input type="range" id="movement-slider" min="0" max="0.04" step="0.002" value="0">
+          <input type="range" id="movement-slider" min="0" max="0.5" step="0.01" value="0">
+        </div>
+      </div>
+
+      <!-- Movement Mode -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Movement Mode</span>
+        </div>
+        <div class="movement-mode-buttons">
+          <button class="movement-mode-btn active" data-mode="1">Z</button>
+          <button class="movement-mode-btn" data-mode="2">XY</button>
+          <button class="movement-mode-btn" data-mode="3">XYZ</button>
+          <button class="movement-mode-btn" data-mode="4">WAVE</button>
+          <button class="movement-mode-btn" data-mode="5">SPIRAL</button>
         </div>
       </div>
 
@@ -692,7 +780,9 @@
       movement: 0.0,       // Pas de mouvement
       saturation: 1.0,     // Saturation chromatique
       hideBlack: 0.0,      // Seuil pour masquer les pixels noirs (0 = aucun, 1 = tous les noirs)
-      randomness: 0.0      // Aléatoire du positionnement (0 = grille parfaite, 1 = désorganisé)
+      randomness: 0.0,     // Aléatoire du positionnement (0 = grille parfaite, 1 = désorganisé)
+      shape: 'circle',     // Forme des particules (circle ou square)
+      movementMode: 1      // Mode de mouvement (1: Z, 2: XY, 3: XYZ, 4: WAVE, 5: SPIRAL)
     };
 
     // Saturation des couleurs
@@ -726,11 +816,26 @@
         const scaleFactor = 50;
 
         const particleGeometry = new THREE.BufferGeometry();
+
+        // Créer une texture pour la forme carrée si nécessaire
+        let particleTexture = null;
+        if (particleParams.shape === 'square') {
+          const canvas = document.createElement('canvas');
+          canvas.width = 32;
+          canvas.height = 32;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, 32, 32);
+          particleTexture = new THREE.CanvasTexture(canvas);
+        }
+
         const particleMaterial = new THREE.PointsMaterial({
           size: particleParams.size,
           vertexColors: true,
           transparent: true,
-          opacity: 1
+          opacity: 1,
+          map: particleTexture,
+          sizeAttenuation: true
         });
 
         const particleVertices = [];
@@ -933,23 +1038,66 @@
         needsRender = true;
       }
 
-      // Mouvement subtil des particules (oscillation autour de la position initiale)
+      // Mouvement des particules avec 5 modes différents
       if (particles && particleParams.movement > 0) {
         particles.userData.time += 0.01;
 
         const positions = particles.geometry.attributes.position.array;
         const initialPositions = particles.geometry.attributes.initialPosition.array;
         const time = particles.userData.time;
-        const movementDouble = particleParams.movement * 2; // (Opt #7 - Pré-calculer)
+        const movementDouble = particleParams.movement * 2;
 
         for (let i = 0; i < positions.length; i += 3) {
-          // Oscillation sinusoïdale autour de la position initiale sur l'axe Z
-          // Utilise un offset unique par particule pour éviter la synchronisation
           const offset = i * 0.1;
-          const oscillation = Math.sin(time + offset) * movementDouble;
 
-          // Restaurer la position initiale + ajouter l'oscillation
-          positions[i + 2] = initialPositions[i + 2] + oscillation;
+          // Mode 1: Mouvement sur Z uniquement
+          if (particleParams.movementMode === 1) {
+            const oscillation = Math.sin(time + offset) * movementDouble;
+            positions[i] = initialPositions[i];
+            positions[i + 1] = initialPositions[i + 1];
+            positions[i + 2] = initialPositions[i + 2] + oscillation;
+          }
+
+          // Mode 2: Mouvement sur X et Y
+          else if (particleParams.movementMode === 2) {
+            const oscillationX = Math.sin(time + offset) * movementDouble;
+            const oscillationY = Math.cos(time + offset * 1.3) * movementDouble;
+            positions[i] = initialPositions[i] + oscillationX;
+            positions[i + 1] = initialPositions[i + 1] + oscillationY;
+            positions[i + 2] = initialPositions[i + 2];
+          }
+
+          // Mode 3: Mouvement sur tous les axes (XYZ)
+          else if (particleParams.movementMode === 3) {
+            const oscillationX = Math.sin(time + offset) * movementDouble;
+            const oscillationY = Math.cos(time + offset * 1.3) * movementDouble;
+            const oscillationZ = Math.sin(time * 0.7 + offset * 0.8) * movementDouble;
+            positions[i] = initialPositions[i] + oscillationX;
+            positions[i + 1] = initialPositions[i + 1] + oscillationY;
+            positions[i + 2] = initialPositions[i + 2] + oscillationZ;
+          }
+
+          // Mode 4: Mouvement en vague (WAVE)
+          else if (particleParams.movementMode === 4) {
+            const waveX = Math.sin(time + initialPositions[i] * 0.5) * movementDouble;
+            const waveY = Math.cos(time + initialPositions[i + 1] * 0.5) * movementDouble;
+            const waveZ = Math.sin(time * 1.5 + initialPositions[i] * 0.3 + initialPositions[i + 1] * 0.3) * movementDouble * 0.7;
+            positions[i] = initialPositions[i] + waveX * 0.5;
+            positions[i + 1] = initialPositions[i + 1] + waveY * 0.5;
+            positions[i + 2] = initialPositions[i + 2] + waveZ;
+          }
+
+          // Mode 5: Mouvement en spirale (SPIRAL)
+          else if (particleParams.movementMode === 5) {
+            const angle = time + offset;
+            const radius = movementDouble;
+            const spiralX = Math.cos(angle) * radius * 0.6;
+            const spiralY = Math.sin(angle) * radius * 0.6;
+            const spiralZ = Math.sin(time * 2 + offset) * movementDouble * 0.8;
+            positions[i] = initialPositions[i] + spiralX;
+            positions[i + 1] = initialPositions[i + 1] + spiralY;
+            positions[i + 2] = initialPositions[i + 2] + spiralZ;
+          }
         }
         particles.geometry.attributes.position.needsUpdate = true;
         needsRender = true;
@@ -1074,7 +1222,9 @@
       movement: 0.0,
       saturation: 1.0,
       hideBlack: 0.0,
-      randomness: 0.0
+      randomness: 0.0,
+      shape: 'circle',
+      movementMode: 1
     };
 
     // Fonction pour mettre à jour l'affichage de l'UI
@@ -1163,6 +1313,32 @@
       });
     });
 
+    // Boutons de forme (rond/carré)
+    document.querySelectorAll('.shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Retirer active de tous les boutons
+        document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+        // Ajouter active au bouton cliqué
+        btn.classList.add('active');
+        // Mettre à jour le paramètre
+        particleParams.shape = btn.dataset.shape;
+        // Recharger l'image avec la nouvelle forme
+        loadImage(currentImageIndex);
+      });
+    });
+
+    // Boutons de mode de mouvement
+    document.querySelectorAll('.movement-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Retirer active de tous les boutons
+        document.querySelectorAll('.movement-mode-btn').forEach(b => b.classList.remove('active'));
+        // Ajouter active au bouton cliqué
+        btn.classList.add('active');
+        // Mettre à jour le paramètre
+        particleParams.movementMode = parseInt(btn.dataset.mode);
+      });
+    });
+
     // Apply button
     document.getElementById('apply-btn').addEventListener('click', () => {
       // Recharger avec tous les paramètres
@@ -1172,7 +1348,19 @@
     // Reset to Defaults
     document.getElementById('reset-defaults-btn').addEventListener('click', () => {
       Object.keys(defaultParams).forEach(param => {
-        updateParam(param, defaultParams[param]);
+        if (param === 'shape') {
+          particleParams.shape = defaultParams[param];
+          document.querySelectorAll('.shape-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.shape === defaultParams[param]);
+          });
+        } else if (param === 'movementMode') {
+          particleParams.movementMode = defaultParams[param];
+          document.querySelectorAll('.movement-mode-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.mode) === defaultParams[param]);
+          });
+        } else {
+          updateParam(param, defaultParams[param]);
+        }
       });
       loadImage(currentImageIndex);
     });
