@@ -785,6 +785,28 @@
       movementMode: 1      // Mode de mouvement (1: Z, 2: XY, 3: XYZ, 4: WAVE, 5: SPIRAL)
     };
 
+    // Mode parcours UX (touche M)
+    let uxJourneyMode = false;
+
+    // État 1 : Début du parcours (scroll = 0)
+    const uxState1 = {
+      disparity: 0.0,
+      movement: 0.0,
+      randomness: 0.0
+    };
+
+    // État 2 : Fin du parcours (scroll max)
+    const uxState2 = {
+      disparity: 4.5,
+      movement: 0.4,
+      randomness: 0.4
+    };
+
+    // Fonction d'easing ease-in (accélération progressive)
+    function easeIn(t) {
+      return t * t;
+    }
+
     // Saturation des couleurs
     function saturateColor(r, g, b, intensity) {
       const avg = (r + g + b) / 3;
@@ -1140,6 +1162,23 @@
 
       // Limiter entre 0 et 1
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+
+      // Mode parcours UX : interpoler les paramètres selon le zoom
+      if (uxJourneyMode) {
+        // Appliquer easing ease-in à la progression
+        const easedProgress = easeIn(targetZoomLevel);
+
+        // Interpoler entre état 1 et état 2
+        particleParams.disparity = uxState1.disparity + (uxState2.disparity - uxState1.disparity) * easedProgress;
+        particleParams.movement = uxState1.movement + (uxState2.movement - uxState1.movement) * easedProgress;
+        particleParams.randomness = uxState1.randomness + (uxState2.randomness - uxState1.randomness) * easedProgress;
+
+        // Mettre à jour l'interface
+        updateUIValues();
+
+        // Recharger l'image pour les paramètres qui le nécessitent (disparity, randomness)
+        loadImage(currentImageIndex);
+      }
     }, { passive: false });
 
     /* ===============================================
@@ -1215,6 +1254,25 @@
           // Tout masquer
           jonasBgColorNegatif.classList.remove('visible');
           jonasBackgroundNegatif.classList.remove('visible');
+        }
+      }
+
+      // Touche M - Activer/désactiver le mode parcours UX
+      if (event.key === 'm' || event.key === 'M') {
+        uxJourneyMode = !uxJourneyMode;
+
+        if (uxJourneyMode) {
+          // Activer le mode : réinitialiser au début (état 1)
+          targetZoomLevel = 0;
+          particleParams.disparity = uxState1.disparity;
+          particleParams.movement = uxState1.movement;
+          particleParams.randomness = uxState1.randomness;
+          updateUIValues();
+          loadImage(currentImageIndex);
+          console.log('Mode parcours UX activé - Utilisez la molette pour progresser');
+        } else {
+          // Désactiver le mode
+          console.log('Mode parcours UX désactivé');
         }
       }
     });
