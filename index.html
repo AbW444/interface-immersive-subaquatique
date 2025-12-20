@@ -1134,6 +1134,13 @@
       }
     }
 
+    // Fonction de hash déterministe pour randomness basée sur coordonnées
+    function seededRandom(x, y, seed = 12345) {
+      const combined = (x * 73856093) ^ (y * 19349663) ^ seed;
+      const normalized = Math.abs(Math.sin(combined)) * 10000;
+      return (normalized % 1000) / 1000; // Retourne entre 0 et 1
+    }
+
     // Saturation des couleurs
     function saturateColor(r, g, b, intensity) {
       const avg = (r + g + b) / 3;
@@ -1251,12 +1258,14 @@
                 // Position de base sur la grille
                 let posX = (x - targetWidth / 2) / scaleFactor;
                 let posY = (y - targetHeight / 2) / scaleFactor;
-                const posZ = (Math.random() - 0.5) * particleParams.disparity;
+                // Utilise randomness déterministe pour disparity (depth) aussi
+                const posZ = (seededRandom(x, y, 3) - 0.5) * particleParams.disparity;
 
                 // Ajouter un offset aléatoire basé sur le paramètre randomness
+                // Utilise randomness déterministe pour éviter les saccades lors des reloads
                 if (particleParams.randomness > 0) {
-                  const randomOffsetX = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
-                  const randomOffsetY = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetX = (seededRandom(x, y, 1) - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetY = (seededRandom(x, y, 2) - 0.5) * particleParams.randomness * (step / scaleFactor);
                   posX += randomOffsetX;
                   posY += randomOffsetY;
                 }
@@ -1634,20 +1643,32 @@
           particles.material.size = particleParams.size;
         }
 
-        // Mettre à jour les boutons (throttled pour fluidité maximale)
-        throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
-
-        // Mettre à jour l'interface (throttled pour fluidité)
-        throttledUpdateUIValues();
+        // Mettre à jour les boutons ET l'interface SEULEMENT si le panneau est visible
+        // Optimisation critique : évite ~14 DOM updates par frame quand panneau fermé
+        if (settingsPanel.classList.contains('visible')) {
+          throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
+          throttledUpdateUIValues();
+        }
 
         // Détection de changement: ne recharger que si paramètres lourds ont changé
-        const needsReload =
-          Math.abs(particleParams.density - lastReloadParams.density) > 0.01 ||
-          Math.abs(particleParams.disparity - lastReloadParams.disparity) > 0.1 ||
-          Math.abs(particleParams.saturation - lastReloadParams.saturation) > 0.05 ||
-          Math.abs(particleParams.hideBlack - lastReloadParams.hideBlack) > 0.01 ||
-          Math.abs(particleParams.randomness - lastReloadParams.randomness) > 0.01 ||
-          particleParams.shape !== lastReloadParams.shape;
+        // Optimisation: early exit sur shape check (plus rapide)
+        let needsReload = particleParams.shape !== lastReloadParams.shape;
+
+        if (!needsReload) {
+          // Éviter Math.abs si différence est manifestement petite
+          const densityDiff = particleParams.density - lastReloadParams.density;
+          const disparityDiff = particleParams.disparity - lastReloadParams.disparity;
+          const saturationDiff = particleParams.saturation - lastReloadParams.saturation;
+          const hideBlackDiff = particleParams.hideBlack - lastReloadParams.hideBlack;
+          const randomnessDiff = particleParams.randomness - lastReloadParams.randomness;
+
+          needsReload =
+            (densityDiff > 0.01 || densityDiff < -0.01) ||
+            (disparityDiff > 0.1 || disparityDiff < -0.1) ||
+            (saturationDiff > 0.05 || saturationDiff < -0.05) ||
+            (hideBlackDiff > 0.01 || hideBlackDiff < -0.01) ||
+            (randomnessDiff > 0.01 || randomnessDiff < -0.01);
+        }
 
         // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
         if (needsReload && !reloadScheduled) {
