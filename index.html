@@ -1499,6 +1499,8 @@
 
     // Variables pour optimisations
     let hasInitialRender = false; // Pour forcer un premier render
+    let lastAppliedDisparity = null; // Tracker disparity pour éviter mises à jour inutiles
+    let currentAppliedDisparity = 0; // Disparity actuellement appliquée (avec lerp)
 
     // Animation
     function animate() {
@@ -1523,24 +1525,35 @@
       }
 
       // Appliquer disparity dynamiquement SANS recréer la géométrie
+      // OPTIMISATION PRO: Lerp smooth + update seulement si changement significatif
       if (particles && particles.geometry.attributes.normalizedDepth) {
-        const positions = particles.geometry.attributes.position.array;
-        const initialPositions = particles.geometry.attributes.initialPosition.array;
-        const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
-        const currentDisparity = particleParams.disparity;
+        const targetDisparity = particleParams.disparity;
 
-        // Mettre à jour position ET initialPosition avec le disparity actuel
-        for (let i = 0; i < normalizedDepths.length; i++) {
-          const idx = i * 3;
-          const depthValue = normalizedDepths[i] * currentDisparity;
-          // Mettre à jour les deux pour que movement=0 fonctionne aussi
-          initialPositions[idx + 2] = depthValue;
-          positions[idx + 2] = depthValue;
+        // Lerp smooth vers la valeur cible (transition ultra-fluide)
+        if (Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
+          currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * 0.15;
+
+          // Seulement mettre à jour GPU si changement visible (>0.001)
+          if (lastAppliedDisparity === null || Math.abs(currentAppliedDisparity - lastAppliedDisparity) > 0.001) {
+            const positions = particles.geometry.attributes.position.array;
+            const initialPositions = particles.geometry.attributes.initialPosition.array;
+            const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
+
+            // Mettre à jour position ET initialPosition avec le disparity lissé
+            for (let i = 0; i < normalizedDepths.length; i++) {
+              const idx = i * 3;
+              const depthValue = normalizedDepths[i] * currentAppliedDisparity;
+              // Mettre à jour les deux pour que movement=0 fonctionne aussi
+              initialPositions[idx + 2] = depthValue;
+              positions[idx + 2] = depthValue;
+            }
+
+            particles.geometry.attributes.initialPosition.needsUpdate = true;
+            particles.geometry.attributes.position.needsUpdate = true;
+            lastAppliedDisparity = currentAppliedDisparity;
+            needsRender = true;
+          }
         }
-
-        particles.geometry.attributes.initialPosition.needsUpdate = true;
-        particles.geometry.attributes.position.needsUpdate = true;
-        needsRender = true;
       }
 
       // Mouvement des particules avec 5 modes différents
