@@ -1731,6 +1731,17 @@
     let scrollMomentum = 0; // Momentum pour smoothing molette (scroll adaptatif)
     let lastScrollTime = 0; // Timestamp pour détection trackpad vs molette
 
+    // Variables pour détection de reload des paramètres
+    let lastReloadParams = {
+      density: 0.6,
+      disparity: 0,
+      saturation: 1,
+      hideBlack: 0,
+      randomness: 0.4,
+      shape: 'circle'
+    };
+    let reloadScheduled = false;
+
     // Optimisation PRO: Function dispatch table pour éliminer les branches
     // Au lieu de if/else if dans le loop chaud, on appelle directement la bonne fonction
     const movementFunctions = {
@@ -2038,17 +2049,6 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    // Zoom progressif avec la molette de la souris
-    let lastReloadParams = {
-      density: particleParams.density,
-      disparity: particleParams.disparity,
-      saturation: particleParams.saturation,
-      hideBlack: particleParams.hideBlack,
-      randomness: particleParams.randomness,
-      shape: particleParams.shape
-    };
-    let reloadScheduled = false;
 
     // Cache des boutons pour éviter querySelectorAll répété
     const cachedShapeButtons = document.querySelectorAll('.shape-btn');
