@@ -884,18 +884,18 @@
         <h3>📱 Trackpad</h3>
 
         <div class="scroll-param">
-          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.00047</span></label>
-          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.00047">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.00062</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.00062">
         </div>
 
         <div class="scroll-param">
-          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">61</span></label>
-          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="61">
+          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">70</span></label>
+          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="70">
         </div>
 
         <div class="scroll-param">
-          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">33</span></label>
-          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="33">
+          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">39</span></label>
+          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="39">
         </div>
       </div>
 
@@ -904,13 +904,13 @@
         <h3>🖱️ Mouse Wheel</h3>
 
         <div class="scroll-param">
-          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.16</span></label>
-          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.16">
+          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.15</span></label>
+          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.15">
         </div>
 
         <div class="scroll-param">
-          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">16</span></label>
-          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="16">
+          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">20</span></label>
+          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="20">
         </div>
 
         <div class="scroll-param">
@@ -919,8 +919,8 @@
         </div>
 
         <div class="scroll-param">
-          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.97</span></label>
-          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.97">
+          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.96</span></label>
+          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.96">
         </div>
       </div>
 
@@ -1854,6 +1854,31 @@
           particleParams.hideBlack = state1.hideBlack;
           particleParams.shape = state1.shape;
           particleParams.movementMode = state1.movementMode;
+
+          // CRITICAL FIX: Forcer reload IMMÉDIAT avec valeurs EXACTES de l'État 1
+          // Pour éliminer tout "bruit" résiduel de l'interpolation
+          const needsState1Reload =
+            Math.abs(particleParams.density - lastReloadParams.density) > 0.001 ||
+            Math.abs(particleParams.randomness - lastReloadParams.randomness) > 0.001 ||
+            Math.abs(particleParams.saturation - lastReloadParams.saturation) > 0.001 ||
+            Math.abs(particleParams.hideBlack - lastReloadParams.hideBlack) > 0.001 ||
+            particleParams.shape !== lastReloadParams.shape;
+
+          if (needsState1Reload && !reloadScheduled) {
+            reloadScheduled = true;
+            requestAnimationFrame(() => {
+              loadImage(currentImageIndex);
+              lastReloadParams = {
+                density: state1.density,
+                disparity: state1.disparity,
+                saturation: state1.saturation,
+                hideBlack: state1.hideBlack,
+                randomness: state1.randomness,
+                shape: state1.shape
+              };
+              reloadScheduled = false;
+            });
+          }
         }
         // FIX: Forcer retour exact au dernier État quand zoomLevel proche de 1
         else if (zoomLevel > 0.999) {
@@ -2114,15 +2139,15 @@
     // Configuration par défaut (valeurs optimisées)
     const scrollConfig = {
       trackpad: {
-        sensitivity: 0.00047,
-        threshold: 61,
-        frequency: 33
+        sensitivity: 0.00062,
+        threshold: 70,
+        frequency: 39
       },
       wheel: {
-        normalize: 0.16,
-        maxDelta: 16,
+        normalize: 0.15,
+        maxDelta: 20,
         momentum: 0.8,
-        decay: 0.97
+        decay: 0.96
       },
       global: {
         zoomLerp: 0.13,
@@ -2215,26 +2240,26 @@
     // Reset button
     scrollResetBtn.addEventListener('click', () => {
       // Reset to optimized defaults
-      scrollConfig.trackpad = { sensitivity: 0.00047, threshold: 61, frequency: 33 };
-      scrollConfig.wheel = { normalize: 0.16, maxDelta: 16, momentum: 0.8, decay: 0.97 };
+      scrollConfig.trackpad = { sensitivity: 0.00062, threshold: 70, frequency: 39 };
+      scrollConfig.wheel = { normalize: 0.15, maxDelta: 20, momentum: 0.8, decay: 0.96 };
       scrollConfig.global = { zoomLerp: 0.13, disparityLerp: 0.23 };
 
       // Update sliders
-      trackpadSensitivitySlider.value = 0.00047;
-      trackpadSensitivityVal.textContent = '0.00047';
-      trackpadThresholdSlider.value = 61;
-      trackpadThresholdVal.textContent = '61';
-      trackpadFrequencySlider.value = 33;
-      trackpadFrequencyVal.textContent = '33';
+      trackpadSensitivitySlider.value = 0.00062;
+      trackpadSensitivityVal.textContent = '0.00062';
+      trackpadThresholdSlider.value = 70;
+      trackpadThresholdVal.textContent = '70';
+      trackpadFrequencySlider.value = 39;
+      trackpadFrequencyVal.textContent = '39';
 
-      wheelNormalizeSlider.value = 0.16;
-      wheelNormalizeVal.textContent = '0.16';
-      wheelMaxSlider.value = 16;
-      wheelMaxVal.textContent = '16';
+      wheelNormalizeSlider.value = 0.15;
+      wheelNormalizeVal.textContent = '0.15';
+      wheelMaxSlider.value = 20;
+      wheelMaxVal.textContent = '20';
       wheelMomentumSlider.value = 0.8;
       wheelMomentumVal.textContent = '0.80';
-      wheelDecaySlider.value = 0.97;
-      wheelDecayVal.textContent = '0.97';
+      wheelDecaySlider.value = 0.96;
+      wheelDecayVal.textContent = '0.96';
 
       zoomLerpSlider.value = 0.13;
       zoomLerpVal.textContent = '0.13';
