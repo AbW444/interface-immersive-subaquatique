@@ -1501,6 +1501,75 @@
     let hasInitialRender = false; // Pour forcer un premier render
     let lastAppliedDisparity = null; // Tracker disparity pour éviter mises à jour inutiles
     let currentAppliedDisparity = 0; // Disparity actuellement appliquée (avec lerp)
+    let needsPositionUpdate = false; // Batch GPU updates pour éviter appels multiples
+
+    // Optimisation PRO: Function dispatch table pour éliminer les branches
+    // Au lieu de if/else if dans le loop chaud, on appelle directement la bonne fonction
+    const movementFunctions = {
+      // Mode 1: Mouvement sur Z uniquement
+      1: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const oscillation = Math.sin(time + offset) * movementDouble;
+        positions[i] = initialPositions[i];
+        positions[i + 1] = initialPositions[i + 1];
+        positions[i + 2] = initialPositions[i + 2] + oscillation;
+      },
+
+      // Mode 2: Mouvement sur X et Y
+      2: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const offset13 = offset * 1.3;
+        const timeOffset = time + offset;
+        const oscillationX = Math.sin(timeOffset) * movementDouble;
+        const oscillationY = Math.cos(time + offset13) * movementDouble;
+        positions[i] = initialPositions[i] + oscillationX;
+        positions[i + 1] = initialPositions[i + 1] + oscillationY;
+        positions[i + 2] = initialPositions[i + 2];
+      },
+
+      // Mode 3: Mouvement sur tous les axes (XYZ)
+      3: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const offset08 = offset * 0.8;
+        const offset13 = offset * 1.3;
+        const timeOffset = time + offset;
+        const time07 = time * 0.7;
+        const oscillationX = Math.sin(timeOffset) * movementDouble;
+        const oscillationY = Math.cos(time + offset13) * movementDouble;
+        const oscillationZ = Math.sin(time07 + offset08) * movementDouble;
+        positions[i] = initialPositions[i] + oscillationX;
+        positions[i + 1] = initialPositions[i + 1] + oscillationY;
+        positions[i + 2] = initialPositions[i + 2] + oscillationZ;
+      },
+
+      // Mode 4: Mouvement en vague (WAVE)
+      4: (positions, initialPositions, i, time, movementDouble) => {
+        const initX = initialPositions[i];
+        const initY = initialPositions[i + 1];
+        const time15 = time * 1.5;
+        const waveX = Math.sin(time + initX * 0.5) * movementDouble;
+        const waveY = Math.cos(time + initY * 0.5) * movementDouble;
+        const waveZ = Math.sin(time15 + initX * 0.3 + initY * 0.3) * movementDouble * 0.7;
+        positions[i] = initX + waveX * 0.5;
+        positions[i + 1] = initY + waveY * 0.5;
+        positions[i + 2] = initialPositions[i + 2] + waveZ;
+      },
+
+      // Mode 5: Mouvement en spirale (SPIRAL)
+      5: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const timeOffset = time + offset;
+        const time2 = time * 2;
+        const angle = timeOffset;
+        const radius = movementDouble;
+        const spiralX = Math.cos(angle) * radius * 0.6;
+        const spiralY = Math.sin(angle) * radius * 0.6;
+        const spiralZ = Math.sin(time2 + offset) * movementDouble * 0.8;
+        positions[i] = initialPositions[i] + spiralX;
+        positions[i + 1] = initialPositions[i + 1] + spiralY;
+        positions[i + 2] = initialPositions[i + 2] + spiralZ;
+      }
+    };
 
     // Animation
     function animate() {
@@ -1539,17 +1608,44 @@
             const initialPositions = particles.geometry.attributes.initialPosition.array;
             const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
 
-            // Mettre à jour position ET initialPosition avec le disparity lissé
-            for (let i = 0; i < normalizedDepths.length; i++) {
-              const idx = i * 3;
-              const depthValue = normalizedDepths[i] * currentAppliedDisparity;
-              // Mettre à jour les deux pour que movement=0 fonctionne aussi
-              initialPositions[idx + 2] = depthValue;
-              positions[idx + 2] = depthValue;
+            // OPTIMISATION: Loop unrolling pattern - traiter 4 particules à la fois
+            const disparity = currentAppliedDisparity;
+            const len = normalizedDepths.length;
+            let i = 0;
+
+            // Loop principal: traiter par blocs de 4 (SIMD-like)
+            for (; i < len - 3; i += 4) {
+              const idx0 = i * 3;
+              const idx1 = (i + 1) * 3;
+              const idx2 = (i + 2) * 3;
+              const idx3 = (i + 3) * 3;
+
+              const depth0 = normalizedDepths[i] * disparity;
+              const depth1 = normalizedDepths[i + 1] * disparity;
+              const depth2 = normalizedDepths[i + 2] * disparity;
+              const depth3 = normalizedDepths[i + 3] * disparity;
+
+              initialPositions[idx0 + 2] = depth0;
+              positions[idx0 + 2] = depth0;
+              initialPositions[idx1 + 2] = depth1;
+              positions[idx1 + 2] = depth1;
+              initialPositions[idx2 + 2] = depth2;
+              positions[idx2 + 2] = depth2;
+              initialPositions[idx3 + 2] = depth3;
+              positions[idx3 + 2] = depth3;
             }
 
+            // Gérer les particules restantes
+            for (; i < len; i++) {
+              const idx = i * 3;
+              const depth = normalizedDepths[i] * disparity;
+              initialPositions[idx + 2] = depth;
+              positions[idx + 2] = depth;
+            }
+
+            // Marquer pour batch update au lieu d'update immédiat
             particles.geometry.attributes.initialPosition.needsUpdate = true;
-            particles.geometry.attributes.position.needsUpdate = true;
+            needsPositionUpdate = true;
             lastAppliedDisparity = currentAppliedDisparity;
             needsRender = true;
           }
@@ -1557,6 +1653,7 @@
       }
 
       // Mouvement des particules avec 5 modes différents
+      // OPTIMISATION PRO: Utilise function dispatch au lieu de branches dans loop chaud
       if (particles && particleParams.movement > 0) {
         particles.userData.time += 0.01;
 
@@ -1564,73 +1661,28 @@
         const initialPositions = particles.geometry.attributes.initialPosition.array;
         const time = particles.userData.time;
         const movementDouble = particleParams.movement * 2;
-        const mode = particleParams.movementMode; // Cache pour éviter lookup répété
+        const mode = particleParams.movementMode;
 
-        // Pré-calculer les valeurs communes pour chaque mode
-        const time07 = time * 0.7;
-        const time15 = time * 1.5;
-        const time2 = time * 2;
+        // Récupérer la fonction appropriée (1 lookup au lieu de branches répétées)
+        const movementFunc = movementFunctions[mode];
 
-        for (let i = 0; i < positions.length; i += 3) {
-          const offset = i * 0.1;
-          const timeOffset = time + offset;
-
-          // Mode 1: Mouvement sur Z uniquement
-          if (mode === 1) {
-            const oscillation = Math.sin(timeOffset) * movementDouble;
-            positions[i] = initialPositions[i];
-            positions[i + 1] = initialPositions[i + 1];
-            positions[i + 2] = initialPositions[i + 2] + oscillation;
-          }
-
-          // Mode 2: Mouvement sur X et Y
-          else if (mode === 2) {
-            const offset13 = offset * 1.3;
-            const oscillationX = Math.sin(timeOffset) * movementDouble;
-            const oscillationY = Math.cos(time + offset13) * movementDouble;
-            positions[i] = initialPositions[i] + oscillationX;
-            positions[i + 1] = initialPositions[i + 1] + oscillationY;
-            positions[i + 2] = initialPositions[i + 2];
-          }
-
-          // Mode 3: Mouvement sur tous les axes (XYZ)
-          else if (mode === 3) {
-            const offset08 = offset * 0.8;
-            const offset13 = offset * 1.3;
-            const oscillationX = Math.sin(timeOffset) * movementDouble;
-            const oscillationY = Math.cos(time + offset13) * movementDouble;
-            const oscillationZ = Math.sin(time07 + offset08) * movementDouble;
-            positions[i] = initialPositions[i] + oscillationX;
-            positions[i + 1] = initialPositions[i + 1] + oscillationY;
-            positions[i + 2] = initialPositions[i + 2] + oscillationZ;
-          }
-
-          // Mode 4: Mouvement en vague (WAVE)
-          else if (mode === 4) {
-            const initX = initialPositions[i];
-            const initY = initialPositions[i + 1];
-            const waveX = Math.sin(time + initX * 0.5) * movementDouble;
-            const waveY = Math.cos(time + initY * 0.5) * movementDouble;
-            const waveZ = Math.sin(time15 + initX * 0.3 + initY * 0.3) * movementDouble * 0.7;
-            positions[i] = initX + waveX * 0.5;
-            positions[i + 1] = initY + waveY * 0.5;
-            positions[i + 2] = initialPositions[i + 2] + waveZ;
-          }
-
-          // Mode 5: Mouvement en spirale (SPIRAL)
-          else if (mode === 5) {
-            const angle = timeOffset;
-            const radius = movementDouble;
-            const spiralX = Math.cos(angle) * radius * 0.6;
-            const spiralY = Math.sin(angle) * radius * 0.6;
-            const spiralZ = Math.sin(time2 + offset) * movementDouble * 0.8;
-            positions[i] = initialPositions[i] + spiralX;
-            positions[i + 1] = initialPositions[i + 1] + spiralY;
-            positions[i + 2] = initialPositions[i + 2] + spiralZ;
+        // Loop optimisé sans branches - CPU branch predictor est heureux
+        if (movementFunc) {
+          for (let i = 0; i < positions.length; i += 3) {
+            movementFunc(positions, initialPositions, i, time, movementDouble);
           }
         }
-        particles.geometry.attributes.position.needsUpdate = true;
+
+        // Marquer pour batch update
+        needsPositionUpdate = true;
         needsRender = true;
+      }
+
+      // OPTIMISATION PRO: Batch tous les updates GPU en un seul appel
+      // Au lieu de multiples needsUpdate=true, on fait un seul appel à la fin
+      if (needsPositionUpdate && particles) {
+        particles.geometry.attributes.position.needsUpdate = true;
+        needsPositionUpdate = false;
       }
 
       // (Opt #5 - Early exit) Ne render que si nécessaire
