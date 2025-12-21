@@ -1502,6 +1502,8 @@
     let lastAppliedDisparity = null; // Tracker disparity pour éviter mises à jour inutiles
     let currentAppliedDisparity = 0; // Disparity actuellement appliquée (avec lerp)
     let needsPositionUpdate = false; // Batch GPU updates pour éviter appels multiples
+    let scrollMomentum = 0; // Momentum pour smoothing molette (scroll adaptatif)
+    let lastScrollTime = 0; // Timestamp pour détection trackpad vs molette
 
     // Optimisation PRO: Function dispatch table pour éliminer les branches
     // Au lieu de if/else if dans le loop chaud, on appelle directement la bonne fonction
@@ -1773,10 +1775,6 @@
         });
       }
     }
-
-    // OPTIMISATION PRO: Smooth scroll adaptatif trackpad/molette
-    let scrollMomentum = 0; // Momentum pour smoothing de la molette
-    let lastScrollTime = 0;
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
