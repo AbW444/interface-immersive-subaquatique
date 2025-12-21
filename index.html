@@ -1895,11 +1895,7 @@
           particles.material.size = particleParams.size;
         }
 
-        // Mettre à jour UI si visible
-        if (settingsPanel.classList.contains('visible')) {
-          throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
-          throttledUpdateUIValues();
-        }
+        // Note: Les throttled functions géreront les updates UI automatiquement
 
         // Détection de changement: ne recharger que si paramètres lourds ont changé
         // DISPARITY RETIRÉ: appliqué dynamiquement dans animate(), jamais de reload!
