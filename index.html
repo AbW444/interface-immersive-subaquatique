@@ -884,8 +884,8 @@
         <h3>📱 Trackpad</h3>
 
         <div class="scroll-param">
-          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.00055</span></label>
-          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.00055">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.000267</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.000267">
         </div>
 
         <div class="scroll-param">
@@ -905,9 +905,9 @@
         <p style="font-size: 11px; opacity: 0.7; margin: 5px 0 10px;">Technique Lenis: accumulateur virtuel + lerp adaptatif</p>
 
         <div class="scroll-param">
-          <label>Wheel Multiplier <span class="value-display" id="wheel-multiplier-val">2.80</span></label>
-          <input type="range" id="wheel-multiplier" min="1" max="5" step="0.1" value="2.8">
-          <p style="font-size: 10px; opacity: 0.6; margin: 2px 0 0;">Compensation pour matcher trackpad (2-3 recommandé)</p>
+          <label>Wheel Multiplier <span class="value-display" id="wheel-multiplier-val">0.93</span></label>
+          <input type="range" id="wheel-multiplier" min="0.5" max="5" step="0.1" value="0.93">
+          <p style="font-size: 10px; opacity: 0.6; margin: 2px 0 0;">Compensation pour synchroniser avec trackpad</p>
         </div>
 
         <div class="scroll-param">
@@ -2135,14 +2135,14 @@
     // Configuration par défaut (valeurs optimisées selon recherche UX 2025)
     const scrollConfig = {
       trackpad: {
-        sensitivity: 0.0004,   // Ultra-précis et régulier (PARFAIT selon user)
+        sensitivity: 0.000267, // Divisé par 1.5 pour scroll plus lent
         threshold: 70,         // Seuil de détection trackpad
         frequency: 39          // Fréquence de détection trackpad
       },
       wheel: {
         // PRO: Système d'accumulateur virtuel (technique Lenis/smooth-scroll)
         // Les clics discrets sont accumulés puis distribués progressivement
-        multiplier: 2.8,       // Compensation pour matcher sensation trackpad
+        multiplier: 0.93,      // Divisé par 3 pour scroll plus lent
         lerp: 0.22             // Distribution fluide sur plusieurs frames (300-500ms)
       },
       global: {
@@ -2221,21 +2221,21 @@
 
     // Reset button
     scrollResetBtn.addEventListener('click', () => {
-      // Reset to PRO defaults (accumulateur virtuel, molette fluide comme trackpad)
-      scrollConfig.trackpad = { sensitivity: 0.0004, threshold: 70, frequency: 39 };
-      scrollConfig.wheel = { multiplier: 2.8, lerp: 0.22 };
+      // Reset to PRO defaults (vitesses réduites: trackpad /1.5, molette /3)
+      scrollConfig.trackpad = { sensitivity: 0.000267, threshold: 70, frequency: 39 };
+      scrollConfig.wheel = { multiplier: 0.93, lerp: 0.22 };
       scrollConfig.global = { zoomLerp: 0.18, disparityLerp: 0.23 };
 
       // Update sliders
-      trackpadSensitivitySlider.value = 0.0004;
-      trackpadSensitivityVal.textContent = '0.0004';
+      trackpadSensitivitySlider.value = 0.000267;
+      trackpadSensitivityVal.textContent = '0.000267';
       trackpadThresholdSlider.value = 70;
       trackpadThresholdVal.textContent = '70';
       trackpadFrequencySlider.value = 39;
       trackpadFrequencyVal.textContent = '39';
 
-      wheelMultiplierSlider.value = 2.8;
-      wheelMultiplierVal.textContent = '2.80';
+      wheelMultiplierSlider.value = 0.93;
+      wheelMultiplierVal.textContent = '0.93';
       wheelLerpSlider.value = 0.22;
       wheelLerpVal.textContent = '0.22';
 
