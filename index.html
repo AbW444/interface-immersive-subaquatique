@@ -1828,6 +1828,115 @@
         needsRender = true;
       }
 
+      // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
+      // Au lieu de les calculer dans wheel event avec targetZoomLevel (qui saute)
+      if (uxJourneyMode && uxStates.length >= 2) {
+        // FIX: Forcer retour exact à l'État 1 quand zoomLevel proche de 0
+        if (zoomLevel < 0.001) {
+          const state1 = uxStates[0];
+          particleParams.size = state1.size;
+          particleParams.density = state1.density;
+          particleParams.disparity = state1.disparity;
+          particleParams.movement = state1.movement;
+          particleParams.randomness = state1.randomness;
+          particleParams.saturation = state1.saturation;
+          particleParams.hideBlack = state1.hideBlack;
+          particleParams.shape = state1.shape;
+          particleParams.movementMode = state1.movementMode;
+        }
+        // FIX: Forcer retour exact au dernier État quand zoomLevel proche de 1
+        else if (zoomLevel > 0.999) {
+          const lastState = uxStates[uxStates.length - 1];
+          particleParams.size = lastState.size;
+          particleParams.density = lastState.density;
+          particleParams.disparity = lastState.disparity;
+          particleParams.movement = lastState.movement;
+          particleParams.randomness = lastState.randomness;
+          particleParams.saturation = lastState.saturation;
+          particleParams.hideBlack = lastState.hideBlack;
+          particleParams.shape = lastState.shape;
+          particleParams.movementMode = lastState.movementMode;
+        }
+        // Interpolation normale avec zoomLevel LISSÉ (pas targetZoomLevel!)
+        else {
+          const globalProgress = zoomLevel; // UTILISE zoomLevel lissé!
+          const stateCount = uxStates.length;
+          const scaledProgress = globalProgress * (stateCount - 1);
+          const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
+          const fromStateIndex = Math.floor(stateIndexFloat);
+          const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
+          const localProgress = stateIndexFloat - fromStateIndex;
+
+          const easedProgress = applyCurve(localProgress);
+
+          const fromState = uxStates[fromStateIndex];
+          const toState = uxStates[toStateIndex];
+
+          // Interpoler tous les paramètres de façon fluide
+          particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
+          particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
+          particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
+          particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
+          particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
+          particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
+          particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
+
+          if (easedProgress < 0.5) {
+            particleParams.shape = fromState.shape;
+            particleParams.movementMode = fromState.movementMode;
+          } else {
+            particleParams.shape = toState.shape;
+            particleParams.movementMode = toState.movementMode;
+          }
+        }
+
+        // Mise à jour légère du material size
+        if (particles) {
+          particles.material.size = particleParams.size;
+        }
+
+        // Mettre à jour UI si visible
+        if (settingsPanel.classList.contains('visible')) {
+          throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
+          throttledUpdateUIValues();
+        }
+
+        // Détection de changement: ne recharger que si paramètres lourds ont changé
+        // DISPARITY RETIRÉ: appliqué dynamiquement dans animate(), jamais de reload!
+        let needsReload = particleParams.shape !== lastReloadParams.shape;
+
+        if (!needsReload) {
+          // Éviter Math.abs si différence est manifestement petite
+          const densityDiff = particleParams.density - lastReloadParams.density;
+          const saturationDiff = particleParams.saturation - lastReloadParams.saturation;
+          const hideBlackDiff = particleParams.hideBlack - lastReloadParams.hideBlack;
+          const randomnessDiff = particleParams.randomness - lastReloadParams.randomness;
+
+          needsReload =
+            (densityDiff > 0.01 || densityDiff < -0.01) ||
+            (saturationDiff > 0.2 || saturationDiff < -0.2) ||
+            (hideBlackDiff > 0.01 || hideBlackDiff < -0.01) ||
+            (randomnessDiff > 0.01 || randomnessDiff < -0.01);
+        }
+
+        // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
+        if (needsReload && !reloadScheduled) {
+          reloadScheduled = true;
+          requestAnimationFrame(() => {
+            loadImage(currentImageIndex);
+            lastReloadParams = {
+              density: particleParams.density,
+              disparity: particleParams.disparity,
+              saturation: particleParams.saturation,
+              hideBlack: particleParams.hideBlack,
+              randomness: particleParams.randomness,
+              shape: particleParams.shape
+            };
+            reloadScheduled = false;
+          });
+        }
+      }
+
       // Appliquer disparity dynamiquement SANS recréer la géométrie
       // OPTIMISATION PRO: Lerp smooth + update seulement si changement significatif (configurable)
       if (particles && particles.geometry.attributes.normalizedDepth) {
@@ -2195,122 +2304,9 @@
       // Limiter entre 0 et 1
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
 
-      // Mode parcours UX : interpoler les paramètres selon le zoom
-      if (uxJourneyMode && uxStates.length >= 2) {
-        // FIX: Forcer retour exact à l'État 1 quand targetZoomLevel = 0
-        if (targetZoomLevel < 0.001) {
-          // Retour exact à l'État 1 pour éviter toute dérive
-          const state1 = uxStates[0];
-          particleParams.size = state1.size;
-          particleParams.density = state1.density;
-          particleParams.disparity = state1.disparity;
-          particleParams.movement = state1.movement;
-          particleParams.randomness = state1.randomness;
-          particleParams.saturation = state1.saturation;
-          particleParams.hideBlack = state1.hideBlack;
-          particleParams.shape = state1.shape;
-          particleParams.movementMode = state1.movementMode;
-        }
-        // FIX: Forcer retour exact au dernier État quand targetZoomLevel = 1
-        else if (targetZoomLevel > 0.999) {
-          const lastState = uxStates[uxStates.length - 1];
-          particleParams.size = lastState.size;
-          particleParams.density = lastState.density;
-          particleParams.disparity = lastState.disparity;
-          particleParams.movement = lastState.movement;
-          particleParams.randomness = lastState.randomness;
-          particleParams.saturation = lastState.saturation;
-          particleParams.hideBlack = lastState.hideBlack;
-          particleParams.shape = lastState.shape;
-          particleParams.movementMode = lastState.movementMode;
-        }
-        // Interpolation normale entre les états
-        else {
-          // Calculer la progression globale (0 = premier état, 1 = dernier état)
-          const globalProgress = targetZoomLevel;
-
-          // Déterminer entre quels états on se trouve
-          const stateCount = uxStates.length;
-          const scaledProgress = globalProgress * (stateCount - 1);
-          const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
-          const fromStateIndex = Math.floor(stateIndexFloat);
-          const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
-          const localProgress = stateIndexFloat - fromStateIndex;
-
-          // Appliquer la courbe sélectionnée à la progression locale
-          const easedProgress = applyCurve(localProgress);
-
-          // Interpoler entre les deux états
-          const fromState = uxStates[fromStateIndex];
-          const toState = uxStates[toStateIndex];
-
-          // Interpoler les paramètres numériques
-          particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
-          particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
-          particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
-          particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
-          particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
-          particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
-          particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
-
-          // Pour les paramètres non-interpolables (shape, movementMode), prendre celui de l'état le plus proche
-          if (easedProgress < 0.5) {
-            particleParams.shape = fromState.shape;
-            particleParams.movementMode = fromState.movementMode;
-          } else {
-            particleParams.shape = toState.shape;
-            particleParams.movementMode = toState.movementMode;
-          }
-        }
-
-        // Mise à jour légère du material size (pas de reload nécessaire)
-        if (particles) {
-          particles.material.size = particleParams.size;
-        }
-
-        // Mettre à jour les boutons ET l'interface SEULEMENT si le panneau est visible
-        // Optimisation critique : évite ~14 DOM updates par frame quand panneau fermé
-        if (settingsPanel.classList.contains('visible')) {
-          throttledUpdateButtons(particleParams.shape, particleParams.movementMode);
-          throttledUpdateUIValues();
-        }
-
-        // Détection de changement: ne recharger que si paramètres lourds ont changé
-        // DISPARITY RETIRÉ: appliqué dynamiquement dans animate(), jamais de reload!
-        let needsReload = particleParams.shape !== lastReloadParams.shape;
-
-        if (!needsReload) {
-          // Éviter Math.abs si différence est manifestement petite
-          const densityDiff = particleParams.density - lastReloadParams.density;
-          const saturationDiff = particleParams.saturation - lastReloadParams.saturation;
-          const hideBlackDiff = particleParams.hideBlack - lastReloadParams.hideBlack;
-          const randomnessDiff = particleParams.randomness - lastReloadParams.randomness;
-
-          needsReload =
-            (densityDiff > 0.01 || densityDiff < -0.01) ||
-            // disparityDiff SUPPRIMÉ - appliqué dynamiquement à 60fps
-            (saturationDiff > 0.2 || saturationDiff < -0.2) ||  // Seuil augmenté: saturation varie peu (1.0→1.3)
-            (hideBlackDiff > 0.01 || hideBlackDiff < -0.01) ||
-            (randomnessDiff > 0.01 || randomnessDiff < -0.01);
-        }
-
-        // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
-        if (needsReload && !reloadScheduled) {
-          reloadScheduled = true;
-          requestAnimationFrame(() => {
-            loadImage(currentImageIndex);
-            lastReloadParams = {
-              density: particleParams.density,
-              disparity: particleParams.disparity,
-              saturation: particleParams.saturation,
-              hideBlack: particleParams.hideBlack,
-              randomness: particleParams.randomness,
-              shape: particleParams.shape
-            };
-            reloadScheduled = false;
-          });
-        }
-      }
+      // FIX MOLETTE: Ne plus calculer les paramètres ici avec targetZoomLevel (qui saute)
+      // Les paramètres sont maintenant calculés dans animate() avec zoomLevel lissé
+      // Cela élimine les "téléportations" des particules avec la molette!
     }, { passive: false });
 
     /* ===============================================
