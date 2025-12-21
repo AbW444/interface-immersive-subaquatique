@@ -884,18 +884,18 @@
         <h3>📱 Trackpad</h3>
 
         <div class="scroll-param">
-          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.0004</span></label>
-          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.0004">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.00047</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.00047">
         </div>
 
         <div class="scroll-param">
-          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">50</span></label>
-          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="50">
+          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">61</span></label>
+          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="61">
         </div>
 
         <div class="scroll-param">
-          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">30</span></label>
-          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="30">
+          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">33</span></label>
+          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="33">
         </div>
       </div>
 
@@ -904,23 +904,23 @@
         <h3>🖱️ Mouse Wheel</h3>
 
         <div class="scroll-param">
-          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.08</span></label>
-          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.08">
+          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.16</span></label>
+          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.16">
         </div>
 
         <div class="scroll-param">
-          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">8</span></label>
-          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="8">
+          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">16</span></label>
+          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="16">
         </div>
 
         <div class="scroll-param">
-          <label>Momentum Factor <span class="value-display" id="wheel-momentum-val">0.6</span></label>
-          <input type="range" id="wheel-momentum" min="0" max="1" step="0.05" value="0.6">
+          <label>Momentum Factor <span class="value-display" id="wheel-momentum-val">0.8</span></label>
+          <input type="range" id="wheel-momentum" min="0" max="1" step="0.05" value="0.8">
         </div>
 
         <div class="scroll-param">
-          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.92</span></label>
-          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.92">
+          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.97</span></label>
+          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.97">
         </div>
       </div>
 
@@ -929,13 +929,13 @@
         <h3>🌍 Global</h3>
 
         <div class="scroll-param">
-          <label>Zoom Lerp Speed <span class="value-display" id="zoom-lerp-val">0.1</span></label>
-          <input type="range" id="zoom-lerp" min="0.05" max="0.3" step="0.01" value="0.1">
+          <label>Zoom Lerp Speed <span class="value-display" id="zoom-lerp-val">0.13</span></label>
+          <input type="range" id="zoom-lerp" min="0.05" max="0.3" step="0.01" value="0.13">
         </div>
 
         <div class="scroll-param">
-          <label>Disparity Lerp Speed <span class="value-display" id="disparity-lerp-val">0.15</span></label>
-          <input type="range" id="disparity-lerp" min="0.05" max="0.5" step="0.01" value="0.15">
+          <label>Disparity Lerp Speed <span class="value-display" id="disparity-lerp-val">0.23</span></label>
+          <input type="range" id="disparity-lerp" min="0.05" max="0.5" step="0.01" value="0.23">
         </div>
       </div>
 
@@ -2006,22 +2006,22 @@
        SCROLL CONFIG PANEL - Gestion
        =============================================== */
 
-    // Configuration par défaut
+    // Configuration par défaut (valeurs optimisées)
     const scrollConfig = {
       trackpad: {
-        sensitivity: 0.0004,
-        threshold: 50,
-        frequency: 30
+        sensitivity: 0.00047,
+        threshold: 61,
+        frequency: 33
       },
       wheel: {
-        normalize: 0.08,
-        maxDelta: 8,
-        momentum: 0.6,
-        decay: 0.92
+        normalize: 0.16,
+        maxDelta: 16,
+        momentum: 0.8,
+        decay: 0.97
       },
       global: {
-        zoomLerp: 0.1,
-        disparityLerp: 0.15
+        zoomLerp: 0.13,
+        disparityLerp: 0.23
       }
     };
 
@@ -2109,34 +2109,34 @@
 
     // Reset button
     scrollResetBtn.addEventListener('click', () => {
-      // Reset to defaults
-      scrollConfig.trackpad = { sensitivity: 0.0004, threshold: 50, frequency: 30 };
-      scrollConfig.wheel = { normalize: 0.08, maxDelta: 8, momentum: 0.6, decay: 0.92 };
-      scrollConfig.global = { zoomLerp: 0.1, disparityLerp: 0.15 };
+      // Reset to optimized defaults
+      scrollConfig.trackpad = { sensitivity: 0.00047, threshold: 61, frequency: 33 };
+      scrollConfig.wheel = { normalize: 0.16, maxDelta: 16, momentum: 0.8, decay: 0.97 };
+      scrollConfig.global = { zoomLerp: 0.13, disparityLerp: 0.23 };
 
       // Update sliders
-      trackpadSensitivitySlider.value = 0.0004;
-      trackpadSensitivityVal.textContent = '0.000400';
-      trackpadThresholdSlider.value = 50;
-      trackpadThresholdVal.textContent = '50';
-      trackpadFrequencySlider.value = 30;
-      trackpadFrequencyVal.textContent = '30';
+      trackpadSensitivitySlider.value = 0.00047;
+      trackpadSensitivityVal.textContent = '0.00047';
+      trackpadThresholdSlider.value = 61;
+      trackpadThresholdVal.textContent = '61';
+      trackpadFrequencySlider.value = 33;
+      trackpadFrequencyVal.textContent = '33';
 
-      wheelNormalizeSlider.value = 0.08;
-      wheelNormalizeVal.textContent = '0.08';
-      wheelMaxSlider.value = 8;
-      wheelMaxVal.textContent = '8';
-      wheelMomentumSlider.value = 0.6;
-      wheelMomentumVal.textContent = '0.60';
-      wheelDecaySlider.value = 0.92;
-      wheelDecayVal.textContent = '0.92';
+      wheelNormalizeSlider.value = 0.16;
+      wheelNormalizeVal.textContent = '0.16';
+      wheelMaxSlider.value = 16;
+      wheelMaxVal.textContent = '16';
+      wheelMomentumSlider.value = 0.8;
+      wheelMomentumVal.textContent = '0.80';
+      wheelDecaySlider.value = 0.97;
+      wheelDecayVal.textContent = '0.97';
 
-      zoomLerpSlider.value = 0.1;
-      zoomLerpVal.textContent = '0.10';
-      disparityLerpSlider.value = 0.15;
-      disparityLerpVal.textContent = '0.15';
+      zoomLerpSlider.value = 0.13;
+      zoomLerpVal.textContent = '0.13';
+      disparityLerpSlider.value = 0.23;
+      disparityLerpVal.textContent = '0.23';
 
-      console.log('✅ Scroll config reset to defaults');
+      console.log('✅ Scroll config reset to optimized defaults');
     });
 
     // Copy config button
@@ -2197,40 +2197,70 @@
 
       // Mode parcours UX : interpoler les paramètres selon le zoom
       if (uxJourneyMode && uxStates.length >= 2) {
-        // Calculer la progression globale (0 = premier état, 1 = dernier état)
-        const globalProgress = targetZoomLevel;
+        // FIX: Forcer retour exact à l'État 1 quand targetZoomLevel = 0
+        if (targetZoomLevel < 0.001) {
+          // Retour exact à l'État 1 pour éviter toute dérive
+          const state1 = uxStates[0];
+          particleParams.size = state1.size;
+          particleParams.density = state1.density;
+          particleParams.disparity = state1.disparity;
+          particleParams.movement = state1.movement;
+          particleParams.randomness = state1.randomness;
+          particleParams.saturation = state1.saturation;
+          particleParams.hideBlack = state1.hideBlack;
+          particleParams.shape = state1.shape;
+          particleParams.movementMode = state1.movementMode;
+        }
+        // FIX: Forcer retour exact au dernier État quand targetZoomLevel = 1
+        else if (targetZoomLevel > 0.999) {
+          const lastState = uxStates[uxStates.length - 1];
+          particleParams.size = lastState.size;
+          particleParams.density = lastState.density;
+          particleParams.disparity = lastState.disparity;
+          particleParams.movement = lastState.movement;
+          particleParams.randomness = lastState.randomness;
+          particleParams.saturation = lastState.saturation;
+          particleParams.hideBlack = lastState.hideBlack;
+          particleParams.shape = lastState.shape;
+          particleParams.movementMode = lastState.movementMode;
+        }
+        // Interpolation normale entre les états
+        else {
+          // Calculer la progression globale (0 = premier état, 1 = dernier état)
+          const globalProgress = targetZoomLevel;
 
-        // Déterminer entre quels états on se trouve
-        const stateCount = uxStates.length;
-        const scaledProgress = globalProgress * (stateCount - 1);
-        const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
-        const fromStateIndex = Math.floor(stateIndexFloat);
-        const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
-        const localProgress = stateIndexFloat - fromStateIndex;
+          // Déterminer entre quels états on se trouve
+          const stateCount = uxStates.length;
+          const scaledProgress = globalProgress * (stateCount - 1);
+          const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
+          const fromStateIndex = Math.floor(stateIndexFloat);
+          const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
+          const localProgress = stateIndexFloat - fromStateIndex;
 
-        // Appliquer la courbe sélectionnée à la progression locale
-        const easedProgress = applyCurve(localProgress);
+          // Appliquer la courbe sélectionnée à la progression locale
+          const easedProgress = applyCurve(localProgress);
 
-        // Interpoler entre les deux états
-        const fromState = uxStates[fromStateIndex];
-        const toState = uxStates[toStateIndex];
+          // Interpoler entre les deux états
+          const fromState = uxStates[fromStateIndex];
+          const toState = uxStates[toStateIndex];
 
-        // Interpoler les paramètres numériques
-        particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
-        particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
-        particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
-        particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
-        particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
-        particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
-        particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
+          // Interpoler les paramètres numériques
+          particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
+          particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
+          particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
+          particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
+          particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
+          particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
+          particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
 
-        // Pour les paramètres non-interpolables (shape, movementMode), prendre celui de l'état le plus proche
-        if (easedProgress < 0.5) {
-          particleParams.shape = fromState.shape;
-          particleParams.movementMode = fromState.movementMode;
-        } else {
-          particleParams.shape = toState.shape;
-          particleParams.movementMode = toState.movementMode;
+          // Pour les paramètres non-interpolables (shape, movementMode), prendre celui de l'état le plus proche
+          if (easedProgress < 0.5) {
+            particleParams.shape = fromState.shape;
+            particleParams.movementMode = fromState.movementMode;
+          } else {
+            particleParams.shape = toState.shape;
+            particleParams.movementMode = toState.movementMode;
+          }
         }
 
         // Mise à jour légère du material size (pas de reload nécessaire)
