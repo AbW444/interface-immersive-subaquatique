@@ -1583,6 +1583,13 @@
         hasInitialRender = true;
       }
 
+      // OPTIMISATION PRO: Appliquer momentum de scroll (pour molette fluide)
+      if (Math.abs(scrollMomentum) > 0.0001) {
+        targetZoomLevel -= scrollMomentum;
+        targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+        scrollMomentum *= 0.92; // Decay progressif du momentum
+      }
+
       // Zoom fluide progressif (interpolation vers la cible)
       if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
         // Lerp fluide vers la position cible
@@ -1767,12 +1774,40 @@
       }
     }
 
+    // OPTIMISATION PRO: Smooth scroll adaptatif trackpad/molette
+    let scrollMomentum = 0; // Momentum pour smoothing de la molette
+    let lastScrollTime = 0;
+
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
 
-      // Vitesse de scroll pour un contrôle optimal
-      const scrollSpeed = 0.0004;
-      targetZoomLevel -= event.deltaY * scrollSpeed; // scroll up = rapprochement
+      const now = performance.now();
+      const deltaTime = now - lastScrollTime;
+      lastScrollTime = now;
+
+      // DÉTECTION INTELLIGENTE: trackpad vs molette
+      // Trackpad: deltaY petit (1-20), haute fréquence (<16ms entre events)
+      // Molette: deltaY gros (100+), basse fréquence (>50ms entre events)
+      const absDelta = Math.abs(event.deltaY);
+      const isTrackpad = absDelta < 50 || deltaTime < 30;
+
+      let scrollDelta;
+      if (isTrackpad) {
+        // TRACKPAD: usage direct avec sensibilité fine
+        scrollDelta = event.deltaY * 0.0004;
+        scrollMomentum = 0; // Reset momentum
+      } else {
+        // MOLETTE: normalisation + momentum smoothing
+        // Clamp la molette à des valeurs similaires au trackpad
+        const normalizedDelta = Math.sign(event.deltaY) * Math.min(absDelta * 0.08, 8);
+        scrollDelta = normalizedDelta * 0.0004;
+
+        // Ajouter momentum pour fluidité (comme trackpad)
+        scrollMomentum = scrollDelta * 0.6; // 60% de momentum residuel
+      }
+
+      // Appliquer le scroll avec momentum
+      targetZoomLevel -= scrollDelta;
 
       // Limiter entre 0 et 1
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
