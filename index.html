@@ -8,10 +8,16 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       margin: 0;
-      overflow: hidden;
+      overflow: hidden; /* Sera changé en auto par JS mais sans scrollbar */
       font-family: 'Roboto', Arial, sans-serif;
       background-color: #ffffff; /* FOND BLANC */
       position: relative;
+      /* Masquer scrollbar tout en permettant scroll */
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    body::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
     }
     canvas {
       display: block;
@@ -1171,25 +1177,37 @@
     </div>
   </div>
 
-  <!-- CONTENU SCROLLABLE VERTICAL (activé après cycle de zoom complet) -->
-  <div id="vertical-content" style="position: relative; z-index: 10; background: transparent; pointer-events: none; opacity: 0; transition: opacity 0.5s;">
-    <div style="height: 100vh;"></div> <!-- Spacer pour commencer le contenu en dessous -->
-    <div style="background: rgba(0, 0, 0, 0.9); color: white; padding: 60px 40px; pointer-events: auto;">
-      <h1 style="font-size: 48px; margin-bottom: 30px; font-family: Arial, sans-serif;">Image 01 - Portfolio</h1>
-      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-      </p>
-      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
-        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
-        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-      </p>
-      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
-        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
-        totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-      </p>
-      <div style="height: 60vh;"></div> <!-- Plus de contenu scrollable -->
-    </div>
+  <!-- GALERIE VERTICALE PHOTOGRAPHE -->
+  <div id="vertical-gallery" style="position: relative; z-index: 10; background: transparent; pointer-events: none; opacity: 0; transition: opacity 0.5s;">
+    <!-- Section Image 01 -->
+    <div style="height: 100vh;"></div> <!-- Spacer pour Image 01 visible dans canvas -->
+
+    <!-- Section Image 02 -->
+    <section class="gallery-image" data-image="2" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; pointer-events: auto;">
+      <div style="text-align: center; padding: 40px;">
+        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 02</h2>
+        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_002.jpg') center/cover; margin: 0 auto;"></div>
+      </div>
+    </section>
+
+    <!-- Section Image 03 -->
+    <section class="gallery-image" data-image="3" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #fff; pointer-events: auto;">
+      <div style="text-align: center; padding: 40px;">
+        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 03</h2>
+        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_003.jpg') center/cover; margin: 0 auto;"></div>
+      </div>
+    </section>
+
+    <!-- Section Image 04 -->
+    <section class="gallery-image" data-image="4" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; pointer-events: auto;">
+      <div style="text-align: center; padding: 40px;">
+        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 04</h2>
+        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_004.jpg') center/cover; margin: 0 auto;"></div>
+      </div>
+    </section>
+
+    <!-- Spacer final -->
+    <div style="height: 50vh; background: #fff; pointer-events: auto;"></div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1236,10 +1254,10 @@
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
-    // Système de cycle de scroll avec inversion automatique
+    // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
-    let scrollPhase = 'zoomIn';  // 'zoomIn', 'zoomOut', ou 'pageScroll'
-    let hasCompletedCycle = false; // Pour tracker si le cycle complet est terminé
+    let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
+    let hasCompletedFirstCycle = false; // Pour activer scroll vertical après premier cycle
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -1860,24 +1878,27 @@
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
       }
 
-      // DÉTECTION DES POINTS DE BASCULE: Changer de phase automatiquement
-      if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL) {
+      // DÉTECTION DES POINTS DE BASCULE: Cycle bidirectionnel infini
+      if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
         // Atteint le zoom max → passer en phase dezoom
         scrollPhase = 'zoomOut';
         console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint)');
       } else if (scrollPhase === 'zoomOut' && targetZoomLevel <= 0.001) {
-        // Retour à l'état 1 → activer scroll vertical de page
-        scrollPhase = 'pageScroll';
-        hasCompletedCycle = true;
-        console.log('✅ Cycle complet terminé → scroll vertical de page activé');
+        // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
+        scrollPhase = 'zoomIn';
+        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint)');
 
-        // Activer scroll vertical de page
-        document.body.style.overflow = 'auto';
+        // Activer scroll vertical de page après premier cycle complet
+        if (!hasCompletedFirstCycle) {
+          hasCompletedFirstCycle = true;
+          document.body.style.overflow = 'auto';
+          console.log('✅ Premier cycle terminé → scroll vertical activé (cycle continue)');
 
-        // Rendre visible le contenu vertical scrollable
-        const verticalContent = document.getElementById('vertical-content');
-        if (verticalContent) {
-          verticalContent.style.opacity = '1';
+          // Rendre visible la galerie verticale
+          const verticalGallery = document.getElementById('vertical-gallery');
+          if (verticalGallery) {
+            verticalGallery.style.opacity = '1';
+          }
         }
       }
 
@@ -2322,13 +2343,17 @@
     });
 
     window.addEventListener('wheel', (event) => {
-      // Si cycle complet terminé, permettre scroll normal de page
-      if (scrollPhase === 'pageScroll') {
-        // Ne pas preventDefault - laisser le scroll de page fonctionner
-        return;
+      // Permettre scroll vertical après premier cycle complet, mais garder zoom actif
+      // Si pas encore complété le premier cycle, bloquer scroll de page
+      if (!hasCompletedFirstCycle) {
+        event.preventDefault();
+      } else {
+        // Après premier cycle: permettre scroll de page ET continuer zoom bidirectionnel
+        // On ne preventDefault que si on est en train de zoomer
+        if (Math.abs(targetZoomLevel) > 0.001 && Math.abs(targetZoomLevel - MAX_ZOOM_LEVEL) > 0.001) {
+          event.preventDefault();
+        }
       }
-
-      event.preventDefault();
 
       const now = performance.now();
       const deltaTime = now - lastScrollTime;
