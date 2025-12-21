@@ -719,6 +719,148 @@
     */
     /* FIN SECTION DÉSACTIVÉE */
 
+    /* ===============================================
+       SCROLL CONFIG PANEL (Touche C)
+       =============================================== */
+    #scroll-config-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #55ffff;
+      border-radius: 16px;
+      padding: 20px 30px;
+      color: #ffffff;
+      font-family: 'Roboto', Arial, sans-serif;
+      z-index: 1000;
+      display: none;
+      min-width: 700px;
+      box-shadow: 0 0 30px rgba(85, 255, 255, 0.5);
+    }
+
+    #scroll-config-panel.visible {
+      display: block;
+    }
+
+    .scroll-config-header {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #55ffff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .scroll-config-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .scroll-config-section {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(85, 255, 255, 0.2);
+    }
+
+    .scroll-config-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #55ffff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scroll-param {
+      margin-bottom: 12px;
+    }
+
+    .scroll-param label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: #aaaaaa;
+    }
+
+    .scroll-param input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .scroll-param input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #55ffff;
+      cursor: pointer;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
+    }
+
+    .scroll-param input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #55ffff;
+      cursor: pointer;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
+    }
+
+    .scroll-param .value-display {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      color: #55ffff;
+      font-weight: 700;
+      min-width: 50px;
+    }
+
+    .scroll-config-buttons {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .scroll-config-btn {
+      padding: 10px 20px;
+      background: rgba(85, 255, 255, 0.1);
+      border: 1px solid #55ffff;
+      border-radius: 8px;
+      color: #55ffff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scroll-config-btn:hover {
+      background: rgba(85, 255, 255, 0.2);
+      box-shadow: 0 0 15px rgba(85, 255, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .scroll-config-btn.primary {
+      background: #55ffff;
+      color: #000000;
+    }
+
+    .scroll-config-btn.primary:hover {
+      background: #77ffff;
+      box-shadow: 0 0 20px rgba(85, 255, 255, 0.8);
+    }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -731,6 +873,90 @@
   <!-- Fond noir + typo blanche (touche N) -->
   <div id="jonas-bg-color-negatif"></div>
   <div id="jonas-background-negatif"></div>
+
+  <!-- SCROLL CONFIG PANEL (Touche C) -->
+  <div id="scroll-config-panel">
+    <div class="scroll-config-header">⚙️ Scroll Configuration (Press C to toggle)</div>
+    <div class="scroll-config-content">
+
+      <!-- Trackpad Settings -->
+      <div class="scroll-config-section">
+        <h3>📱 Trackpad</h3>
+
+        <div class="scroll-param">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.0004</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.0004">
+        </div>
+
+        <div class="scroll-param">
+          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">50</span></label>
+          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="50">
+        </div>
+
+        <div class="scroll-param">
+          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">30</span></label>
+          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="30">
+        </div>
+      </div>
+
+      <!-- Mouse Wheel Settings -->
+      <div class="scroll-config-section">
+        <h3>🖱️ Mouse Wheel</h3>
+
+        <div class="scroll-param">
+          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.08</span></label>
+          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.08">
+        </div>
+
+        <div class="scroll-param">
+          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">8</span></label>
+          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="8">
+        </div>
+
+        <div class="scroll-param">
+          <label>Momentum Factor <span class="value-display" id="wheel-momentum-val">0.6</span></label>
+          <input type="range" id="wheel-momentum" min="0" max="1" step="0.05" value="0.6">
+        </div>
+
+        <div class="scroll-param">
+          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.92</span></label>
+          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.92">
+        </div>
+      </div>
+
+      <!-- Global Settings -->
+      <div class="scroll-config-section">
+        <h3>🌍 Global</h3>
+
+        <div class="scroll-param">
+          <label>Zoom Lerp Speed <span class="value-display" id="zoom-lerp-val">0.1</span></label>
+          <input type="range" id="zoom-lerp" min="0.05" max="0.3" step="0.01" value="0.1">
+        </div>
+
+        <div class="scroll-param">
+          <label>Disparity Lerp Speed <span class="value-display" id="disparity-lerp-val">0.15</span></label>
+          <input type="range" id="disparity-lerp" min="0.05" max="0.5" step="0.01" value="0.15">
+        </div>
+      </div>
+
+      <!-- Info Section -->
+      <div class="scroll-config-section">
+        <h3>ℹ️ Info</h3>
+        <div style="font-size: 11px; color: #aaa; line-height: 1.6;">
+          <p><strong>Current Mode:</strong> <span id="scroll-mode-indicator">Detecting...</span></p>
+          <p><strong>Last DeltaY:</strong> <span id="scroll-delta-indicator">0</span></p>
+          <p><strong>Last Frequency:</strong> <span id="scroll-freq-indicator">0ms</span></p>
+          <p style="margin-top: 10px; color: #55ffff;">Scroll to see live detection!</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="scroll-config-buttons">
+        <button class="scroll-config-btn" id="scroll-reset-btn">Reset to Default</button>
+        <button class="scroll-config-btn primary" id="scroll-copy-btn">📋 Copy Config to Clipboard</button>
+      </div>
+    </div>
+  </div>
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
   <div id="settings-panel">
@@ -1585,17 +1811,17 @@
         hasInitialRender = true;
       }
 
-      // OPTIMISATION PRO: Appliquer momentum de scroll (pour molette fluide)
+      // OPTIMISATION PRO: Appliquer momentum de scroll (pour molette fluide - configurable)
       if (Math.abs(scrollMomentum) > 0.0001) {
         targetZoomLevel -= scrollMomentum;
         targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
-        scrollMomentum *= 0.92; // Decay progressif du momentum
+        scrollMomentum *= scrollConfig.wheel.decay; // Decay progressif du momentum (configurable)
       }
 
-      // Zoom fluide progressif (interpolation vers la cible)
+      // Zoom fluide progressif (interpolation vers la cible - configurable)
       if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
         // Lerp fluide vers la position cible
-        zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
+        zoomLevel += (targetZoomLevel - zoomLevel) * scrollConfig.global.zoomLerp;
         // Déplacer la caméra (au lieu du sceneGroup) : de z=25 (loin) à z=0 (proche)
         camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
@@ -1603,13 +1829,13 @@
       }
 
       // Appliquer disparity dynamiquement SANS recréer la géométrie
-      // OPTIMISATION PRO: Lerp smooth + update seulement si changement significatif
+      // OPTIMISATION PRO: Lerp smooth + update seulement si changement significatif (configurable)
       if (particles && particles.geometry.attributes.normalizedDepth) {
         const targetDisparity = particleParams.disparity;
 
-        // Lerp smooth vers la valeur cible (transition ultra-fluide)
+        // Lerp smooth vers la valeur cible (transition ultra-fluide - configurable)
         if (Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
-          currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * 0.15;
+          currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * scrollConfig.global.disparityLerp;
 
           // Seulement mettre à jour GPU si changement visible (>0.001)
           if (lastAppliedDisparity === null || Math.abs(currentAppliedDisparity - lastAppliedDisparity) > 0.001) {
@@ -1776,6 +2002,161 @@
       }
     }
 
+    /* ===============================================
+       SCROLL CONFIG PANEL - Gestion
+       =============================================== */
+
+    // Configuration par défaut
+    const scrollConfig = {
+      trackpad: {
+        sensitivity: 0.0004,
+        threshold: 50,
+        frequency: 30
+      },
+      wheel: {
+        normalize: 0.08,
+        maxDelta: 8,
+        momentum: 0.6,
+        decay: 0.92
+      },
+      global: {
+        zoomLerp: 0.1,
+        disparityLerp: 0.15
+      }
+    };
+
+    // Elements UI
+    const scrollConfigPanel = document.getElementById('scroll-config-panel');
+
+    // Trackpad sliders
+    const trackpadSensitivitySlider = document.getElementById('trackpad-sensitivity');
+    const trackpadSensitivityVal = document.getElementById('trackpad-sensitivity-val');
+    const trackpadThresholdSlider = document.getElementById('trackpad-threshold');
+    const trackpadThresholdVal = document.getElementById('trackpad-threshold-val');
+    const trackpadFrequencySlider = document.getElementById('trackpad-frequency');
+    const trackpadFrequencyVal = document.getElementById('trackpad-frequency-val');
+
+    // Wheel sliders
+    const wheelNormalizeSlider = document.getElementById('wheel-normalize');
+    const wheelNormalizeVal = document.getElementById('wheel-normalize-val');
+    const wheelMaxSlider = document.getElementById('wheel-max');
+    const wheelMaxVal = document.getElementById('wheel-max-val');
+    const wheelMomentumSlider = document.getElementById('wheel-momentum');
+    const wheelMomentumVal = document.getElementById('wheel-momentum-val');
+    const wheelDecaySlider = document.getElementById('wheel-decay');
+    const wheelDecayVal = document.getElementById('wheel-decay-val');
+
+    // Global sliders
+    const zoomLerpSlider = document.getElementById('zoom-lerp');
+    const zoomLerpVal = document.getElementById('zoom-lerp-val');
+    const disparityLerpSlider = document.getElementById('disparity-lerp');
+    const disparityLerpVal = document.getElementById('disparity-lerp-val');
+
+    // Info indicators
+    const scrollModeIndicator = document.getElementById('scroll-mode-indicator');
+    const scrollDeltaIndicator = document.getElementById('scroll-delta-indicator');
+    const scrollFreqIndicator = document.getElementById('scroll-freq-indicator');
+
+    // Buttons
+    const scrollResetBtn = document.getElementById('scroll-reset-btn');
+    const scrollCopyBtn = document.getElementById('scroll-copy-btn');
+
+    // Update handlers
+    trackpadSensitivitySlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.sensitivity = parseFloat(e.target.value);
+      trackpadSensitivityVal.textContent = scrollConfig.trackpad.sensitivity.toFixed(6);
+    });
+
+    trackpadThresholdSlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.threshold = parseFloat(e.target.value);
+      trackpadThresholdVal.textContent = scrollConfig.trackpad.threshold;
+    });
+
+    trackpadFrequencySlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.frequency = parseFloat(e.target.value);
+      trackpadFrequencyVal.textContent = scrollConfig.trackpad.frequency;
+    });
+
+    wheelNormalizeSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.normalize = parseFloat(e.target.value);
+      wheelNormalizeVal.textContent = scrollConfig.wheel.normalize.toFixed(2);
+    });
+
+    wheelMaxSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.maxDelta = parseFloat(e.target.value);
+      wheelMaxVal.textContent = scrollConfig.wheel.maxDelta;
+    });
+
+    wheelMomentumSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.momentum = parseFloat(e.target.value);
+      wheelMomentumVal.textContent = scrollConfig.wheel.momentum.toFixed(2);
+    });
+
+    wheelDecaySlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.decay = parseFloat(e.target.value);
+      wheelDecayVal.textContent = scrollConfig.wheel.decay.toFixed(2);
+    });
+
+    zoomLerpSlider.addEventListener('input', (e) => {
+      scrollConfig.global.zoomLerp = parseFloat(e.target.value);
+      zoomLerpVal.textContent = scrollConfig.global.zoomLerp.toFixed(2);
+    });
+
+    disparityLerpSlider.addEventListener('input', (e) => {
+      scrollConfig.global.disparityLerp = parseFloat(e.target.value);
+      disparityLerpVal.textContent = scrollConfig.global.disparityLerp.toFixed(2);
+    });
+
+    // Reset button
+    scrollResetBtn.addEventListener('click', () => {
+      // Reset to defaults
+      scrollConfig.trackpad = { sensitivity: 0.0004, threshold: 50, frequency: 30 };
+      scrollConfig.wheel = { normalize: 0.08, maxDelta: 8, momentum: 0.6, decay: 0.92 };
+      scrollConfig.global = { zoomLerp: 0.1, disparityLerp: 0.15 };
+
+      // Update sliders
+      trackpadSensitivitySlider.value = 0.0004;
+      trackpadSensitivityVal.textContent = '0.000400';
+      trackpadThresholdSlider.value = 50;
+      trackpadThresholdVal.textContent = '50';
+      trackpadFrequencySlider.value = 30;
+      trackpadFrequencyVal.textContent = '30';
+
+      wheelNormalizeSlider.value = 0.08;
+      wheelNormalizeVal.textContent = '0.08';
+      wheelMaxSlider.value = 8;
+      wheelMaxVal.textContent = '8';
+      wheelMomentumSlider.value = 0.6;
+      wheelMomentumVal.textContent = '0.60';
+      wheelDecaySlider.value = 0.92;
+      wheelDecayVal.textContent = '0.92';
+
+      zoomLerpSlider.value = 0.1;
+      zoomLerpVal.textContent = '0.10';
+      disparityLerpSlider.value = 0.15;
+      disparityLerpVal.textContent = '0.15';
+
+      console.log('✅ Scroll config reset to defaults');
+    });
+
+    // Copy config button
+    scrollCopyBtn.addEventListener('click', async () => {
+      const configJSON = JSON.stringify(scrollConfig, null, 2);
+      try {
+        await navigator.clipboard.writeText(configJSON);
+        scrollCopyBtn.textContent = '✅ Copied!';
+        console.log('📋 Config copied to clipboard:');
+        console.log(configJSON);
+        setTimeout(() => {
+          scrollCopyBtn.textContent = '📋 Copy Config to Clipboard';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        console.log('📋 Copy this config manually:');
+        console.log(configJSON);
+      }
+    });
+
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
 
@@ -1783,25 +2164,29 @@
       const deltaTime = now - lastScrollTime;
       lastScrollTime = now;
 
-      // DÉTECTION INTELLIGENTE: trackpad vs molette
-      // Trackpad: deltaY petit (1-20), haute fréquence (<16ms entre events)
-      // Molette: deltaY gros (100+), basse fréquence (>50ms entre events)
+      // DÉTECTION INTELLIGENTE: trackpad vs molette (utilise scrollConfig)
       const absDelta = Math.abs(event.deltaY);
-      const isTrackpad = absDelta < 50 || deltaTime < 30;
+      const isTrackpad = absDelta < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
+
+      // Mise à jour des indicateurs (si panel visible)
+      if (scrollConfigPanel.classList.contains('visible')) {
+        scrollModeIndicator.textContent = isTrackpad ? '📱 Trackpad' : '🖱️ Mouse Wheel';
+        scrollDeltaIndicator.textContent = absDelta.toFixed(1);
+        scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
+      }
 
       let scrollDelta;
       if (isTrackpad) {
-        // TRACKPAD: usage direct avec sensibilité fine
-        scrollDelta = event.deltaY * 0.0004;
+        // TRACKPAD: usage direct avec sensibilité configurable
+        scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
         scrollMomentum = 0; // Reset momentum
       } else {
-        // MOLETTE: normalisation + momentum smoothing
-        // Clamp la molette à des valeurs similaires au trackpad
-        const normalizedDelta = Math.sign(event.deltaY) * Math.min(absDelta * 0.08, 8);
-        scrollDelta = normalizedDelta * 0.0004;
+        // MOLETTE: normalisation + momentum smoothing (configurable)
+        const normalizedDelta = Math.sign(event.deltaY) * Math.min(absDelta * scrollConfig.wheel.normalize, scrollConfig.wheel.maxDelta);
+        scrollDelta = normalizedDelta * scrollConfig.trackpad.sensitivity;
 
-        // Ajouter momentum pour fluidité (comme trackpad)
-        scrollMomentum = scrollDelta * 0.6; // 60% de momentum residuel
+        // Ajouter momentum pour fluidité (configurable)
+        scrollMomentum = scrollDelta * scrollConfig.wheel.momentum;
       }
 
       // Appliquer le scroll avec momentum
@@ -1981,6 +2366,12 @@
         if (uxStatesPanel.classList.contains('visible')) {
           renderUXStates();
         }
+      }
+
+      // Touche C - Ouvrir l'interface de configuration du scroll
+      if (event.key === 'c' || event.key === 'C') {
+        const scrollConfigPanel = document.getElementById('scroll-config-panel');
+        scrollConfigPanel.classList.toggle('visible');
       }
 
       // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
