@@ -368,8 +368,8 @@
     #ux-states-panel {
       position: fixed;
       top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      left: 20px;
+      transform: translateY(-50%);
       background-color: rgba(0, 0, 0, 0.95);
       color: #ffffff;
       padding: 0;
@@ -468,6 +468,34 @@
     .ux-add-state-btn:hover {
       background: rgba(255, 255, 255, 0.15);
       border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .ux-apply-btn {
+      width: 100%;
+      padding: 15px;
+      background: rgba(85, 255, 255, 0.15);
+      border: 2px solid rgba(85, 255, 255, 0.4);
+      color: #55ffff;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .ux-apply-btn:hover:not(:disabled) {
+      background: rgba(85, 255, 255, 0.25);
+      border-color: rgba(85, 255, 255, 0.6);
+    }
+
+    .ux-apply-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #666;
     }
 
     .ux-curve-selector {
@@ -691,6 +719,148 @@
     */
     /* FIN SECTION DÉSACTIVÉE */
 
+    /* ===============================================
+       SCROLL CONFIG PANEL (Touche C)
+       =============================================== */
+    #scroll-config-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #55ffff;
+      border-radius: 16px;
+      padding: 20px 30px;
+      color: #ffffff;
+      font-family: 'Roboto', Arial, sans-serif;
+      z-index: 1000;
+      display: none;
+      min-width: 700px;
+      box-shadow: 0 0 30px rgba(85, 255, 255, 0.5);
+    }
+
+    #scroll-config-panel.visible {
+      display: block;
+    }
+
+    .scroll-config-header {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #55ffff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .scroll-config-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .scroll-config-section {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(85, 255, 255, 0.2);
+    }
+
+    .scroll-config-section h3 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #55ffff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scroll-param {
+      margin-bottom: 12px;
+    }
+
+    .scroll-param label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 5px;
+      color: #aaaaaa;
+    }
+
+    .scroll-param input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .scroll-param input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #55ffff;
+      cursor: pointer;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
+    }
+
+    .scroll-param input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #55ffff;
+      cursor: pointer;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
+    }
+
+    .scroll-param .value-display {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 12px;
+      color: #55ffff;
+      font-weight: 700;
+      min-width: 50px;
+    }
+
+    .scroll-config-buttons {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .scroll-config-btn {
+      padding: 10px 20px;
+      background: rgba(85, 255, 255, 0.1);
+      border: 1px solid #55ffff;
+      border-radius: 8px;
+      color: #55ffff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .scroll-config-btn:hover {
+      background: rgba(85, 255, 255, 0.2);
+      box-shadow: 0 0 15px rgba(85, 255, 255, 0.5);
+      transform: translateY(-2px);
+    }
+
+    .scroll-config-btn.primary {
+      background: #55ffff;
+      color: #000000;
+    }
+
+    .scroll-config-btn.primary:hover {
+      background: #77ffff;
+      box-shadow: 0 0 20px rgba(85, 255, 255, 0.8);
+    }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -703,6 +873,90 @@
   <!-- Fond noir + typo blanche (touche N) -->
   <div id="jonas-bg-color-negatif"></div>
   <div id="jonas-background-negatif"></div>
+
+  <!-- SCROLL CONFIG PANEL (Touche C) -->
+  <div id="scroll-config-panel">
+    <div class="scroll-config-header">⚙️ Scroll Configuration (Press C to toggle)</div>
+    <div class="scroll-config-content">
+
+      <!-- Trackpad Settings -->
+      <div class="scroll-config-section">
+        <h3>📱 Trackpad</h3>
+
+        <div class="scroll-param">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.00062</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.00062">
+        </div>
+
+        <div class="scroll-param">
+          <label>Detection Threshold (deltaY max) <span class="value-display" id="trackpad-threshold-val">70</span></label>
+          <input type="range" id="trackpad-threshold" min="10" max="100" step="1" value="70">
+        </div>
+
+        <div class="scroll-param">
+          <label>Frequency Threshold (ms) <span class="value-display" id="trackpad-frequency-val">39</span></label>
+          <input type="range" id="trackpad-frequency" min="10" max="60" step="1" value="39">
+        </div>
+      </div>
+
+      <!-- Mouse Wheel Settings -->
+      <div class="scroll-config-section">
+        <h3>🖱️ Mouse Wheel</h3>
+
+        <div class="scroll-param">
+          <label>Normalization Factor <span class="value-display" id="wheel-normalize-val">0.15</span></label>
+          <input type="range" id="wheel-normalize" min="0.01" max="0.2" step="0.01" value="0.15">
+        </div>
+
+        <div class="scroll-param">
+          <label>Max Normalized Delta <span class="value-display" id="wheel-max-val">20</span></label>
+          <input type="range" id="wheel-max" min="1" max="20" step="0.5" value="20">
+        </div>
+
+        <div class="scroll-param">
+          <label>Momentum Factor <span class="value-display" id="wheel-momentum-val">0.8</span></label>
+          <input type="range" id="wheel-momentum" min="0" max="1" step="0.05" value="0.8">
+        </div>
+
+        <div class="scroll-param">
+          <label>Momentum Decay <span class="value-display" id="wheel-decay-val">0.96</span></label>
+          <input type="range" id="wheel-decay" min="0.8" max="0.99" step="0.01" value="0.96">
+        </div>
+      </div>
+
+      <!-- Global Settings -->
+      <div class="scroll-config-section">
+        <h3>🌍 Global</h3>
+
+        <div class="scroll-param">
+          <label>Zoom Lerp Speed <span class="value-display" id="zoom-lerp-val">0.13</span></label>
+          <input type="range" id="zoom-lerp" min="0.05" max="0.3" step="0.01" value="0.13">
+        </div>
+
+        <div class="scroll-param">
+          <label>Disparity Lerp Speed <span class="value-display" id="disparity-lerp-val">0.23</span></label>
+          <input type="range" id="disparity-lerp" min="0.05" max="0.5" step="0.01" value="0.23">
+        </div>
+      </div>
+
+      <!-- Info Section -->
+      <div class="scroll-config-section">
+        <h3>ℹ️ Info</h3>
+        <div style="font-size: 11px; color: #aaa; line-height: 1.6;">
+          <p><strong>Current Mode:</strong> <span id="scroll-mode-indicator">Detecting...</span></p>
+          <p><strong>Last DeltaY:</strong> <span id="scroll-delta-indicator">0</span></p>
+          <p><strong>Last Frequency:</strong> <span id="scroll-freq-indicator">0ms</span></p>
+          <p style="margin-top: 10px; color: #55ffff;">Scroll to see live detection!</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="scroll-config-buttons">
+        <button class="scroll-config-btn" id="scroll-reset-btn">Reset to Default</button>
+        <button class="scroll-config-btn primary" id="scroll-copy-btn">📋 Copy Config to Clipboard</button>
+      </div>
+    </div>
+  </div>
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
   <div id="settings-panel">
@@ -903,6 +1157,9 @@
       <!-- Bouton ajouter état -->
       <button class="ux-add-state-btn" id="ux-add-state">+</button>
 
+      <!-- Bouton appliquer les paramètres -->
+      <button class="ux-apply-btn" id="ux-apply-state" disabled>Apply</button>
+
       <!-- Sélecteur de courbe -->
       <div class="ux-curve-selector">
         <div class="ux-curve-label">Type de Courbe</div>
@@ -954,7 +1211,7 @@
 
     let particles;
     let currentImageIndex = 1; // Commence à 1 (IMG_001)
-    const maxImageIndex = 3; // 3 images : IMG_001, IMG_002, IMG_003
+    const maxImageIndex = 4; // 4 images : IMG_001, IMG_002, IMG_003, IMG_004
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
@@ -983,35 +1240,95 @@
     };
 
     // Système de parcours UX avec états multiples
-    let uxJourneyMode = false;
-    let currentStateIndex = 0; // État actuellement sélectionné
-    let selectedCurveType = 'easeIn'; // Type de courbe sélectionné
+    let uxJourneyMode = true; // Activé par défaut
+    let currentStateIndex = -1; // État actuellement sélectionné (-1 = aucun)
+    let selectedCurveType = 'linear'; // Linéaire par défaut
 
-    // Tableau des états de lecture
+    // États par défaut (toujours utilisés, pas de localStorage)
     let uxStates = [
       {
-        name: 'État 1',
-        size: 0.040,
-        density: 0.8,
-        disparity: 0.0,
-        movement: 0.0,
-        randomness: 0.40,
-        saturation: 1.0,
-        hideBlack: 0.0,
-        shape: 'circle',
-        movementMode: 2  // XY
+        "name": "État 1",
+        "size": 0.04,
+        "density": 0.6000000000000001,
+        "disparity": 0,
+        "movement": 0,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
       },
       {
-        name: 'État 2',
-        size: 0.040,
-        density: 0.8,
-        disparity: 0.0,
-        movement: 0.0,
-        randomness: 0.0,
-        saturation: 1.0,
-        hideBlack: 0.0,
-        shape: 'circle',
-        movementMode: 2  // XY
+        "name": "État 2",
+        "size": 0.039999999869791684,
+        "density": 0.6,
+        "disparity": 0.4799997184245186,
+        "movement": 0,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 3",
+        "size": 0.03999999960937498,
+        "density": 0.6,
+        "disparity": 2.5,
+        "movement": 0,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 4",
+        "size": 0.04,
+        "density": 0.6,
+        "disparity": 2.5,
+        "movement": 0,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 5",
+        "size": 0.04,
+        "density": 0.6,
+        "disparity": 2.5,
+        "movement": 0.07,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 6",
+        "size": 0.04,
+        "density": 0.6,
+        "disparity": 2.5,
+        "movement": 0.2,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
+      },
+      {
+        "name": "État 7",
+        "size": 0.04,
+        "density": 0.6,
+        "disparity": 2.7733333642577858,
+        "movement": 0.5,
+        "randomness": 0.4,
+        "saturation": 1,
+        "hideBlack": 0,
+        "shape": "circle",
+        "movementMode": 2
       }
     ];
 
@@ -1043,6 +1360,13 @@
       }
     }
 
+    // Fonction de hash déterministe pour randomness basée sur coordonnées
+    function seededRandom(x, y, seed = 12345) {
+      const combined = (x * 73856093) ^ (y * 19349663) ^ seed;
+      const normalized = Math.abs(Math.sin(combined)) * 10000;
+      return (normalized % 1000) / 1000; // Retourne entre 0 et 1
+    }
+
     // Saturation des couleurs
     function saturateColor(r, g, b, intensity) {
       const avg = (r + g + b) / 3;
@@ -1055,48 +1379,112 @@
     // Version des images (incrémenter ce nombre quand vous changez les images)
     const IMAGE_VERSION = 2;
 
-    // Fonction de chargement d'image
+    // Cache pour les images pré-chargées
+    const imageCache = new Map(); // imageIndex -> ImageData
+    const textureCache = {
+      circle: null,
+      square: null
+    };
+    let imagesPreloaded = false;
+
+    // Pré-charger toutes les images au démarrage
+    function preloadAllImages() {
+      const targetWidth = 1720;
+      const targetHeight = 880;
+      const loadPromises = [];
+
+      for (let idx = 1; idx <= maxImageIndex; idx++) {
+        const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+
+        const promise = new Promise((resolve, reject) => {
+          textureLoader.load(imagePath, function (texture) {
+            // Canvas temporaire pour cette image
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
+            const tempContext = tempCanvas.getContext('2d');
+
+            // Calculer le ratio pour rogner (crop) au lieu d'étirer
+            const srcWidth = texture.image.width;
+            const srcHeight = texture.image.height;
+            const targetRatio = targetWidth / targetHeight;
+            const srcRatio = srcWidth / srcHeight;
+
+            let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+            if (srcRatio > targetRatio) {
+              cropWidth = srcHeight * targetRatio;
+              cropX = (srcWidth - cropWidth) / 2;
+            } else {
+              cropHeight = srcWidth / targetRatio;
+              cropY = (srcHeight - cropHeight) / 2;
+            }
+
+            // Dessiner et extraire ImageData
+            tempContext.drawImage(
+              texture.image,
+              cropX, cropY, cropWidth, cropHeight,
+              0, 0, targetWidth, targetHeight
+            );
+            const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
+
+            // Stocker dans le cache
+            imageCache.set(idx, imgData);
+            resolve();
+          }, undefined, reject);
+        });
+
+        loadPromises.push(promise);
+      }
+
+      return Promise.all(loadPromises).then(() => {
+        imagesPreloaded = true;
+        console.log(`✅ ${maxImageIndex} images pré-chargées en cache`);
+      });
+    }
+
+    // Créer et cacher les textures de particules
+    function createParticleTexture(shape) {
+      if (textureCache[shape]) {
+        return textureCache[shape];
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+
+      if (shape === 'square') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(0, 0, 64, 64);
+      } else {
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      textureCache[shape] = texture;
+      return texture;
+    }
+
+    // Fonction de chargement d'image optimisée avec cache
     function loadImage(imageIndex) {
-      // Ajouter une version pour éviter le cache du navigateur
-      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      const targetWidth = 1720;
+      const targetHeight = 880;
 
-      textureLoader.load(imagePath, function (texture) {
-        // Réutiliser le canvas existant (Phase 1 - Opt #4)
-        const targetWidth = 1720;
-        const targetHeight = 880;
-        offscreenCanvas.width = targetWidth;
-        offscreenCanvas.height = targetHeight;
-
-        // Dessiner l'image redimensionnée
-        offscreenContext.drawImage(texture.image, 0, 0, targetWidth, targetHeight);
-        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+      // Fonction interne pour construire la géométrie à partir d'ImageData
+      function buildGeometry(imgData) {
 
         const scaleFactor = 50;
-
         const particleGeometry = new THREE.BufferGeometry();
 
-        // Créer une texture selon la forme sélectionnée
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
-        const ctx = canvas.getContext('2d');
-
-        if (particleParams.shape === 'square') {
-          // Carré : remplir tout le canvas en blanc
-          ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-          ctx.fillRect(0, 0, 64, 64);
-        } else {
-          // Cercle : dessiner un cercle avec dégradé radial
-          const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-          gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-          gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)');
-          gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, 64, 64);
-        }
-
-        const particleTexture = new THREE.CanvasTexture(canvas);
-        particleTexture.needsUpdate = true;
+        // Utiliser la texture cachée au lieu de la recréer
+        const particleTexture = createParticleTexture(particleParams.shape);
 
         const particleMaterial = new THREE.PointsMaterial({
           size: particleParams.size,
@@ -1111,6 +1499,7 @@
 
         const particleVertices = [];
         const particleColors = [];
+        const normalizedDepths = []; // Profondeurs normalisées pour disparity dynamique
 
         // Appliquer la densité pour échantillonner les pixels
         const step = Math.max(1, Math.floor(1 / particleParams.density));
@@ -1138,18 +1527,21 @@
                 // Position de base sur la grille
                 let posX = (x - targetWidth / 2) / scaleFactor;
                 let posY = (y - targetHeight / 2) / scaleFactor;
-                const posZ = (Math.random() - 0.5) * particleParams.disparity;
+                // Stocker depth normalisée - disparity appliqué dynamiquement
+                const normalizedDepth = seededRandom(x, y, 3) - 0.5;
 
                 // Ajouter un offset aléatoire basé sur le paramètre randomness
+                // Utilise randomness déterministe pour éviter les saccades lors des reloads
                 if (particleParams.randomness > 0) {
-                  const randomOffsetX = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
-                  const randomOffsetY = (Math.random() - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetX = (seededRandom(x, y, 1) - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetY = (seededRandom(x, y, 2) - 0.5) * particleParams.randomness * (step / scaleFactor);
                   posX += randomOffsetX;
                   posY += randomOffsetY;
                 }
 
-                particleVertices.push(posX, posY, posZ);
+                particleVertices.push(posX, posY, 0); // Z=0 au départ
                 particleColors.push(r, g, b);
+                normalizedDepths.push(normalizedDepth);
               }
             }
           }
@@ -1157,6 +1549,7 @@
 
         particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particleVertices, 3));
         particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(particleColors, 3));
+        particleGeometry.setAttribute('normalizedDepth', new THREE.Float32BufferAttribute(normalizedDepths, 1));
 
         // Stocker les positions initiales pour le mouvement oscillant
         particleGeometry.setAttribute('initialPosition', new THREE.Float32BufferAttribute(particleVertices.slice(), 3));
@@ -1176,8 +1569,48 @@
 
         // Forcer le render de la nouvelle image (Opt #5)
         hasInitialRender = false;
+      }
+
+      // Chemin optimisé: utiliser cache si disponible
+      if (imageCache.has(imageIndex)) {
+        const cachedImgData = imageCache.get(imageIndex);
+        buildGeometry(cachedImgData);
+        return;
+      }
+
+      // Fallback: charger l'image si pas en cache
+      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      textureLoader.load(imagePath, function (texture) {
+        offscreenCanvas.width = targetWidth;
+        offscreenCanvas.height = targetHeight;
+
+        const srcWidth = texture.image.width;
+        const srcHeight = texture.image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const srcRatio = srcWidth / srcHeight;
+
+        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+        if (srcRatio > targetRatio) {
+          cropWidth = srcHeight * targetRatio;
+          cropX = (srcWidth - cropWidth) / 2;
+        } else {
+          cropHeight = srcWidth / targetRatio;
+          cropY = (srcHeight - cropHeight) / 2;
+        }
+
+        offscreenContext.drawImage(
+          texture.image,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, targetWidth, targetHeight
+        );
+        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+
+        // Stocker en cache pour future utilisation
+        imageCache.set(imageIndex, imgData);
+        buildGeometry(imgData);
       }, undefined, function (err) {
-        console.error(`Une erreur est survenue lors du chargement de l'image ${imageIndex}:`, err);
+        console.error(`Erreur chargement image ${imageIndex}:`, err);
       });
     }
 
@@ -1277,15 +1710,105 @@
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
-    // Charger la première image
-    loadImage(currentImageIndex);
+    // Pré-charger toutes les images en arrière-plan, puis charger la première
+    preloadAllImages().then(() => {
+      loadImage(currentImageIndex);
+    }).catch(err => {
+      console.error('Erreur pré-chargement:', err);
+      // Fallback: charger quand même la première image
+      loadImage(currentImageIndex);
+    });
 
-    // Position de la caméra
-    camera.position.set(0, 0, 0);
-    sceneGroup.position.set(0, 0, -25);
+    // Position de la caméra (mobile) et sceneGroup (fixe)
+    camera.position.set(0, 0, 25); // Caméra commence loin en arrière
+    sceneGroup.position.set(0, 0, 0); // Particules fixes à l'origine
 
     // Variables pour optimisations
     let hasInitialRender = false; // Pour forcer un premier render
+    let lastAppliedDisparity = null; // Tracker disparity pour éviter mises à jour inutiles
+    let currentAppliedDisparity = 0; // Disparity actuellement appliquée (avec lerp)
+    let needsPositionUpdate = false; // Batch GPU updates pour éviter appels multiples
+    let scrollMomentum = 0; // Momentum pour smoothing molette (scroll adaptatif)
+    let lastScrollTime = 0; // Timestamp pour détection trackpad vs molette
+
+    // Variables pour détection de reload des paramètres
+    let lastReloadParams = {
+      density: 0.6,
+      disparity: 0,
+      saturation: 1,
+      hideBlack: 0,
+      randomness: 0.4,
+      shape: 'circle'
+    };
+    let reloadScheduled = false;
+
+    // Optimisation PRO: Function dispatch table pour éliminer les branches
+    // Au lieu de if/else if dans le loop chaud, on appelle directement la bonne fonction
+    const movementFunctions = {
+      // Mode 1: Mouvement sur Z uniquement
+      1: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const oscillation = Math.sin(time + offset) * movementDouble;
+        positions[i] = initialPositions[i];
+        positions[i + 1] = initialPositions[i + 1];
+        positions[i + 2] = initialPositions[i + 2] + oscillation;
+      },
+
+      // Mode 2: Mouvement sur X et Y
+      2: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const offset13 = offset * 1.3;
+        const timeOffset = time + offset;
+        const oscillationX = Math.sin(timeOffset) * movementDouble;
+        const oscillationY = Math.cos(time + offset13) * movementDouble;
+        positions[i] = initialPositions[i] + oscillationX;
+        positions[i + 1] = initialPositions[i + 1] + oscillationY;
+        positions[i + 2] = initialPositions[i + 2];
+      },
+
+      // Mode 3: Mouvement sur tous les axes (XYZ)
+      3: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const offset08 = offset * 0.8;
+        const offset13 = offset * 1.3;
+        const timeOffset = time + offset;
+        const time07 = time * 0.7;
+        const oscillationX = Math.sin(timeOffset) * movementDouble;
+        const oscillationY = Math.cos(time + offset13) * movementDouble;
+        const oscillationZ = Math.sin(time07 + offset08) * movementDouble;
+        positions[i] = initialPositions[i] + oscillationX;
+        positions[i + 1] = initialPositions[i + 1] + oscillationY;
+        positions[i + 2] = initialPositions[i + 2] + oscillationZ;
+      },
+
+      // Mode 4: Mouvement en vague (WAVE)
+      4: (positions, initialPositions, i, time, movementDouble) => {
+        const initX = initialPositions[i];
+        const initY = initialPositions[i + 1];
+        const time15 = time * 1.5;
+        const waveX = Math.sin(time + initX * 0.5) * movementDouble;
+        const waveY = Math.cos(time + initY * 0.5) * movementDouble;
+        const waveZ = Math.sin(time15 + initX * 0.3 + initY * 0.3) * movementDouble * 0.7;
+        positions[i] = initX + waveX * 0.5;
+        positions[i + 1] = initY + waveY * 0.5;
+        positions[i + 2] = initialPositions[i + 2] + waveZ;
+      },
+
+      // Mode 5: Mouvement en spirale (SPIRAL)
+      5: (positions, initialPositions, i, time, movementDouble) => {
+        const offset = i * 0.1;
+        const timeOffset = time + offset;
+        const time2 = time * 2;
+        const angle = timeOffset;
+        const radius = movementDouble;
+        const spiralX = Math.cos(angle) * radius * 0.6;
+        const spiralY = Math.sin(angle) * radius * 0.6;
+        const spiralZ = Math.sin(time2 + offset) * movementDouble * 0.8;
+        positions[i] = initialPositions[i] + spiralX;
+        positions[i + 1] = initialPositions[i + 1] + spiralY;
+        positions[i + 2] = initialPositions[i + 2] + spiralZ;
+      }
+    };
 
     // Animation
     function animate() {
@@ -1299,17 +1822,214 @@
         hasInitialRender = true;
       }
 
-      // Zoom fluide progressif (interpolation vers la cible)
+      // OPTIMISATION PRO: Appliquer momentum de scroll (pour molette fluide - configurable)
+      if (Math.abs(scrollMomentum) > 0.0001) {
+        targetZoomLevel -= scrollMomentum;
+        targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+        scrollMomentum *= scrollConfig.wheel.decay; // Decay progressif du momentum (configurable)
+      }
+
+      // Zoom fluide progressif (interpolation vers la cible - configurable)
       if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
         // Lerp fluide vers la position cible
-        zoomLevel += (targetZoomLevel - zoomLevel) * 0.1;
-        // Calculer la position Z interpolée
-        sceneGroup.position.z = minZoom + (maxZoom - minZoom) * zoomLevel;
+        zoomLevel += (targetZoomLevel - zoomLevel) * scrollConfig.global.zoomLerp;
+        // Déplacer la caméra (au lieu du sceneGroup) : de z=25 (loin) à z=0 (proche)
+        camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
         needsRender = true;
       }
 
+      // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
+      // Au lieu de les calculer dans wheel event avec targetZoomLevel (qui saute)
+      if (uxJourneyMode && uxStates.length >= 2) {
+        // FIX: Forcer retour exact à l'État 1 quand zoomLevel proche de 0
+        if (zoomLevel < 0.001) {
+          const state1 = uxStates[0];
+          particleParams.size = state1.size;
+          particleParams.density = state1.density;
+          particleParams.disparity = state1.disparity;
+          particleParams.movement = state1.movement;
+          particleParams.randomness = state1.randomness;
+          particleParams.saturation = state1.saturation;
+          particleParams.hideBlack = state1.hideBlack;
+          particleParams.shape = state1.shape;
+          particleParams.movementMode = state1.movementMode;
+
+          // CRITICAL FIX: Forcer reload IMMÉDIAT avec valeurs EXACTES de l'État 1
+          // Pour éliminer tout "bruit" résiduel de l'interpolation
+          const needsState1Reload =
+            Math.abs(particleParams.density - lastReloadParams.density) > 0.001 ||
+            Math.abs(particleParams.randomness - lastReloadParams.randomness) > 0.001 ||
+            Math.abs(particleParams.saturation - lastReloadParams.saturation) > 0.001 ||
+            Math.abs(particleParams.hideBlack - lastReloadParams.hideBlack) > 0.001 ||
+            particleParams.shape !== lastReloadParams.shape;
+
+          if (needsState1Reload && !reloadScheduled) {
+            reloadScheduled = true;
+            requestAnimationFrame(() => {
+              loadImage(currentImageIndex);
+              lastReloadParams = {
+                density: state1.density,
+                disparity: state1.disparity,
+                saturation: state1.saturation,
+                hideBlack: state1.hideBlack,
+                randomness: state1.randomness,
+                shape: state1.shape
+              };
+              reloadScheduled = false;
+            });
+          }
+        }
+        // FIX: Forcer retour exact au dernier État quand zoomLevel proche de 1
+        else if (zoomLevel > 0.999) {
+          const lastState = uxStates[uxStates.length - 1];
+          particleParams.size = lastState.size;
+          particleParams.density = lastState.density;
+          particleParams.disparity = lastState.disparity;
+          particleParams.movement = lastState.movement;
+          particleParams.randomness = lastState.randomness;
+          particleParams.saturation = lastState.saturation;
+          particleParams.hideBlack = lastState.hideBlack;
+          particleParams.shape = lastState.shape;
+          particleParams.movementMode = lastState.movementMode;
+        }
+        // Interpolation normale avec zoomLevel LISSÉ (pas targetZoomLevel!)
+        else {
+          const globalProgress = zoomLevel; // UTILISE zoomLevel lissé!
+          const stateCount = uxStates.length;
+          const scaledProgress = globalProgress * (stateCount - 1);
+          const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
+          const fromStateIndex = Math.floor(stateIndexFloat);
+          const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
+          const localProgress = stateIndexFloat - fromStateIndex;
+
+          const easedProgress = applyCurve(localProgress);
+
+          const fromState = uxStates[fromStateIndex];
+          const toState = uxStates[toStateIndex];
+
+          // Interpoler tous les paramètres de façon fluide
+          particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
+          particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
+          particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
+          particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
+          particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
+          particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
+          particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
+
+          if (easedProgress < 0.5) {
+            particleParams.shape = fromState.shape;
+            particleParams.movementMode = fromState.movementMode;
+          } else {
+            particleParams.shape = toState.shape;
+            particleParams.movementMode = toState.movementMode;
+          }
+        }
+
+        // Mise à jour légère du material size
+        if (particles) {
+          particles.material.size = particleParams.size;
+        }
+
+        // Note: Les throttled functions géreront les updates UI automatiquement
+
+        // Détection de changement: ne recharger que si paramètres lourds ont changé
+        // DISPARITY RETIRÉ: appliqué dynamiquement dans animate(), jamais de reload!
+        let needsReload = particleParams.shape !== lastReloadParams.shape;
+
+        if (!needsReload) {
+          // Éviter Math.abs si différence est manifestement petite
+          const densityDiff = particleParams.density - lastReloadParams.density;
+          const saturationDiff = particleParams.saturation - lastReloadParams.saturation;
+          const hideBlackDiff = particleParams.hideBlack - lastReloadParams.hideBlack;
+          const randomnessDiff = particleParams.randomness - lastReloadParams.randomness;
+
+          needsReload =
+            (densityDiff > 0.01 || densityDiff < -0.01) ||
+            (saturationDiff > 0.2 || saturationDiff < -0.2) ||
+            (hideBlackDiff > 0.01 || hideBlackDiff < -0.01) ||
+            (randomnessDiff > 0.01 || randomnessDiff < -0.01);
+        }
+
+        // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
+        if (needsReload && !reloadScheduled) {
+          reloadScheduled = true;
+          requestAnimationFrame(() => {
+            loadImage(currentImageIndex);
+            lastReloadParams = {
+              density: particleParams.density,
+              disparity: particleParams.disparity,
+              saturation: particleParams.saturation,
+              hideBlack: particleParams.hideBlack,
+              randomness: particleParams.randomness,
+              shape: particleParams.shape
+            };
+            reloadScheduled = false;
+          });
+        }
+      }
+
+      // Appliquer disparity dynamiquement SANS recréer la géométrie
+      // OPTIMISATION PRO: Lerp smooth + update seulement si changement significatif (configurable)
+      if (particles && particles.geometry.attributes.normalizedDepth) {
+        const targetDisparity = particleParams.disparity;
+
+        // Lerp smooth vers la valeur cible (transition ultra-fluide - configurable)
+        if (Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
+          currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * scrollConfig.global.disparityLerp;
+
+          // Seulement mettre à jour GPU si changement visible (>0.001)
+          if (lastAppliedDisparity === null || Math.abs(currentAppliedDisparity - lastAppliedDisparity) > 0.001) {
+            const positions = particles.geometry.attributes.position.array;
+            const initialPositions = particles.geometry.attributes.initialPosition.array;
+            const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
+
+            // OPTIMISATION: Loop unrolling pattern - traiter 4 particules à la fois
+            const disparity = currentAppliedDisparity;
+            const len = normalizedDepths.length;
+            let i = 0;
+
+            // Loop principal: traiter par blocs de 4 (SIMD-like)
+            for (; i < len - 3; i += 4) {
+              const idx0 = i * 3;
+              const idx1 = (i + 1) * 3;
+              const idx2 = (i + 2) * 3;
+              const idx3 = (i + 3) * 3;
+
+              const depth0 = normalizedDepths[i] * disparity;
+              const depth1 = normalizedDepths[i + 1] * disparity;
+              const depth2 = normalizedDepths[i + 2] * disparity;
+              const depth3 = normalizedDepths[i + 3] * disparity;
+
+              initialPositions[idx0 + 2] = depth0;
+              positions[idx0 + 2] = depth0;
+              initialPositions[idx1 + 2] = depth1;
+              positions[idx1 + 2] = depth1;
+              initialPositions[idx2 + 2] = depth2;
+              positions[idx2 + 2] = depth2;
+              initialPositions[idx3 + 2] = depth3;
+              positions[idx3 + 2] = depth3;
+            }
+
+            // Gérer les particules restantes
+            for (; i < len; i++) {
+              const idx = i * 3;
+              const depth = normalizedDepths[i] * disparity;
+              initialPositions[idx + 2] = depth;
+              positions[idx + 2] = depth;
+            }
+
+            // Marquer pour batch update au lieu d'update immédiat
+            particles.geometry.attributes.initialPosition.needsUpdate = true;
+            needsPositionUpdate = true;
+            lastAppliedDisparity = currentAppliedDisparity;
+            needsRender = true;
+          }
+        }
+      }
+
       // Mouvement des particules avec 5 modes différents
+      // OPTIMISATION PRO: Utilise function dispatch au lieu de branches dans loop chaud
       if (particles && particleParams.movement > 0) {
         particles.userData.time += 0.01;
 
@@ -1317,61 +2037,28 @@
         const initialPositions = particles.geometry.attributes.initialPosition.array;
         const time = particles.userData.time;
         const movementDouble = particleParams.movement * 2;
+        const mode = particleParams.movementMode;
 
-        for (let i = 0; i < positions.length; i += 3) {
-          const offset = i * 0.1;
+        // Récupérer la fonction appropriée (1 lookup au lieu de branches répétées)
+        const movementFunc = movementFunctions[mode];
 
-          // Mode 1: Mouvement sur Z uniquement
-          if (particleParams.movementMode === 1) {
-            const oscillation = Math.sin(time + offset) * movementDouble;
-            positions[i] = initialPositions[i];
-            positions[i + 1] = initialPositions[i + 1];
-            positions[i + 2] = initialPositions[i + 2] + oscillation;
-          }
-
-          // Mode 2: Mouvement sur X et Y
-          else if (particleParams.movementMode === 2) {
-            const oscillationX = Math.sin(time + offset) * movementDouble;
-            const oscillationY = Math.cos(time + offset * 1.3) * movementDouble;
-            positions[i] = initialPositions[i] + oscillationX;
-            positions[i + 1] = initialPositions[i + 1] + oscillationY;
-            positions[i + 2] = initialPositions[i + 2];
-          }
-
-          // Mode 3: Mouvement sur tous les axes (XYZ)
-          else if (particleParams.movementMode === 3) {
-            const oscillationX = Math.sin(time + offset) * movementDouble;
-            const oscillationY = Math.cos(time + offset * 1.3) * movementDouble;
-            const oscillationZ = Math.sin(time * 0.7 + offset * 0.8) * movementDouble;
-            positions[i] = initialPositions[i] + oscillationX;
-            positions[i + 1] = initialPositions[i + 1] + oscillationY;
-            positions[i + 2] = initialPositions[i + 2] + oscillationZ;
-          }
-
-          // Mode 4: Mouvement en vague (WAVE)
-          else if (particleParams.movementMode === 4) {
-            const waveX = Math.sin(time + initialPositions[i] * 0.5) * movementDouble;
-            const waveY = Math.cos(time + initialPositions[i + 1] * 0.5) * movementDouble;
-            const waveZ = Math.sin(time * 1.5 + initialPositions[i] * 0.3 + initialPositions[i + 1] * 0.3) * movementDouble * 0.7;
-            positions[i] = initialPositions[i] + waveX * 0.5;
-            positions[i + 1] = initialPositions[i + 1] + waveY * 0.5;
-            positions[i + 2] = initialPositions[i + 2] + waveZ;
-          }
-
-          // Mode 5: Mouvement en spirale (SPIRAL)
-          else if (particleParams.movementMode === 5) {
-            const angle = time + offset;
-            const radius = movementDouble;
-            const spiralX = Math.cos(angle) * radius * 0.6;
-            const spiralY = Math.sin(angle) * radius * 0.6;
-            const spiralZ = Math.sin(time * 2 + offset) * movementDouble * 0.8;
-            positions[i] = initialPositions[i] + spiralX;
-            positions[i + 1] = initialPositions[i + 1] + spiralY;
-            positions[i + 2] = initialPositions[i + 2] + spiralZ;
+        // Loop optimisé sans branches - CPU branch predictor est heureux
+        if (movementFunc) {
+          for (let i = 0; i < positions.length; i += 3) {
+            movementFunc(positions, initialPositions, i, time, movementDouble);
           }
         }
-        particles.geometry.attributes.position.needsUpdate = true;
+
+        // Marquer pour batch update
+        needsPositionUpdate = true;
         needsRender = true;
+      }
+
+      // OPTIMISATION PRO: Batch tous les updates GPU en un seul appel
+      // Au lieu de multiples needsUpdate=true, on fait un seul appel à la fin
+      if (needsPositionUpdate && particles) {
+        particles.geometry.attributes.position.needsUpdate = true;
+        needsPositionUpdate = false;
       }
 
       // (Opt #5 - Early exit) Ne render que si nécessaire
@@ -1388,71 +2075,259 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Zoom progressif avec la molette de la souris
+    // Cache des boutons pour éviter querySelectorAll répété
+    const cachedShapeButtons = document.querySelectorAll('.shape-btn');
+    const cachedMovementButtons = document.querySelectorAll('.movement-mode-btn');
+
+    // Cache des éléments UI pour updateUIValues (optimisation majeure)
+    const uiElements = {
+      sizeValue: document.getElementById('size-value'),
+      densityValue: document.getElementById('density-value'),
+      disparityValue: document.getElementById('disparity-value'),
+      movementValue: document.getElementById('movement-value'),
+      saturationValue: document.getElementById('saturation-value'),
+      hideBlackValue: document.getElementById('hideBlack-value'),
+      randomnessValue: document.getElementById('randomness-value'),
+      sizeSlider: document.getElementById('size-slider'),
+      densitySlider: document.getElementById('density-slider'),
+      disparitySlider: document.getElementById('disparity-slider'),
+      movementSlider: document.getElementById('movement-slider'),
+      saturationSlider: document.getElementById('saturation-slider'),
+      hideBlackSlider: document.getElementById('hideBlack-slider'),
+      randomnessSlider: document.getElementById('randomness-slider')
+    };
+
+    // Throttle pour updateUIValues
+    let uiUpdateScheduled = false;
+    function throttledUpdateUIValues() {
+      if (!uiUpdateScheduled) {
+        uiUpdateScheduled = true;
+        requestAnimationFrame(() => {
+          updateUIValues();
+          uiUpdateScheduled = false;
+        });
+      }
+    }
+
+    // Throttle pour les mises à jour de boutons
+    let buttonUpdateScheduled = false;
+    let pendingButtonUpdates = { shape: null, movement: null };
+    function throttledUpdateButtons(shape, movementMode) {
+      pendingButtonUpdates.shape = shape;
+      pendingButtonUpdates.movement = movementMode;
+
+      if (!buttonUpdateScheduled) {
+        buttonUpdateScheduled = true;
+        requestAnimationFrame(() => {
+          // Mettre à jour les boutons de forme
+          cachedShapeButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.shape === pendingButtonUpdates.shape);
+          });
+          // Mettre à jour les boutons de mode de mouvement
+          cachedMovementButtons.forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.mode) === pendingButtonUpdates.movement);
+          });
+          buttonUpdateScheduled = false;
+        });
+      }
+    }
+
+    /* ===============================================
+       SCROLL CONFIG PANEL - Gestion
+       =============================================== */
+
+    // Configuration par défaut (valeurs optimisées)
+    const scrollConfig = {
+      trackpad: {
+        sensitivity: 0.00062,
+        threshold: 70,
+        frequency: 39
+      },
+      wheel: {
+        normalize: 0.15,
+        maxDelta: 20,
+        momentum: 0.8,
+        decay: 0.96
+      },
+      global: {
+        zoomLerp: 0.13,
+        disparityLerp: 0.23
+      }
+    };
+
+    // Elements UI
+    const scrollConfigPanel = document.getElementById('scroll-config-panel');
+
+    // Trackpad sliders
+    const trackpadSensitivitySlider = document.getElementById('trackpad-sensitivity');
+    const trackpadSensitivityVal = document.getElementById('trackpad-sensitivity-val');
+    const trackpadThresholdSlider = document.getElementById('trackpad-threshold');
+    const trackpadThresholdVal = document.getElementById('trackpad-threshold-val');
+    const trackpadFrequencySlider = document.getElementById('trackpad-frequency');
+    const trackpadFrequencyVal = document.getElementById('trackpad-frequency-val');
+
+    // Wheel sliders
+    const wheelNormalizeSlider = document.getElementById('wheel-normalize');
+    const wheelNormalizeVal = document.getElementById('wheel-normalize-val');
+    const wheelMaxSlider = document.getElementById('wheel-max');
+    const wheelMaxVal = document.getElementById('wheel-max-val');
+    const wheelMomentumSlider = document.getElementById('wheel-momentum');
+    const wheelMomentumVal = document.getElementById('wheel-momentum-val');
+    const wheelDecaySlider = document.getElementById('wheel-decay');
+    const wheelDecayVal = document.getElementById('wheel-decay-val');
+
+    // Global sliders
+    const zoomLerpSlider = document.getElementById('zoom-lerp');
+    const zoomLerpVal = document.getElementById('zoom-lerp-val');
+    const disparityLerpSlider = document.getElementById('disparity-lerp');
+    const disparityLerpVal = document.getElementById('disparity-lerp-val');
+
+    // Info indicators
+    const scrollModeIndicator = document.getElementById('scroll-mode-indicator');
+    const scrollDeltaIndicator = document.getElementById('scroll-delta-indicator');
+    const scrollFreqIndicator = document.getElementById('scroll-freq-indicator');
+
+    // Buttons
+    const scrollResetBtn = document.getElementById('scroll-reset-btn');
+    const scrollCopyBtn = document.getElementById('scroll-copy-btn');
+
+    // Update handlers
+    trackpadSensitivitySlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.sensitivity = parseFloat(e.target.value);
+      trackpadSensitivityVal.textContent = scrollConfig.trackpad.sensitivity.toFixed(6);
+    });
+
+    trackpadThresholdSlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.threshold = parseFloat(e.target.value);
+      trackpadThresholdVal.textContent = scrollConfig.trackpad.threshold;
+    });
+
+    trackpadFrequencySlider.addEventListener('input', (e) => {
+      scrollConfig.trackpad.frequency = parseFloat(e.target.value);
+      trackpadFrequencyVal.textContent = scrollConfig.trackpad.frequency;
+    });
+
+    wheelNormalizeSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.normalize = parseFloat(e.target.value);
+      wheelNormalizeVal.textContent = scrollConfig.wheel.normalize.toFixed(2);
+    });
+
+    wheelMaxSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.maxDelta = parseFloat(e.target.value);
+      wheelMaxVal.textContent = scrollConfig.wheel.maxDelta;
+    });
+
+    wheelMomentumSlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.momentum = parseFloat(e.target.value);
+      wheelMomentumVal.textContent = scrollConfig.wheel.momentum.toFixed(2);
+    });
+
+    wheelDecaySlider.addEventListener('input', (e) => {
+      scrollConfig.wheel.decay = parseFloat(e.target.value);
+      wheelDecayVal.textContent = scrollConfig.wheel.decay.toFixed(2);
+    });
+
+    zoomLerpSlider.addEventListener('input', (e) => {
+      scrollConfig.global.zoomLerp = parseFloat(e.target.value);
+      zoomLerpVal.textContent = scrollConfig.global.zoomLerp.toFixed(2);
+    });
+
+    disparityLerpSlider.addEventListener('input', (e) => {
+      scrollConfig.global.disparityLerp = parseFloat(e.target.value);
+      disparityLerpVal.textContent = scrollConfig.global.disparityLerp.toFixed(2);
+    });
+
+    // Reset button
+    scrollResetBtn.addEventListener('click', () => {
+      // Reset to optimized defaults
+      scrollConfig.trackpad = { sensitivity: 0.00062, threshold: 70, frequency: 39 };
+      scrollConfig.wheel = { normalize: 0.15, maxDelta: 20, momentum: 0.8, decay: 0.96 };
+      scrollConfig.global = { zoomLerp: 0.13, disparityLerp: 0.23 };
+
+      // Update sliders
+      trackpadSensitivitySlider.value = 0.00062;
+      trackpadSensitivityVal.textContent = '0.00062';
+      trackpadThresholdSlider.value = 70;
+      trackpadThresholdVal.textContent = '70';
+      trackpadFrequencySlider.value = 39;
+      trackpadFrequencyVal.textContent = '39';
+
+      wheelNormalizeSlider.value = 0.15;
+      wheelNormalizeVal.textContent = '0.15';
+      wheelMaxSlider.value = 20;
+      wheelMaxVal.textContent = '20';
+      wheelMomentumSlider.value = 0.8;
+      wheelMomentumVal.textContent = '0.80';
+      wheelDecaySlider.value = 0.96;
+      wheelDecayVal.textContent = '0.96';
+
+      zoomLerpSlider.value = 0.13;
+      zoomLerpVal.textContent = '0.13';
+      disparityLerpSlider.value = 0.23;
+      disparityLerpVal.textContent = '0.23';
+
+      console.log('✅ Scroll config reset to optimized defaults');
+    });
+
+    // Copy config button
+    scrollCopyBtn.addEventListener('click', async () => {
+      const configJSON = JSON.stringify(scrollConfig, null, 2);
+      try {
+        await navigator.clipboard.writeText(configJSON);
+        scrollCopyBtn.textContent = '✅ Copied!';
+        console.log('📋 Config copied to clipboard:');
+        console.log(configJSON);
+        setTimeout(() => {
+          scrollCopyBtn.textContent = '📋 Copy Config to Clipboard';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        console.log('📋 Copy this config manually:');
+        console.log(configJSON);
+      }
+    });
+
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
 
-      // Vitesse de scroll pour un contrôle optimal
-      const scrollSpeed = 0.0004;
-      targetZoomLevel -= event.deltaY * scrollSpeed; // scroll up = rapprochement
+      const now = performance.now();
+      const deltaTime = now - lastScrollTime;
+      lastScrollTime = now;
+
+      // DÉTECTION INTELLIGENTE: trackpad vs molette (utilise scrollConfig)
+      const absDelta = Math.abs(event.deltaY);
+      const isTrackpad = absDelta < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
+
+      // Mise à jour des indicateurs (si panel visible)
+      if (scrollConfigPanel.classList.contains('visible')) {
+        scrollModeIndicator.textContent = isTrackpad ? '📱 Trackpad' : '🖱️ Mouse Wheel';
+        scrollDeltaIndicator.textContent = absDelta.toFixed(1);
+        scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
+      }
+
+      let scrollDelta;
+      if (isTrackpad) {
+        // TRACKPAD: usage direct avec sensibilité configurable
+        scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
+        scrollMomentum = 0; // Reset momentum
+      } else {
+        // MOLETTE: normalisation + momentum smoothing (configurable)
+        const normalizedDelta = Math.sign(event.deltaY) * Math.min(absDelta * scrollConfig.wheel.normalize, scrollConfig.wheel.maxDelta);
+        scrollDelta = normalizedDelta * scrollConfig.trackpad.sensitivity;
+
+        // Ajouter momentum pour fluidité (configurable)
+        scrollMomentum = scrollDelta * scrollConfig.wheel.momentum;
+      }
+
+      // Appliquer le scroll avec momentum
+      targetZoomLevel -= scrollDelta;
 
       // Limiter entre 0 et 1
       targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
 
-      // Mode parcours UX : interpoler les paramètres selon le zoom
-      if (uxJourneyMode && uxStates.length >= 2) {
-        // Calculer la progression globale (0 = premier état, 1 = dernier état)
-        const globalProgress = targetZoomLevel;
-
-        // Déterminer entre quels états on se trouve
-        const stateCount = uxStates.length;
-        const scaledProgress = globalProgress * (stateCount - 1);
-        const stateIndexFloat = Math.max(0, Math.min(scaledProgress, stateCount - 1));
-        const fromStateIndex = Math.floor(stateIndexFloat);
-        const toStateIndex = Math.min(fromStateIndex + 1, stateCount - 1);
-        const localProgress = stateIndexFloat - fromStateIndex;
-
-        // Appliquer la courbe sélectionnée à la progression locale
-        const easedProgress = applyCurve(localProgress);
-
-        // Interpoler entre les deux états
-        const fromState = uxStates[fromStateIndex];
-        const toState = uxStates[toStateIndex];
-
-        // Interpoler les paramètres numériques
-        particleParams.size = fromState.size + (toState.size - fromState.size) * easedProgress;
-        particleParams.density = fromState.density + (toState.density - fromState.density) * easedProgress;
-        particleParams.disparity = fromState.disparity + (toState.disparity - fromState.disparity) * easedProgress;
-        particleParams.movement = fromState.movement + (toState.movement - fromState.movement) * easedProgress;
-        particleParams.randomness = fromState.randomness + (toState.randomness - fromState.randomness) * easedProgress;
-        particleParams.saturation = fromState.saturation + (toState.saturation - fromState.saturation) * easedProgress;
-        particleParams.hideBlack = fromState.hideBlack + (toState.hideBlack - fromState.hideBlack) * easedProgress;
-
-        // Pour les paramètres non-interpolables (shape, movementMode), prendre celui de l'état le plus proche
-        if (easedProgress < 0.5) {
-          particleParams.shape = fromState.shape;
-          particleParams.movementMode = fromState.movementMode;
-        } else {
-          particleParams.shape = toState.shape;
-          particleParams.movementMode = toState.movementMode;
-        }
-
-        // Mettre à jour les boutons de forme
-        document.querySelectorAll('.shape-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.shape === particleParams.shape);
-        });
-
-        // Mettre à jour les boutons de mode de mouvement
-        document.querySelectorAll('.movement-mode-btn').forEach(btn => {
-          btn.classList.toggle('active', parseInt(btn.dataset.mode) === particleParams.movementMode);
-        });
-
-        // Mettre à jour l'interface
-        updateUIValues();
-
-        // Recharger l'image pour les paramètres qui le nécessitent
-        loadImage(currentImageIndex);
-      }
+      // FIX MOLETTE: Ne plus calculer les paramètres ici avec targetZoomLevel (qui saute)
+      // Les paramètres sont maintenant calculés dans animate() avec zoomLevel lissé
+      // Cela élimine les "téléportations" des particules avec la molette!
     }, { passive: false });
 
     /* ===============================================
@@ -1539,6 +2414,49 @@
           renderUXStates();
         }
       }
+
+      // Touche C - Ouvrir l'interface de configuration du scroll
+      if (event.key === 'c' || event.key === 'C') {
+        const scrollConfigPanel = document.getElementById('scroll-config-panel');
+        scrollConfigPanel.classList.toggle('visible');
+      }
+
+      // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
+      if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        const uxStatesPanel = document.getElementById('ux-states-panel');
+        if (uxStatesPanel.classList.contains('visible') && uxStates.length > 0) {
+          event.preventDefault();
+
+          if (event.key === 'ArrowUp') {
+            // État précédent
+            if (currentStateIndex === -1) {
+              currentStateIndex = uxStates.length - 1;
+            } else {
+              currentStateIndex = currentStateIndex === 0 ? uxStates.length - 1 : currentStateIndex - 1;
+            }
+          } else {
+            // État suivant
+            if (currentStateIndex === -1) {
+              currentStateIndex = 0;
+            } else {
+              currentStateIndex = currentStateIndex === uxStates.length - 1 ? 0 : currentStateIndex + 1;
+            }
+          }
+
+          // Charger les paramètres de l'état sélectionné
+          loadState(currentStateIndex);
+
+          // Sauter directement au niveau de zoom de l'état (saccade)
+          if (uxJourneyMode && uxStates.length > 1) {
+            targetZoomLevel = currentStateIndex / (uxStates.length - 1);
+          }
+
+          // Mettre à jour l'affichage
+          renderUXStates();
+          // Activer le bouton APPLY
+          uxApplyBtn.disabled = false;
+        }
+      }
     });
 
     /* FIN SECTION ARRIÈRE-PLANS JONAS */
@@ -1550,6 +2468,7 @@
     const uxStatesPanel = document.getElementById('ux-states-panel');
     const uxStatesList = document.getElementById('ux-states-list');
     const uxAddStateBtn = document.getElementById('ux-add-state');
+    const uxApplyBtn = document.getElementById('ux-apply-state');
     const uxCurveSelect = document.getElementById('ux-curve-type');
     const uxToggleBtn = document.getElementById('ux-toggle');
 
@@ -1607,13 +2526,18 @@
         }
         btn.textContent = state.name;
         btn.addEventListener('click', () => {
-          // Sauvegarder l'état actuel avant de changer
-          saveCurrentState();
-          // Charger le nouvel état
-          currentStateIndex = index;
-          loadState(index);
+          // Sélectionner/désélectionner l'état
+          if (currentStateIndex === index) {
+            // Désélectionner si on clique sur le même
+            currentStateIndex = -1;
+          } else {
+            // Sélectionner l'état
+            currentStateIndex = index;
+          }
           // Mettre à jour l'affichage
           renderUXStates();
+          // Activer/désactiver le bouton APPLY
+          uxApplyBtn.disabled = currentStateIndex === -1;
         });
         uxStatesList.appendChild(btn);
       });
@@ -1621,26 +2545,32 @@
 
     // Bouton ajouter un état
     uxAddStateBtn.addEventListener('click', () => {
-      // Sauvegarder l'état actuel
-      saveCurrentState();
-
-      // Créer un nouvel état avec les paramètres actuels
+      // Créer un nouvel état avec les paramètres par défaut
       const newState = {
         name: `État ${uxStates.length + 1}`,
-        size: particleParams.size,
-        density: particleParams.density,
-        disparity: particleParams.disparity,
-        movement: particleParams.movement,
-        randomness: particleParams.randomness,
-        saturation: particleParams.saturation,
-        hideBlack: particleParams.hideBlack,
-        shape: particleParams.shape,
-        movementMode: particleParams.movementMode
+        size: 0.02,
+        density: 0.4,
+        disparity: 0.0,
+        movement: 0.0,
+        randomness: 0.0,
+        saturation: 1.0,
+        hideBlack: 0.0,
+        shape: 'circle',
+        movementMode: 1
       };
 
       uxStates.push(newState);
-      currentStateIndex = uxStates.length - 1;
+      // Ne pas sélectionner automatiquement le nouvel état
       renderUXStates();
+    });
+
+    // Bouton appliquer les paramètres
+    uxApplyBtn.addEventListener('click', () => {
+      if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
+        // Sauvegarder les paramètres actuels dans l'état sélectionné
+        saveCurrentState();
+        console.log(`État ${currentStateIndex + 1} mis à jour avec les paramètres actuels`);
+      }
     });
 
     // Sélecteur de courbe
@@ -1668,6 +2598,21 @@
       }
     });
 
+    // Restaurer l'état de l'interface au chargement
+    if (uxJourneyMode) {
+      uxToggleBtn.textContent = 'Désactiver';
+      uxToggleBtn.classList.add('active');
+    } else {
+      uxToggleBtn.textContent = 'Actif';
+      uxToggleBtn.classList.remove('active');
+    }
+    uxCurveSelect.value = selectedCurveType;
+
+    // Charger l'État 1 au démarrage de la page
+    if (uxStates.length > 0) {
+      loadState(0); // Charger État 1 (index 0)
+    }
+
     /* FIN GESTION INTERFACE ÉTATS DE LECTURE */
 
     /* ===============================================
@@ -1689,24 +2634,24 @@
       movementMode: 1
     };
 
-    // Fonction pour mettre à jour l'affichage de l'UI
+    // Fonction pour mettre à jour l'affichage de l'UI (utilise cache)
     function updateUIValues() {
-      document.getElementById('size-value').textContent = particleParams.size.toFixed(3);
-      document.getElementById('density-value').textContent = particleParams.density.toFixed(1);
-      document.getElementById('disparity-value').textContent = particleParams.disparity.toFixed(1);
-      document.getElementById('movement-value').textContent = particleParams.movement.toFixed(3);
-      document.getElementById('saturation-value').textContent = particleParams.saturation.toFixed(1);
-      document.getElementById('hideBlack-value').textContent = particleParams.hideBlack.toFixed(2);
-      document.getElementById('randomness-value').textContent = particleParams.randomness.toFixed(2);
+      uiElements.sizeValue.textContent = particleParams.size.toFixed(3);
+      uiElements.densityValue.textContent = particleParams.density.toFixed(1);
+      uiElements.disparityValue.textContent = particleParams.disparity.toFixed(1);
+      uiElements.movementValue.textContent = particleParams.movement.toFixed(3);
+      uiElements.saturationValue.textContent = particleParams.saturation.toFixed(1);
+      uiElements.hideBlackValue.textContent = particleParams.hideBlack.toFixed(2);
+      uiElements.randomnessValue.textContent = particleParams.randomness.toFixed(2);
 
       // Mettre à jour les sliders aussi
-      document.getElementById('size-slider').value = particleParams.size;
-      document.getElementById('density-slider').value = particleParams.density;
-      document.getElementById('disparity-slider').value = particleParams.disparity;
-      document.getElementById('movement-slider').value = particleParams.movement;
-      document.getElementById('saturation-slider').value = particleParams.saturation;
-      document.getElementById('hideBlack-slider').value = particleParams.hideBlack;
-      document.getElementById('randomness-slider').value = particleParams.randomness;
+      uiElements.sizeSlider.value = particleParams.size;
+      uiElements.densitySlider.value = particleParams.density;
+      uiElements.disparitySlider.value = particleParams.disparity;
+      uiElements.movementSlider.value = particleParams.movement;
+      uiElements.saturationSlider.value = particleParams.saturation;
+      uiElements.hideBlackSlider.value = particleParams.hideBlack;
+      uiElements.randomnessSlider.value = particleParams.randomness;
     }
 
     // Helper pour mettre à jour un paramètre
@@ -1723,10 +2668,9 @@
         valueDisplay.textContent = value.toFixed(3);
         if (particles) particles.material.size = value;
       } else if (param === 'density') {
-        // Density est bloquée à 0.4 - ignorer les changements
-        particleParams.density = 0.4;
-        valueDisplay.textContent = '0.4';
-        return; // Ne pas recharger l'image
+        particleParams.density = value;
+        valueDisplay.textContent = value.toFixed(1);
+        loadImage(currentImageIndex);
       } else if (param === 'disparity') {
         particleParams.disparity = value;
         valueDisplay.textContent = value.toFixed(1);
@@ -1831,8 +2775,8 @@
     // Reset Camera
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
       targetZoomLevel = 0.5;
-      sceneGroup.position.set(0, 0, -25);
       sceneGroup.rotation.set(0, 0, 0);
+      // La position de la caméra sera automatiquement interpolée par animate()
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
