@@ -15,7 +15,9 @@
     }
     canvas {
       display: block;
-      position: relative;
+      position: fixed;
+      top: 0;
+      left: 0;
       z-index: 1;
     }
 
@@ -1169,6 +1171,27 @@
     </div>
   </div>
 
+  <!-- CONTENU SCROLLABLE VERTICAL (activé après cycle de zoom complet) -->
+  <div id="vertical-content" style="position: relative; z-index: 10; background: transparent; pointer-events: none; opacity: 0; transition: opacity 0.5s;">
+    <div style="height: 100vh;"></div> <!-- Spacer pour commencer le contenu en dessous -->
+    <div style="background: rgba(0, 0, 0, 0.9); color: white; padding: 60px 40px; pointer-events: auto;">
+      <h1 style="font-size: 48px; margin-bottom: 30px; font-family: Arial, sans-serif;">Image 01 - Portfolio</h1>
+      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+      </p>
+      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
+        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+        Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      </p>
+      <p style="font-size: 18px; line-height: 1.8; max-width: 800px; margin-bottom: 30px;">
+        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
+        totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+      </p>
+      <div style="height: 60vh;"></div> <!-- Plus de contenu scrollable -->
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===============================================
@@ -1212,6 +1235,11 @@
     let targetZoomLevel = 0;
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
+
+    // Système de cycle de scroll avec inversion automatique
+    const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
+    let scrollPhase = 'zoomIn';  // 'zoomIn', 'zoomOut', ou 'pageScroll'
+    let hasCompletedCycle = false; // Pour tracker si le cycle complet est terminé
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -1819,10 +1847,38 @@
       // Convertit les clics discrets de molette en mouvement fluide continu
       if (Math.abs(wheelScrollAccumulator) > 0.0001) {
         const wheelContribution = wheelScrollAccumulator * scrollConfig.wheel.lerp;
-        targetZoomLevel += wheelContribution;
-        targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+
+        // CYCLE DE SCROLL: Inverser selon la phase
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += wheelContribution;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= wheelContribution; // INVERSION pour dezoom
+        }
+
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
         // Décroissance de l'accumulateur (inverse du lerp)
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
+      }
+
+      // DÉTECTION DES POINTS DE BASCULE: Changer de phase automatiquement
+      if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL) {
+        // Atteint le zoom max → passer en phase dezoom
+        scrollPhase = 'zoomOut';
+        console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint)');
+      } else if (scrollPhase === 'zoomOut' && targetZoomLevel <= 0.001) {
+        // Retour à l'état 1 → activer scroll vertical de page
+        scrollPhase = 'pageScroll';
+        hasCompletedCycle = true;
+        console.log('✅ Cycle complet terminé → scroll vertical de page activé');
+
+        // Activer scroll vertical de page
+        document.body.style.overflow = 'auto';
+
+        // Rendre visible le contenu vertical scrollable
+        const verticalContent = document.getElementById('vertical-content');
+        if (verticalContent) {
+          verticalContent.style.opacity = '1';
+        }
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2266,6 +2322,12 @@
     });
 
     window.addEventListener('wheel', (event) => {
+      // Si cycle complet terminé, permettre scroll normal de page
+      if (scrollPhase === 'pageScroll') {
+        // Ne pas preventDefault - laisser le scroll de page fonctionner
+        return;
+      }
+
       event.preventDefault();
 
       const now = performance.now();
@@ -2285,22 +2347,26 @@
 
       let scrollDelta;
       if (isTrackpad) {
-        // TRACKPAD: usage direct avec sensibilité configurable (PARFAIT selon user)
+        // TRACKPAD: usage direct avec sensibilité configurable
         scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
         wheelScrollAccumulator = 0; // Reset accumulator
 
-        // Appliquer directement - scroll vers le bas = zoom (navigation naturelle web)
-        targetZoomLevel += scrollDelta;
+        // CYCLE DE SCROLL: Inverser selon la phase
+        if (scrollPhase === 'zoomIn') {
+          // Scroll vers le bas = zoom IN (positif)
+          targetZoomLevel += scrollDelta;
+        } else if (scrollPhase === 'zoomOut') {
+          // Scroll vers le bas = zoom OUT (négatif) - INVERSION
+          targetZoomLevel -= scrollDelta;
+        }
       } else {
         // PRO WHEEL SMOOTHING: Accumulateur virtuel (technique Lenis/smooth-scroll 2025)
-        // Au lieu d'appliquer immédiatement, on accumule dans un buffer virtuel
-        // qui sera distribué progressivement sur plusieurs frames pour fluidité
+        // L'inversion selon phase sera appliquée dans animate()
         wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
-        // L'application se fait dans animate() avec lerp adaptatif - pas ici!
       }
 
-      // Limiter entre 0 et 1
-      targetZoomLevel = Math.max(0, Math.min(1, targetZoomLevel));
+      // Limiter entre 0 et MAX_ZOOM_LEVEL
+      targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
 
       // FIX MOLETTE: Ne plus calculer les paramètres ici avec targetZoomLevel (qui saute)
       // Les paramètres sont maintenant calculés dans animate() avec zoomLevel lissé
