@@ -1330,9 +1330,9 @@
     const maxZoom = -2;  // Position proche
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
-    const MAX_ZOOM_LEVEL = 2.0; // Zoom max augmenté pour permettre plus de distance
-    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL / 4; // 1/4 de la distance totale
-    const TRANSITION_END_ZOOM = MAX_ZOOM_LEVEL + TRANSITION_DISTANCE; // 2.5
+    const MAX_ZOOM_LEVEL = 0.718116; // Point de zoom max (début transition image)
+    const TRANSITION_END_ZOOM = 0.826632; // Point de fin de transition
+    const TRANSITION_DISTANCE = TRANSITION_END_ZOOM - MAX_ZOOM_LEVEL; // 0.108516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
     // Variables pour transition fluide entre images (basée sur position, pas temps)
