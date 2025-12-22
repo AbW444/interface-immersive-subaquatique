@@ -2423,6 +2423,11 @@
       // Bloquer scroll de page - le scroll agit uniquement sur le zoom
       event.preventDefault();
 
+      // DÉSACTIVER SCROLL VERS LE HAUT (pas de zoom/dezoom au scroll up)
+      if (event.deltaY < 0) {
+        return; // Ignorer les événements de scroll vers le haut
+      }
+
       const now = performance.now();
       const deltaTime = now - lastScrollTime;
       lastScrollTime = now;
