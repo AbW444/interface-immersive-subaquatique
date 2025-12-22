@@ -1217,12 +1217,12 @@
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
+    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL / 4; // 1/4 de la distance totale
+    const TRANSITION_END_ZOOM = MAX_ZOOM_LEVEL + TRANSITION_DISTANCE; // 1.0625
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
-    // Variables pour transition fluide entre images
+    // Variables pour transition fluide entre images (basée sur position, pas temps)
     let isTransitioning = false;
-    let transitionProgress = 0;
-    const transitionDuration = 1.5; // Durée en secondes
     let oldColors = null;
     let newColors = null;
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
@@ -1927,7 +1927,7 @@
           targetZoomLevel -= wheelContribution; // INVERSION pour dezoom
         }
 
-        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+        targetZoomLevel = Math.max(0, Math.min(TRANSITION_END_ZOOM, targetZoomLevel));
         // Décroissance de l'accumulateur (inverse du lerp)
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
       }
@@ -1958,13 +1958,17 @@
         needsRender = true;
       }
 
-      // TRANSITION FLUIDE ENTRE IMAGES: Interpoler progressivement les couleurs
+      // TRANSITION FLUIDE ENTRE IMAGES: Basée sur position de zoom (pas temps)
       if (isTransitioning && particles && oldColors && newColors) {
-        const deltaTime = 1 / 60; // Approximation 60 FPS
-        transitionProgress += deltaTime / transitionDuration;
+        // Calculer progression basée sur zoomLevel entre MAX_ZOOM_LEVEL et TRANSITION_END_ZOOM
+        let transitionProgress = 0;
 
-        if (transitionProgress >= 1.0) {
-          // Transition terminée
+        if (zoomLevel >= MAX_ZOOM_LEVEL && zoomLevel <= TRANSITION_END_ZOOM) {
+          // Progression de 0 à 1 sur 1/4 de la distance totale
+          transitionProgress = (zoomLevel - MAX_ZOOM_LEVEL) / TRANSITION_DISTANCE;
+          transitionProgress = Math.max(0, Math.min(1, transitionProgress));
+        } else if (zoomLevel > TRANSITION_END_ZOOM) {
+          // Dépasse la fin de transition
           transitionProgress = 1.0;
           isTransitioning = false;
         }
@@ -1985,7 +1989,7 @@
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
-          console.log('✅ Transition image terminée');
+          console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3));
         }
       }
 
