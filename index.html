@@ -2050,7 +2050,7 @@
           targetZoomLevel -= wheelContribution; // INVERSION pour dezoom
         }
 
-        targetZoomLevel = Math.max(0, Math.min(TRANSITION_END_ZOOM, targetZoomLevel));
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
         // Décroissance de l'accumulateur (inverse du lerp)
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
       }
