@@ -1319,7 +1319,7 @@
     scene.add(sceneGroup);
 
     let particles;
-    let currentImageIndex = 1; // Commence à 1 (IMG_001)
+    let currentImageIndex = 4; // Commence à 4 pour que première transition → IMG_001
     const maxImageIndex = 4; // 4 images : IMG_001, IMG_002, IMG_003, IMG_004
     let referenceHeight = null;
 
@@ -1331,8 +1331,8 @@
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.826632; // Point de zoom max (début transition image)
-    const TRANSITION_END_ZOOM = 0.718116; // Point de fin de transition
-    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.108516
+    const TRANSITION_END_ZOOM = 0.518116; // Point de fin de transition
+    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.308516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
     // Variables pour transition fluide entre images (basée sur position, pas temps)
@@ -1340,6 +1340,7 @@
     let oldColors = null;
     let newColors = null;
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
+    let smoothedTransitionProgress = 0; // Progression lissée pour éviter sauts lors scroll rapide
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -2079,25 +2080,29 @@
       // TRANSITION FLUIDE ENTRE IMAGES: Basée sur position de zoom (pas temps)
       if (isTransitioning && particles && oldColors && newColors) {
         // Calculer progression basée sur zoomLevel entre MAX_ZOOM_LEVEL et TRANSITION_END_ZOOM
-        let transitionProgress = 0;
+        let targetTransitionProgress = 0;
 
         if (zoomLevel <= MAX_ZOOM_LEVEL && zoomLevel >= TRANSITION_END_ZOOM) {
-          // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.718116)
-          transitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
-          transitionProgress = Math.max(0, Math.min(1, transitionProgress));
+          // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.518116)
+          targetTransitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
+          targetTransitionProgress = Math.max(0, Math.min(1, targetTransitionProgress));
         } else if (zoomLevel < TRANSITION_END_ZOOM) {
           // Dépasse la fin de transition
-          transitionProgress = 1.0;
+          targetTransitionProgress = 1.0;
           isTransitioning = false;
         }
 
-        // Interpolation linéaire des couleurs
+        // SMOOTHING: Lisser la progression pour éviter sauts lors scroll rapide
+        const TRANSITION_LERP = 0.15; // Lissage pour transition fluide même en scroll rapide
+        smoothedTransitionProgress += (targetTransitionProgress - smoothedTransitionProgress) * TRANSITION_LERP;
+
+        // Interpolation linéaire des couleurs avec progression lissée
         const colorAttr = particles.geometry.attributes.color;
         const colors = colorAttr.array;
         const numColors = Math.min(oldColors.length, newColors.length, colors.length);
 
         for (let i = 0; i < numColors; i++) {
-          colors[i] = oldColors[i] + (newColors[i] - oldColors[i]) * transitionProgress;
+          colors[i] = oldColors[i] + (newColors[i] - oldColors[i]) * smoothedTransitionProgress;
         }
 
         colorAttr.needsUpdate = true;
@@ -2107,6 +2112,7 @@
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
+          smoothedTransitionProgress = 0; // Reset pour prochaine transition
           console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3));
         }
       }
@@ -2575,10 +2581,20 @@
         scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
       }
 
+      // CAP DE VITESSE: Limiter la vitesse de scroll (ni trop rapide, ni trop lent)
+      const MIN_SCROLL_SPEED = 0.0003; // Vitesse minimale par événement
+      const MAX_SCROLL_SPEED = 0.015;  // Vitesse maximale par événement
+
       let scrollDelta;
       if (isTrackpad) {
         // TRACKPAD: usage direct avec sensibilité configurable
         scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
+
+        // Appliquer le cap de vitesse
+        const scrollSign = Math.sign(scrollDelta);
+        const scrollAbs = Math.abs(scrollDelta);
+        scrollDelta = scrollSign * Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, scrollAbs));
+
         wheelScrollAccumulator = 0; // Reset accumulator
 
         // CYCLE DE SCROLL: Inverser selon la phase
@@ -2592,7 +2608,14 @@
       } else {
         // PRO WHEEL SMOOTHING: Accumulateur virtuel (technique Lenis/smooth-scroll 2025)
         // L'inversion selon phase sera appliquée dans animate()
-        wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+        let wheelDelta = event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+
+        // Appliquer le cap de vitesse à l'accumulateur
+        const wheelSign = Math.sign(wheelDelta);
+        const wheelAbs = Math.abs(wheelDelta);
+        wheelDelta = wheelSign * Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, wheelAbs));
+
+        wheelScrollAccumulator += wheelDelta;
       }
 
       // Limiter entre 0 et MAX_ZOOM_LEVEL
@@ -3082,12 +3105,12 @@
 
     // Navigation avec les flèches
     document.getElementById('arrow-left').addEventListener('click', () => {
-      currentImageIndex = currentImageIndex === 0 ? maxImageIndex : currentImageIndex - 1;
+      currentImageIndex = currentImageIndex === 1 ? maxImageIndex : currentImageIndex - 1;
       loadImage(currentImageIndex);
     });
 
     document.getElementById('arrow-right').addEventListener('click', () => {
-      currentImageIndex = currentImageIndex === maxImageIndex ? 0 : currentImageIndex + 1;
+      currentImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
       loadImage(currentImageIndex);
     });
 
