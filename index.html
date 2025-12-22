@@ -8,16 +8,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       margin: 0;
-      overflow: hidden; /* Sera changé en auto par JS mais sans scrollbar */
+      overflow: hidden; /* Scroll désactivé - zoom uniquement */
       font-family: 'Roboto', Arial, sans-serif;
       background-color: #ffffff; /* FOND BLANC */
       position: relative;
-      /* Masquer scrollbar tout en permettant scroll */
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE/Edge */
-    }
-    body::-webkit-scrollbar {
-      display: none; /* Chrome/Safari */
     }
     canvas {
       display: block;
@@ -1177,39 +1171,6 @@
     </div>
   </div>
 
-  <!-- GALERIE VERTICALE PHOTOGRAPHE -->
-  <div id="vertical-gallery" style="position: relative; z-index: 10; background: transparent; pointer-events: none; opacity: 0; transition: opacity 0.5s;">
-    <!-- Section Image 01 -->
-    <div style="height: 100vh;"></div> <!-- Spacer pour Image 01 visible dans canvas -->
-
-    <!-- Section Image 02 -->
-    <section class="gallery-image" data-image="2" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; pointer-events: auto;">
-      <div style="text-align: center; padding: 40px;">
-        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 02</h2>
-        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_002.jpg') center/cover; margin: 0 auto;"></div>
-      </div>
-    </section>
-
-    <!-- Section Image 03 -->
-    <section class="gallery-image" data-image="3" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #fff; pointer-events: auto;">
-      <div style="text-align: center; padding: 40px;">
-        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 03</h2>
-        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_003.jpg') center/cover; margin: 0 auto;"></div>
-      </div>
-    </section>
-
-    <!-- Section Image 04 -->
-    <section class="gallery-image" data-image="4" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f5; pointer-events: auto;">
-      <div style="text-align: center; padding: 40px;">
-        <h2 style="font-size: 14px; letter-spacing: 2px; color: #666; margin-bottom: 20px;">IMAGE 04</h2>
-        <div style="width: 80vw; max-width: 1200px; height: 70vh; background: url('IMG_004.jpg') center/cover; margin: 0 auto;"></div>
-      </div>
-    </section>
-
-    <!-- Spacer final -->
-    <div style="height: 50vh; background: #fff; pointer-events: auto;"></div>
-  </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===============================================
@@ -1257,7 +1218,6 @@
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
-    let hasCompletedFirstCycle = false; // Pour activer scroll vertical après premier cycle
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -1887,19 +1847,6 @@
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
         scrollPhase = 'zoomIn';
         console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint)');
-
-        // Activer scroll vertical de page après premier cycle complet
-        if (!hasCompletedFirstCycle) {
-          hasCompletedFirstCycle = true;
-          document.body.style.overflow = 'auto';
-          console.log('✅ Premier cycle terminé → scroll vertical activé (cycle continue)');
-
-          // Rendre visible la galerie verticale
-          const verticalGallery = document.getElementById('vertical-gallery');
-          if (verticalGallery) {
-            verticalGallery.style.opacity = '1';
-          }
-        }
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2343,17 +2290,8 @@
     });
 
     window.addEventListener('wheel', (event) => {
-      // Permettre scroll vertical après premier cycle complet, mais garder zoom actif
-      // Si pas encore complété le premier cycle, bloquer scroll de page
-      if (!hasCompletedFirstCycle) {
-        event.preventDefault();
-      } else {
-        // Après premier cycle: permettre scroll de page ET continuer zoom bidirectionnel
-        // On ne preventDefault que si on est en train de zoomer
-        if (Math.abs(targetZoomLevel) > 0.001 && Math.abs(targetZoomLevel - MAX_ZOOM_LEVEL) > 0.001) {
-          event.preventDefault();
-        }
-      }
+      // Bloquer scroll de page - le scroll agit uniquement sur le zoom
+      event.preventDefault();
 
       const now = performance.now();
       const deltaTime = now - lastScrollTime;
