@@ -1330,9 +1330,9 @@
     const maxZoom = -2;  // Position proche
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
-    const MAX_ZOOM_LEVEL = 0.718116; // Point de zoom max (début transition image)
-    const TRANSITION_END_ZOOM = 0.826632; // Point de fin de transition
-    const TRANSITION_DISTANCE = TRANSITION_END_ZOOM - MAX_ZOOM_LEVEL; // 0.108516
+    const MAX_ZOOM_LEVEL = 0.826632; // Point de zoom max (début transition image)
+    const TRANSITION_END_ZOOM = 0.718116; // Point de fin de transition
+    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.108516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
     // Variables pour transition fluide entre images (basée sur position, pas temps)
@@ -2086,11 +2086,11 @@
         // Calculer progression basée sur zoomLevel entre MAX_ZOOM_LEVEL et TRANSITION_END_ZOOM
         let transitionProgress = 0;
 
-        if (zoomLevel >= MAX_ZOOM_LEVEL && zoomLevel <= TRANSITION_END_ZOOM) {
-          // Progression de 0 à 1 sur 1/4 de la distance totale
-          transitionProgress = (zoomLevel - MAX_ZOOM_LEVEL) / TRANSITION_DISTANCE;
+        if (zoomLevel <= MAX_ZOOM_LEVEL && zoomLevel >= TRANSITION_END_ZOOM) {
+          // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.718116)
+          transitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
           transitionProgress = Math.max(0, Math.min(1, transitionProgress));
-        } else if (zoomLevel > TRANSITION_END_ZOOM) {
+        } else if (zoomLevel < TRANSITION_END_ZOOM) {
           // Dépasse la fin de transition
           transitionProgress = 1.0;
           isTransitioning = false;
