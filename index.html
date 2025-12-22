@@ -863,6 +863,85 @@
       box-shadow: 0 0 20px rgba(85, 255, 255, 0.8);
     }
 
+    /* ===============================================
+       DEBUG PANEL (Touche Z)
+       =============================================== */
+    #debug-panel {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #55ffff;
+      border-radius: 10px;
+      padding: 20px;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      min-width: 400px;
+      font-family: 'Courier New', monospace;
+      color: #55ffff;
+    }
+
+    #debug-panel.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .debug-header {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #ffffff;
+    }
+
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+      padding: 8px;
+      background: rgba(85, 255, 255, 0.1);
+      border-radius: 5px;
+    }
+
+    .debug-label {
+      font-weight: bold;
+      color: #88ffff;
+    }
+
+    .debug-value {
+      font-family: 'Courier New', monospace;
+      color: #ffffff;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 4px 8px;
+      border-radius: 3px;
+      min-width: 150px;
+      text-align: right;
+    }
+
+    .debug-copy-btn {
+      margin-left: 10px;
+      padding: 4px 12px;
+      background: #55ffff;
+      color: #000;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .debug-copy-btn:hover {
+      background: #77ffff;
+    }
+
+    .debug-copy-btn:active {
+      background: #33dddd;
+    }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -1171,6 +1250,41 @@
     </div>
   </div>
 
+  <!-- DEBUG PANEL (Touche Z) -->
+  <div id="debug-panel">
+    <div class="debug-header">🔍 Debug Zoom & Camera (Press Z to toggle)</div>
+
+    <div class="debug-row">
+      <span class="debug-label">zoomLevel:</span>
+      <span class="debug-value" id="debug-zoom-level">0.000</span>
+      <button class="debug-copy-btn" onclick="copyToClipboard(document.getElementById('debug-zoom-level').textContent)">Copy</button>
+    </div>
+
+    <div class="debug-row">
+      <span class="debug-label">targetZoomLevel:</span>
+      <span class="debug-value" id="debug-target-zoom">0.000</span>
+      <button class="debug-copy-btn" onclick="copyToClipboard(document.getElementById('debug-target-zoom').textContent)">Copy</button>
+    </div>
+
+    <div class="debug-row">
+      <span class="debug-label">camera.position.z:</span>
+      <span class="debug-value" id="debug-camera-z">0.000</span>
+      <button class="debug-copy-btn" onclick="copyToClipboard(document.getElementById('debug-camera-z').textContent)">Copy</button>
+    </div>
+
+    <div class="debug-row">
+      <span class="debug-label">scrollPhase:</span>
+      <span class="debug-value" id="debug-scroll-phase">zoomIn</span>
+      <button class="debug-copy-btn" onclick="copyToClipboard(document.getElementById('debug-scroll-phase').textContent)">Copy</button>
+    </div>
+
+    <div class="debug-row">
+      <span class="debug-label">isTransitioning:</span>
+      <span class="debug-value" id="debug-is-transitioning">false</span>
+      <button class="debug-copy-btn" onclick="copyToClipboard(document.getElementById('debug-is-transitioning').textContent)">Copy</button>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     // ===============================================
@@ -1216,9 +1330,9 @@
     const maxZoom = -2;  // Position proche
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
-    const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
+    const MAX_ZOOM_LEVEL = 2.0; // Zoom max augmenté pour permettre plus de distance
     const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL / 4; // 1/4 de la distance totale
-    const TRANSITION_END_ZOOM = MAX_ZOOM_LEVEL + TRANSITION_DISTANCE; // 1.0625
+    const TRANSITION_END_ZOOM = MAX_ZOOM_LEVEL + TRANSITION_DISTANCE; // 2.5
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
     // Variables pour transition fluide entre images (basée sur position, pas temps)
@@ -1903,6 +2017,15 @@
       }
     };
 
+    // Fonction pour copier dans le presse-papiers
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        console.log('✅ Copié dans le presse-papiers:', text);
+      }).catch(err => {
+        console.error('❌ Erreur copie presse-papiers:', err);
+      });
+    }
+
     // Animation
     function animate() {
       requestAnimationFrame(animate);
@@ -2213,6 +2336,16 @@
       if (needsPositionUpdate && particles) {
         particles.geometry.attributes.position.needsUpdate = true;
         needsPositionUpdate = false;
+      }
+
+      // Mise à jour du panneau de debug (si visible)
+      const debugPanel = document.getElementById('debug-panel');
+      if (debugPanel && debugPanel.classList.contains('visible')) {
+        document.getElementById('debug-zoom-level').textContent = zoomLevel.toFixed(6);
+        document.getElementById('debug-target-zoom').textContent = targetZoomLevel.toFixed(6);
+        document.getElementById('debug-camera-z').textContent = camera.position.z.toFixed(6);
+        document.getElementById('debug-scroll-phase').textContent = scrollPhase;
+        document.getElementById('debug-is-transitioning').textContent = isTransitioning.toString();
       }
 
       // (Opt #5 - Early exit) Ne render que si nécessaire
@@ -2564,6 +2697,12 @@
       if (event.key === 'c' || event.key === 'C') {
         const scrollConfigPanel = document.getElementById('scroll-config-panel');
         scrollConfigPanel.classList.toggle('visible');
+      }
+
+      // Touche Z - Ouvrir le panneau de debug zoom/camera
+      if (event.key === 'z' || event.key === 'Z') {
+        const debugPanel = document.getElementById('debug-panel');
+        debugPanel.classList.toggle('visible');
       }
 
       // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
