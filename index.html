@@ -1502,6 +1502,7 @@
 
     // Cache pour les images pré-chargées
     const imageCache = new Map(); // imageIndex -> ImageData
+    const colorCache = new Map(); // imageIndex -> Array of colors
     const textureCache = {
       circle: null,
       square: null
@@ -1549,8 +1550,13 @@
             );
             const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
 
-            // Stocker dans le cache
+            // Stocker ImageData dans le cache
             imageCache.set(idx, imgData);
+
+            // Pré-extraire les couleurs pour éviter freeze pendant transition
+            const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
+            colorCache.set(idx, colors);
+
             resolve();
           }, undefined, reject);
         });
@@ -1560,7 +1566,7 @@
 
       return Promise.all(loadPromises).then(() => {
         imagesPreloaded = true;
-        console.log(`✅ ${maxImageIndex} images pré-chargées en cache`);
+        console.log(`✅ ${maxImageIndex} images + couleurs pré-chargées en cache (zéro freeze)`);
       });
     }
 
@@ -1737,34 +1743,23 @@
 
     // Fonction pour extraire les couleurs d'une image sans recréer les particules
     function extractImageColors(imageIndex, callback) {
+      // Utiliser le cache de couleurs pré-calculé (évite freeze)
+      if (colorCache.has(imageIndex)) {
+        callback(colorCache.get(imageIndex));
+        return;
+      }
+
+      // Fallback si pas dans le cache (ne devrait pas arriver)
       const targetWidth = 1720;
       const targetHeight = 880;
 
       if (imageCache.has(imageIndex)) {
         const imgData = imageCache.get(imageIndex);
-        callback(extractColorsFromImageData(imgData, targetWidth, targetHeight));
+        const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
+        colorCache.set(imageIndex, colors);
+        callback(colors);
       } else {
-        const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg`;
-        textureLoader.load(
-          imagePath,
-          function (texture) {
-            offscreenCanvas.width = targetWidth;
-            offscreenCanvas.height = targetHeight;
-            offscreenContext.clearRect(0, 0, targetWidth, targetHeight);
-            offscreenContext.drawImage(
-              texture.image,
-              0, 0, texture.image.width, texture.image.height,
-              0, 0, targetWidth, targetHeight
-            );
-            const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
-            imageCache.set(imageIndex, imgData);
-            callback(extractColorsFromImageData(imgData, targetWidth, targetHeight));
-          },
-          undefined,
-          function (err) {
-            console.error(`Erreur chargement image ${imageIndex}:`, err);
-          }
-        );
+        console.error(`Image ${imageIndex} non trouvée dans le cache!`);
       }
     }
 
