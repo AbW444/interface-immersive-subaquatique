@@ -1329,10 +1329,10 @@
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
-    // Zone morte initiale: scroll requis avant que le zoom commence
-    let initialScrollAccumulator = 0; // Accumule le scroll en État 1
-    const INITIAL_SCROLL_THRESHOLD = 0.08; // Seuil à dépasser pour commencer le zoom
-    let hasPassedInitialThreshold = false; // Flag pour savoir si on a dépassé la zone morte
+    // Zone morte au retour à État 1: scroll l'équivalent de 0.100 avant que le zoom reprenne
+    let scrollDeadZoneAccumulator = 0; // Accumule le scroll en zone morte
+    const SCROLL_DEAD_ZONE_DISTANCE = 0.100; // Distance à scroller avant de re-zoomer
+    let isInDeadZone = false; // Flag pour savoir si on est dans la zone morte
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.826632; // Point de zoom max (début transition image)
@@ -2068,10 +2068,10 @@
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
         scrollPhase = 'zoomIn';
         hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
-        // Réinitialiser la zone morte pour le prochain cycle
-        initialScrollAccumulator = 0;
-        hasPassedInitialThreshold = false;
-        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint)');
+        // ACTIVER LA ZONE MORTE: il faut scroller 0.100 avant de re-zoomer
+        isInDeadZone = true;
+        scrollDeadZoneAccumulator = 0;
+        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint) - Zone morte activée');
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2589,14 +2589,18 @@
         scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
         wheelScrollAccumulator = 0; // Reset accumulator
 
-        // ZONE MORTE INITIALE: Accumuler le scroll sans zoomer tant qu'on n'a pas dépassé le seuil
-        if (!hasPassedInitialThreshold && scrollPhase === 'zoomIn' && targetZoomLevel === 0) {
-          initialScrollAccumulator += scrollDelta;
-          if (initialScrollAccumulator >= INITIAL_SCROLL_THRESHOLD) {
-            hasPassedInitialThreshold = true;
+        // ZONE MORTE: Si on est en zone morte, accumuler sans zoomer
+        if (isInDeadZone) {
+          scrollDeadZoneAccumulator += scrollDelta;
+          if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
+            // Sortie de la zone morte
+            isInDeadZone = false;
             // Appliquer l'excédent de scroll au zoom
-            targetZoomLevel += (initialScrollAccumulator - INITIAL_SCROLL_THRESHOLD);
+            const excess = scrollDeadZoneAccumulator - SCROLL_DEAD_ZONE_DISTANCE;
+            targetZoomLevel += excess;
+            scrollDeadZoneAccumulator = 0;
           }
+          // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
           // CYCLE DE SCROLL: Inverser selon la phase
           if (scrollPhase === 'zoomIn') {
@@ -2610,15 +2614,19 @@
       } else {
         // PRO WHEEL SMOOTHING: Accumulateur virtuel (technique Lenis/smooth-scroll 2025)
 
-        // ZONE MORTE INITIALE: Accumuler le scroll sans zoomer tant qu'on n'a pas dépassé le seuil
-        if (!hasPassedInitialThreshold && scrollPhase === 'zoomIn' && targetZoomLevel === 0) {
+        // ZONE MORTE: Si on est en zone morte, accumuler sans zoomer
+        if (isInDeadZone) {
           const wheelDelta = event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
-          initialScrollAccumulator += Math.abs(wheelDelta);
-          if (initialScrollAccumulator >= INITIAL_SCROLL_THRESHOLD) {
-            hasPassedInitialThreshold = true;
+          scrollDeadZoneAccumulator += Math.abs(wheelDelta);
+          if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
+            // Sortie de la zone morte
+            isInDeadZone = false;
             // Appliquer l'excédent de scroll à l'accumulateur
-            wheelScrollAccumulator = (initialScrollAccumulator - INITIAL_SCROLL_THRESHOLD);
+            const excess = scrollDeadZoneAccumulator - SCROLL_DEAD_ZONE_DISTANCE;
+            wheelScrollAccumulator = excess;
+            scrollDeadZoneAccumulator = 0;
           }
+          // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
           // L'inversion selon phase sera appliquée dans animate()
           wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
