@@ -1329,6 +1329,11 @@
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
+    // Zone morte initiale: scroll requis avant que le zoom commence
+    let initialScrollAccumulator = 0; // Accumule le scroll en État 1
+    const INITIAL_SCROLL_THRESHOLD = 0.08; // Seuil à dépasser pour commencer le zoom
+    let hasPassedInitialThreshold = false; // Flag pour savoir si on a dépassé la zone morte
+
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.826632; // Point de zoom max (début transition image)
     const TRANSITION_END_ZOOM = 0.518116; // Point de fin de transition
@@ -2063,6 +2068,9 @@
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
         scrollPhase = 'zoomIn';
         hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
+        // Réinitialiser la zone morte pour le prochain cycle
+        initialScrollAccumulator = 0;
+        hasPassedInitialThreshold = false;
         console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint)');
       }
 
@@ -2581,18 +2589,40 @@
         scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
         wheelScrollAccumulator = 0; // Reset accumulator
 
-        // CYCLE DE SCROLL: Inverser selon la phase
-        if (scrollPhase === 'zoomIn') {
-          // Scroll vers le bas = zoom IN (positif)
-          targetZoomLevel += scrollDelta;
-        } else if (scrollPhase === 'zoomOut') {
-          // Scroll vers le bas = zoom OUT (négatif) - INVERSION
-          targetZoomLevel -= scrollDelta;
+        // ZONE MORTE INITIALE: Accumuler le scroll sans zoomer tant qu'on n'a pas dépassé le seuil
+        if (!hasPassedInitialThreshold && scrollPhase === 'zoomIn' && targetZoomLevel === 0) {
+          initialScrollAccumulator += scrollDelta;
+          if (initialScrollAccumulator >= INITIAL_SCROLL_THRESHOLD) {
+            hasPassedInitialThreshold = true;
+            // Appliquer l'excédent de scroll au zoom
+            targetZoomLevel += (initialScrollAccumulator - INITIAL_SCROLL_THRESHOLD);
+          }
+        } else {
+          // CYCLE DE SCROLL: Inverser selon la phase
+          if (scrollPhase === 'zoomIn') {
+            // Scroll vers le bas = zoom IN (positif)
+            targetZoomLevel += scrollDelta;
+          } else if (scrollPhase === 'zoomOut') {
+            // Scroll vers le bas = zoom OUT (négatif) - INVERSION
+            targetZoomLevel -= scrollDelta;
+          }
         }
       } else {
         // PRO WHEEL SMOOTHING: Accumulateur virtuel (technique Lenis/smooth-scroll 2025)
-        // L'inversion selon phase sera appliquée dans animate()
-        wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+
+        // ZONE MORTE INITIALE: Accumuler le scroll sans zoomer tant qu'on n'a pas dépassé le seuil
+        if (!hasPassedInitialThreshold && scrollPhase === 'zoomIn' && targetZoomLevel === 0) {
+          const wheelDelta = event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+          initialScrollAccumulator += Math.abs(wheelDelta);
+          if (initialScrollAccumulator >= INITIAL_SCROLL_THRESHOLD) {
+            hasPassedInitialThreshold = true;
+            // Appliquer l'excédent de scroll à l'accumulateur
+            wheelScrollAccumulator = (initialScrollAccumulator - INITIAL_SCROLL_THRESHOLD);
+          }
+        } else {
+          // L'inversion selon phase sera appliquée dans animate()
+          wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+        }
       }
 
       // Limiter entre 0 et MAX_ZOOM_LEVEL
