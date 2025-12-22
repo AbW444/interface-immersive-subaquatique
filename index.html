@@ -1340,7 +1340,6 @@
     let oldColors = null;
     let newColors = null;
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
-    let smoothedTransitionProgress = 0; // Progression lissée pour éviter sauts lors scroll rapide
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -2080,29 +2079,25 @@
       // TRANSITION FLUIDE ENTRE IMAGES: Basée sur position de zoom (pas temps)
       if (isTransitioning && particles && oldColors && newColors) {
         // Calculer progression basée sur zoomLevel entre MAX_ZOOM_LEVEL et TRANSITION_END_ZOOM
-        let targetTransitionProgress = 0;
+        let transitionProgress = 0;
 
         if (zoomLevel <= MAX_ZOOM_LEVEL && zoomLevel >= TRANSITION_END_ZOOM) {
           // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.518116)
-          targetTransitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
-          targetTransitionProgress = Math.max(0, Math.min(1, targetTransitionProgress));
+          transitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
+          transitionProgress = Math.max(0, Math.min(1, transitionProgress));
         } else if (zoomLevel < TRANSITION_END_ZOOM) {
           // Dépasse la fin de transition
-          targetTransitionProgress = 1.0;
+          transitionProgress = 1.0;
           isTransitioning = false;
         }
 
-        // SMOOTHING: Lisser la progression pour éviter sauts lors scroll rapide
-        const TRANSITION_LERP = 0.15; // Lissage pour transition fluide même en scroll rapide
-        smoothedTransitionProgress += (targetTransitionProgress - smoothedTransitionProgress) * TRANSITION_LERP;
-
-        // Interpolation linéaire des couleurs avec progression lissée
+        // Interpolation linéaire directe des couleurs (sans smoothing pour performance)
         const colorAttr = particles.geometry.attributes.color;
         const colors = colorAttr.array;
         const numColors = Math.min(oldColors.length, newColors.length, colors.length);
 
         for (let i = 0; i < numColors; i++) {
-          colors[i] = oldColors[i] + (newColors[i] - oldColors[i]) * smoothedTransitionProgress;
+          colors[i] = oldColors[i] + (newColors[i] - oldColors[i]) * transitionProgress;
         }
 
         colorAttr.needsUpdate = true;
@@ -2112,7 +2107,6 @@
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
-          smoothedTransitionProgress = 0; // Reset pour prochaine transition
           console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3));
         }
       }
