@@ -1219,6 +1219,14 @@
     const MAX_ZOOM_LEVEL = 0.85; // Zoom max réduit (avant état 7 complet)
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
+    // Variables pour transition fluide entre images
+    let isTransitioning = false;
+    let transitionProgress = 0;
+    const transitionDuration = 1.5; // Durée en secondes
+    let oldColors = null;
+    let newColors = null;
+    let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
+
     const textureLoader = new THREE.TextureLoader();
 
     // Canvas réutilisable pour optimisation (Phase 1 - Opt #4)
@@ -1613,6 +1621,92 @@
       });
     }
 
+    // Fonction pour extraire les couleurs d'une image sans recréer les particules
+    function extractImageColors(imageIndex, callback) {
+      const targetWidth = 1720;
+      const targetHeight = 880;
+
+      if (imageCache.has(imageIndex)) {
+        const imgData = imageCache.get(imageIndex);
+        callback(extractColorsFromImageData(imgData, targetWidth, targetHeight));
+      } else {
+        const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg`;
+        textureLoader.load(
+          imagePath,
+          function (texture) {
+            offscreenCanvas.width = targetWidth;
+            offscreenCanvas.height = targetHeight;
+            offscreenContext.clearRect(0, 0, targetWidth, targetHeight);
+            offscreenContext.drawImage(
+              texture.image,
+              0, 0, texture.image.width, texture.image.height,
+              0, 0, targetWidth, targetHeight
+            );
+            const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+            imageCache.set(imageIndex, imgData);
+            callback(extractColorsFromImageData(imgData, targetWidth, targetHeight));
+          },
+          undefined,
+          function (err) {
+            console.error(`Erreur chargement image ${imageIndex}:`, err);
+          }
+        );
+      }
+    }
+
+    // Extraire les couleurs d'ImageData selon la densité actuelle
+    function extractColorsFromImageData(imgData, targetWidth, targetHeight) {
+      const colors = [];
+      const step = Math.max(1, Math.floor(1 / particleParams.density));
+
+      for (let y = 0; y < targetHeight; y += step) {
+        for (let x = 0; x < targetWidth; x += step) {
+          const i = (y * targetWidth + x) * 4;
+          let r = imgData.data[i] / 255;
+          let g = imgData.data[i + 1] / 255;
+          let b = imgData.data[i + 2] / 255;
+          const a = imgData.data[i + 3] / 255;
+
+          if (a > 0.5) {
+            const saturated = saturateColor(r, g, b, particleParams.saturation);
+            r = saturated.r;
+            g = saturated.g;
+            b = saturated.b;
+
+            const brightness = (r + g + b) / 3;
+
+            if (brightness >= particleParams.hideBlack) {
+              colors.push(r, g, b);
+            }
+          }
+        }
+      }
+
+      return colors;
+    }
+
+    // Fonction pour transition fluide vers l'image suivante
+    function transitionToNextImage() {
+      if (isTransitioning) return; // Empêcher transitions multiples
+
+      // Passer à l'image suivante (cycle)
+      const nextImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
+
+      // Sauvegarder les couleurs actuelles
+      if (particles && particles.geometry.attributes.color) {
+        oldColors = Array.from(particles.geometry.attributes.color.array);
+      }
+
+      // Charger les nouvelles couleurs
+      extractImageColors(nextImageIndex, (colors) => {
+        newColors = colors;
+        currentImageIndex = nextImageIndex;
+        isTransitioning = true;
+        transitionProgress = 0;
+        console.log(`🎨 Transition vers IMG_${String(currentImageIndex).padStart(3, '0')}`);
+      });
+    }
+
     /* ===============================================
        SECTION DÉSACTIVÉE - ENVIRONNEMENT IMMERSIF
        ===============================================
@@ -1840,12 +1934,17 @@
 
       // DÉTECTION DES POINTS DE BASCULE: Cycle bidirectionnel infini
       if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
-        // Atteint le zoom max → passer en phase dezoom
-        scrollPhase = 'zoomOut';
-        console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint)');
+        // Atteint le zoom max → changer d'image et passer en phase dezoom
+        if (!hasTriggeredTransition) {
+          scrollPhase = 'zoomOut';
+          transitionToNextImage();
+          hasTriggeredTransition = true;
+          console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image');
+        }
       } else if (scrollPhase === 'zoomOut' && targetZoomLevel <= 0.001) {
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
         scrollPhase = 'zoomIn';
+        hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
         console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint)');
       }
 
@@ -1857,6 +1956,37 @@
         camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
         needsRender = true;
+      }
+
+      // TRANSITION FLUIDE ENTRE IMAGES: Interpoler progressivement les couleurs
+      if (isTransitioning && particles && oldColors && newColors) {
+        const deltaTime = 1 / 60; // Approximation 60 FPS
+        transitionProgress += deltaTime / transitionDuration;
+
+        if (transitionProgress >= 1.0) {
+          // Transition terminée
+          transitionProgress = 1.0;
+          isTransitioning = false;
+        }
+
+        // Interpolation linéaire des couleurs
+        const colorAttr = particles.geometry.attributes.color;
+        const colors = colorAttr.array;
+        const numColors = Math.min(oldColors.length, newColors.length, colors.length);
+
+        for (let i = 0; i < numColors; i++) {
+          colors[i] = oldColors[i] + (newColors[i] - oldColors[i]) * transitionProgress;
+        }
+
+        colorAttr.needsUpdate = true;
+        needsRender = true;
+
+        if (!isTransitioning) {
+          // Transition terminée, libérer mémoire
+          oldColors = null;
+          newColors = null;
+          console.log('✅ Transition image terminée');
+        }
       }
 
       // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
