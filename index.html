@@ -2581,20 +2581,10 @@
         scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
       }
 
-      // CAP DE VITESSE: Limiter la vitesse de scroll (ni trop rapide, ni trop lent)
-      const MIN_SCROLL_SPEED = 0.0003; // Vitesse minimale par événement
-      const MAX_SCROLL_SPEED = 0.015;  // Vitesse maximale par événement
-
       let scrollDelta;
       if (isTrackpad) {
         // TRACKPAD: usage direct avec sensibilité configurable
         scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
-
-        // Appliquer le cap de vitesse
-        const scrollSign = Math.sign(scrollDelta);
-        const scrollAbs = Math.abs(scrollDelta);
-        scrollDelta = scrollSign * Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, scrollAbs));
-
         wheelScrollAccumulator = 0; // Reset accumulator
 
         // CYCLE DE SCROLL: Inverser selon la phase
@@ -2608,14 +2598,7 @@
       } else {
         // PRO WHEEL SMOOTHING: Accumulateur virtuel (technique Lenis/smooth-scroll 2025)
         // L'inversion selon phase sera appliquée dans animate()
-        let wheelDelta = event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
-
-        // Appliquer le cap de vitesse à l'accumulateur
-        const wheelSign = Math.sign(wheelDelta);
-        const wheelAbs = Math.abs(wheelDelta);
-        wheelDelta = wheelSign * Math.max(MIN_SCROLL_SPEED, Math.min(MAX_SCROLL_SPEED, wheelAbs));
-
-        wheelScrollAccumulator += wheelDelta;
+        wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
       }
 
       // Limiter entre 0 et MAX_ZOOM_LEVEL
