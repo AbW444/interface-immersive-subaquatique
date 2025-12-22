@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jonàs Forchini - Salty Territories</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow: hidden; /* Sera changé par JS après premier cycle */
+      background: #fff;
+      /* Masquer scrollbar */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    body::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Canvas Three.js */
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Navigation Desktop */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 2rem 4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .header > * {
+      pointer-events: auto;
+    }
+
+    .header-left,
+    .header-center,
+    .header-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .header-center {
+      align-items: center;
+    }
+
+    .name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+
+    .name:hover {
+      opacity: 0.7;
+    }
+
+    .menu-item {
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.3s;
+      position: relative;
+    }
+
+    .menu-item:hover {
+      opacity: 0.7;
+    }
+
+    .submenu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #fff;
+      padding: 1rem;
+      min-width: 200px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .menu-item:hover .submenu {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .submenu-item {
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+
+    .submenu-item:hover {
+      opacity: 0.7;
+    }
+
+    /* Hero Section (pour IMAGE 01 avec particules) */
+    .hero-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .hero-title {
+      font-size: clamp(3rem, 8vw, 8rem);
+      font-weight: 800;
+      line-height: 1;
+      text-align: left;
+      opacity: 0;
+      transition: opacity 0.5s;
+      pointer-events: none;
+    }
+
+    .hero-title.visible {
+      opacity: 1;
+    }
+
+    /* Text Section */
+    .text-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+      background: #f5f5f5;
+      position: relative;
+      z-index: 10;
+    }
+
+    .text-content {
+      max-width: 800px;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      text-align: justify;
+    }
+
+    /* Image Sections (galerie verticale) */
+    .image-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+      position: relative;
+      z-index: 10;
+    }
+
+    .image-container {
+      width: 80vw;
+      max-width: 1200px;
+      height: 70vh;
+      background: #f5f5f5;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .image-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+      font-size: 1.2rem;
+      letter-spacing: 2px;
+    }
+
+    /* Galerie verticale (cachée initialement) */
+    #vertical-gallery {
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    #vertical-gallery.visible {
+      opacity: 1;
+    }
+
+    /* Navigation Mobile */
+    .mobile-menu {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .header-left,
+      .header-center,
+      .header-right {
+        display: none;
+      }
+
+      .mobile-menu {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 1.5rem;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1000;
+        background: #fff;
+      }
+
+      .mobile-title {
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+
+      .burger {
+        width: 30px;
+        height: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+      }
+
+      .burger span {
+        width: 100%;
+        height: 2px;
+        background: #000;
+        transition: all 0.3s;
+      }
+
+      .burger.active span:nth-child(1) {
+        transform: rotate(45deg) translate(7px, 7px);
+      }
+
+      .burger.active span:nth-child(2) {
+        opacity: 0;
+      }
+
+      .burger.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(7px, -7px);
+      }
+
+      .mobile-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: #fff;
+        padding: 6rem 2rem 2rem;
+        transform: translateY(-100%);
+        transition: transform 0.3s;
+        z-index: 999;
+        overflow-y: auto;
+      }
+
+      .mobile-nav.active {
+        transform: translateY(0);
+      }
+
+      .mobile-nav-section {
+        margin-bottom: 3rem;
+      }
+
+      .mobile-nav-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+
+      .mobile-nav-item {
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+        cursor: pointer;
+        transition: opacity 0.3s;
+      }
+
+      .mobile-nav-item:hover {
+        opacity: 0.7;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Desktop -->
+  <header class="header">
+    <div class="header-left">
+      <div class="menu-item">Prints</div>
+      <div class="menu-item">Portfolio</div>
+      <div class="menu-item">Documentation</div>
+    </div>
+
+    <div class="header-center">
+      <div class="name">Jonàs Forchini</div>
+
+      <div class="menu-item">
+        Projects
+        <div class="submenu">
+          <div class="submenu-item">Practice From the Bottom</div>
+          <div class="submenu-item">An Apprenticeship to Murky Depths</div>
+          <div class="submenu-item">Spectrum</div>
+          <div class="submenu-item" style="margin-top: 1rem;">Mangrovines</div>
+          <div class="submenu-item">Salty Territories</div>
+          <div class="submenu-item">Area 34</div>
+          <div class="submenu-item">On The Ropes</div>
+        </div>
+      </div>
+
+      <div class="menu-item">
+        Dummys
+        <div class="submenu">
+          <div class="submenu-item">Brief history of underwater photography</div>
+          <div class="submenu-item">Mangrovines : Salty Territories</div>
+          <div class="submenu-item">Kancho</div>
+        </div>
+      </div>
+
+      <div class="menu-item">Exhibitions</div>
+    </div>
+
+    <div class="header-right">
+      <div class="menu-item">About</div>
+      <div class="menu-item">Contact</div>
+      <div class="menu-item">Social Media</div>
+    </div>
+  </header>
+
+  <!-- Navigation Mobile -->
+  <div class="mobile-menu">
+    <div class="mobile-title">Jonàs Forchini</div>
+    <div class="burger" onclick="toggleMobileMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+
+  <nav class="mobile-nav">
+    <div class="mobile-nav-section">
+      <div class="mobile-nav-title">Projects</div>
+      <div class="mobile-nav-item">Practice From the Bottom</div>
+      <div class="mobile-nav-item">An Apprenticeship to Murky Depths</div>
+      <div class="mobile-nav-item">Spectrum</div>
+      <div class="mobile-nav-item" style="margin-top: 1rem;">Mangrovines</div>
+      <div class="mobile-nav-item">Salty Territories</div>
+      <div class="mobile-nav-item">Area 34</div>
+      <div class="mobile-nav-item">On The Ropes</div>
+    </div>
+
+    <div class="mobile-nav-section">
+      <div class="mobile-nav-title">Dummys</div>
+      <div class="mobile-nav-item">Brief history of underwater photography</div>
+      <div class="mobile-nav-item">Mangrovines : Salty Territories</div>
+      <div class="mobile-nav-item">Kancho</div>
+    </div>
+
+    <div class="mobile-nav-section">
+      <div class="mobile-nav-title">Exhibitions</div>
+    </div>
+
+    <div class="mobile-nav-section">
+      <div class="mobile-nav-title">More</div>
+      <div class="mobile-nav-item">Prints</div>
+      <div class="mobile-nav-item">Portfolio</div>
+      <div class="mobile-nav-item">Documentation</div>
+      <div class="mobile-nav-item">About</div>
+      <div class="mobile-nav-item">Contact</div>
+      <div class="mobile-nav-item">Social Media</div>
+    </div>
+  </nav>
+
+  <!-- Hero Section avec titre (au-dessus des particules) -->
+  <section class="hero-section">
+    <h1 class="hero-title" id="main-title">Mangrovines:<br>Salty Territories</h1>
+  </section>
+
+  <!-- Galerie verticale (visible après premier cycle de scroll) -->
+  <div id="vertical-gallery">
+    <!-- Text Section -->
+    <section class="text-section">
+      <div class="text-content">
+        The word "Mangrovines" is a lyrical neologism popularized by the Senegalese poet Racine Senghor to designate the inhabitants of the Saloum, Gambia and Casamance deltas in West Africa. Drawing on the underwater roots of the manglar, a key natural element in these river regions, Senghor's collection of poems "Mangrovines" creates a analogy for the deep-rootedness of the sea trades and their values, passed down from one generation to the next.
+        <br><br>
+        A half underwater, half swimming trip along the mouth of the Cassamance Delta. Accompanied by my friend Joe and with a camera slung on our backs, we will go deep into the mangrove forests in search of fish. At the same time it is a journey through the greenish waters and loaded with phytoplankton, which connotes, however, a certain security because these waters are full of life.
+      </div>
+    </section>
+
+    <!-- Image Sections -->
+    <section class="image-section" style="background: #fff;">
+      <div class="image-container">
+        <div class="image-placeholder">IMAGE 02</div>
+        <!-- <img src="IMG_002.jpg" alt="Image 02"> -->
+      </div>
+    </section>
+
+    <section class="image-section" style="background: #f5f5f5;">
+      <div class="image-container">
+        <div class="image-placeholder">IMAGE 03</div>
+        <!-- <img src="IMG_003.jpg" alt="Image 03"> -->
+      </div>
+    </section>
+
+    <section class="image-section" style="background: #fff;">
+      <div class="image-container">
+        <div class="image-placeholder">IMAGE 04</div>
+        <!-- <img src="IMG_004.jpg" alt="Image 04"> -->
+      </div>
+    </section>
+  </div>
+
+  <!-- Three.js Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // ===============================================
+    // INTERFACE IMMERSIVE SUBAQUATIQUE
+    // ===============================================
+
+    // Mobile Menu Toggle
+    function toggleMobileMenu() {
+      const burger = document.querySelector('.burger');
+      const mobileNav = document.querySelector('.mobile-nav');
+      burger.classList.toggle('active');
+      mobileNav.classList.toggle('active');
+    }
+
+    // Initialisation de la scène Three.js
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    // Créer le renderer avec gestion d'erreur
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: false,
+        powerPreference: "high-performance"
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+    } catch (error) {
+      console.error('WebGL error:', error);
+      document.body.innerHTML = '<div style="color: black; padding: 20px; font-family: Arial;">WebGL n\'est pas disponible. Essayez de rafraîchir la page (Ctrl+F5).</div>';
+      throw error;
+    }
+
+    // Groupe pour contenir les particules
+    const sceneGroup = new THREE.Group();
+    scene.add(sceneGroup);
+
+    let particles;
+    let currentImageIndex = 1; // IMG_001.jpg
+    const maxImageIndex = 1; // Une seule image pour l'instant
+
+    // Variables pour le zoom progressif avec scroll
+    let zoomLevel = 0;
+    let targetZoomLevel = 0;
+    const minZoom = -25;
+    const maxZoom = -2;
+
+    // Système de cycle de scroll bidirectionnel
+    const MAX_ZOOM_LEVEL = 0.85;
+    let scrollPhase = 'zoomIn';
+    let hasCompletedFirstCycle = false;
+
+    const textureLoader = new THREE.TextureLoader();
+
+    // Canvas réutilisable pour optimisation
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenContext = offscreenCanvas.getContext('2d');
+
+    // Cache pour les images
+    const imageCache = new Map();
+    const IMAGE_VERSION = Date.now();
+
+    // Paramètres des particules
+    let particleParams = {
+      density: 0.6,
+      disparity: 0.0,
+      size: 0.04,
+      movement: 0.0,
+      saturation: 1.0,
+      hideBlack: 0.0,
+      randomness: 0.4,
+      shape: 'circle',
+      movementMode: 2
+    };
+
+    // États UX (7 états de zoom)
+    let uxJourneyMode = true;
+    const uxStates = [
+      { name: "État 1", size: 0.04, density: 0.6, disparity: 0, movement: 0, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 2", size: 0.04, density: 0.6, disparity: 0.48, movement: 0, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 3", size: 0.04, density: 0.6, disparity: 2.5, movement: 0, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 4", size: 0.04, density: 0.6, disparity: 2.5, movement: 0, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 5", size: 0.04, density: 0.6, disparity: 2.5, movement: 0.07, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 6", size: 0.04, density: 0.6, disparity: 2.5, movement: 0.2, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 },
+      { name: "État 7", size: 0.04, density: 0.6, disparity: 2.77, movement: 0.5, randomness: 0.4, saturation: 1, hideBlack: 0, shape: "circle", movementMode: 2 }
+    ];
+
+    // Configuration du scroll
+    const scrollConfig = {
+      trackpad: {
+        sensitivity: 0.000267,
+        threshold: 70,
+        frequency: 39
+      },
+      wheel: {
+        multiplier: 0.93,
+        lerp: 0.22
+      },
+      global: {
+        zoomLerp: 0.18,
+        disparityLerp: 0.23
+      }
+    };
+
+    // Variables pour détection trackpad/molette
+    let lastScrollTime = performance.now();
+    let wheelScrollAccumulator = 0;
+
+    // Variables pour render optimization
+    let hasInitialRender = false;
+    let currentAppliedDisparity = 0;
+    let lastReloadParams = {};
+    let reloadScheduled = false;
+
+    // Fonction de hash déterministe
+    function seededRandom(x, y, seed = 12345) {
+      const combined = (x * 73856093) ^ (y * 19349663) ^ seed;
+      const normalized = Math.abs(Math.sin(combined)) * 10000;
+      return (normalized % 1000) / 1000;
+    }
+
+    // Saturation des couleurs
+    function saturateColor(r, g, b, intensity) {
+      const avg = (r + g + b) / 3;
+      r = avg + (r - avg) * intensity;
+      g = avg + (g - avg) * intensity;
+      b = avg + (b - avg) * intensity;
+      return { r: Math.max(0, Math.min(1, r)), g: Math.max(0, Math.min(1, g)), b: Math.max(0, Math.min(1, b)) };
+    }
+
+    // Créer texture de particule
+    function createParticleTexture(shape) {
+      const size = 128;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const centerX = size / 2;
+      const centerY = size / 2;
+
+      if (shape === 'circle') {
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size / 2);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+      } else if (shape === 'square') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(0, 0, size, size);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    // Charger l'image et créer les particules
+    function loadImage(imageIndex) {
+      const targetWidth = 1720;
+      const targetHeight = 880;
+
+      function buildGeometry(imgData) {
+        const scaleFactor = 50;
+        const particleGeometry = new THREE.BufferGeometry();
+
+        const particleTexture = createParticleTexture(particleParams.shape);
+
+        const particleMaterial = new THREE.PointsMaterial({
+          size: particleParams.size,
+          vertexColors: true,
+          transparent: true,
+          opacity: 1,
+          map: particleTexture,
+          sizeAttenuation: true,
+          depthWrite: false,
+          blending: THREE.NormalBlending
+        });
+
+        const particleVertices = [];
+        const particleColors = [];
+        const normalizedDepths = [];
+
+        const step = Math.max(1, Math.floor(1 / particleParams.density));
+
+        for (let y = 0; y < targetHeight; y += step) {
+          for (let x = 0; x < targetWidth; x += step) {
+            const i = (y * targetWidth + x) * 4;
+            let r = imgData.data[i] / 255;
+            let g = imgData.data[i + 1] / 255;
+            let b = imgData.data[i + 2] / 255;
+            const a = imgData.data[i + 3] / 255;
+
+            if (a > 0.5) {
+              const saturated = saturateColor(r, g, b, particleParams.saturation);
+              r = saturated.r;
+              g = saturated.g;
+              b = saturated.b;
+
+              const brightness = (r + g + b) / 3;
+
+              if (brightness >= particleParams.hideBlack) {
+                let posX = (x - targetWidth / 2) / scaleFactor;
+                let posY = (y - targetHeight / 2) / scaleFactor;
+                const normalizedDepth = seededRandom(x, y, 3) - 0.5;
+
+                if (particleParams.randomness > 0) {
+                  const randomOffsetX = (seededRandom(x, y, 1) - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  const randomOffsetY = (seededRandom(x, y, 2) - 0.5) * particleParams.randomness * (step / scaleFactor);
+                  posX += randomOffsetX;
+                  posY += randomOffsetY;
+                }
+
+                particleVertices.push(posX, posY, 0);
+                particleColors.push(r, g, b);
+                normalizedDepths.push(normalizedDepth);
+              }
+            }
+          }
+        }
+
+        particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particleVertices, 3));
+        particleGeometry.setAttribute('color', new THREE.Float32BufferAttribute(particleColors, 3));
+        particleGeometry.setAttribute('normalizedDepth', new THREE.Float32BufferAttribute(normalizedDepths, 1));
+        particleGeometry.setAttribute('initialPosition', new THREE.Float32BufferAttribute(particleVertices.slice(), 3));
+
+        if (particles) {
+          sceneGroup.remove(particles);
+          if (particles.geometry) particles.geometry.dispose();
+          if (particles.material) particles.material.dispose();
+        }
+
+        particles = new THREE.Points(particleGeometry, particleMaterial);
+        particles.rotation.x = Math.PI;
+        particles.userData.time = 0;
+        sceneGroup.add(particles);
+
+        hasInitialRender = false;
+
+        // Afficher le titre après chargement des particules
+        setTimeout(() => {
+          document.getElementById('main-title').classList.add('visible');
+        }, 500);
+      }
+
+      if (imageCache.has(imageIndex)) {
+        const cachedImgData = imageCache.get(imageIndex);
+        buildGeometry(cachedImgData);
+        return;
+      }
+
+      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      textureLoader.load(imagePath, function (texture) {
+        offscreenCanvas.width = targetWidth;
+        offscreenCanvas.height = targetHeight;
+
+        const srcWidth = texture.image.width;
+        const srcHeight = texture.image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const srcRatio = srcWidth / srcHeight;
+
+        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+
+        if (srcRatio > targetRatio) {
+          cropWidth = srcHeight * targetRatio;
+          cropX = (srcWidth - cropWidth) / 2;
+        } else {
+          cropHeight = srcWidth / targetRatio;
+          cropY = (srcHeight - cropHeight) / 2;
+        }
+
+        offscreenContext.drawImage(
+          texture.image,
+          cropX, cropY, cropWidth, cropHeight,
+          0, 0, targetWidth, targetHeight
+        );
+        const imgData = offscreenContext.getImageData(0, 0, targetWidth, targetHeight);
+
+        imageCache.set(imageIndex, imgData);
+        buildGeometry(imgData);
+      }, undefined, function (err) {
+        console.error(`Erreur chargement image ${imageIndex}:`, err);
+      });
+    }
+
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+
+      let needsRender = false;
+
+      if (particles && !hasInitialRender) {
+        needsRender = true;
+        hasInitialRender = true;
+      }
+
+      // PRO WHEEL SMOOTHING: Accumulateur virtuel
+      if (Math.abs(wheelScrollAccumulator) > 0.0001) {
+        const wheelContribution = wheelScrollAccumulator * scrollConfig.wheel.lerp;
+
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += wheelContribution;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= wheelContribution;
+        }
+
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+        wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
+      }
+
+      // Cycle bidirectionnel infini
+      if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
+        scrollPhase = 'zoomOut';
+        console.log('🔄 Phase transition: zoomIn → zoomOut');
+      } else if (scrollPhase === 'zoomOut' && targetZoomLevel <= 0.001) {
+        scrollPhase = 'zoomIn';
+        console.log('🔄 Phase transition: zoomOut → zoomIn');
+
+        if (!hasCompletedFirstCycle) {
+          hasCompletedFirstCycle = true;
+          document.body.style.overflow = 'auto';
+          document.getElementById('vertical-gallery').classList.add('visible');
+          console.log('✅ Premier cycle terminé → scroll vertical activé');
+        }
+      }
+
+      // Zoom fluide
+      if (Math.abs(targetZoomLevel - zoomLevel) > 0.001) {
+        zoomLevel += (targetZoomLevel - zoomLevel) * scrollConfig.global.zoomLerp;
+        camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
+        needsRender = true;
+      }
+
+      // Calcul des paramètres selon état UX
+      if (uxJourneyMode && uxStates.length >= 2) {
+        if (zoomLevel < 0.001) {
+          const state1 = uxStates[0];
+          particleParams = { ...state1 };
+
+          const needsState1Reload =
+            Math.abs(particleParams.density - lastReloadParams.density) > 0.001 ||
+            Math.abs(particleParams.randomness - lastReloadParams.randomness) > 0.001 ||
+            particleParams.shape !== lastReloadParams.shape;
+
+          if (needsState1Reload && !reloadScheduled) {
+            reloadScheduled = true;
+            requestAnimationFrame(() => {
+              loadImage(currentImageIndex);
+              lastReloadParams = { ...state1 };
+              reloadScheduled = false;
+            });
+          }
+        } else {
+          const normalized = zoomLevel / MAX_ZOOM_LEVEL;
+          const exactIndex = normalized * (uxStates.length - 1);
+          const lowerIndex = Math.floor(exactIndex);
+          const upperIndex = Math.min(lowerIndex + 1, uxStates.length - 1);
+          const t = exactIndex - lowerIndex;
+
+          const stateA = uxStates[lowerIndex];
+          const stateB = uxStates[upperIndex];
+
+          particleParams.size = stateA.size + (stateB.size - stateA.size) * t;
+          particleParams.disparity = stateA.disparity + (stateB.disparity - stateA.disparity) * t;
+          particleParams.movement = stateA.movement + (stateB.movement - stateA.movement) * t;
+
+          if (particles && particles.material) {
+            particles.material.size = particleParams.size;
+            particles.material.needsUpdate = true;
+          }
+        }
+      }
+
+      // Appliquer disparity
+      if (particles && particles.geometry) {
+        const targetDisparity = particleParams.disparity;
+
+        if (Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
+          currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * scrollConfig.global.disparityLerp;
+
+          const positions = particles.geometry.attributes.position.array;
+          const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
+          const initialPositions = particles.geometry.attributes.initialPosition.array;
+
+          for (let i = 0; i < normalizedDepths.length; i++) {
+            const baseZ = initialPositions[i * 3 + 2];
+            const depth = normalizedDepths[i];
+            positions[i * 3 + 2] = baseZ + depth * currentAppliedDisparity;
+          }
+
+          particles.geometry.attributes.position.needsUpdate = true;
+          needsRender = true;
+        }
+      }
+
+      // Mouvement des particules
+      if (particles && particleParams.movement > 0) {
+        particles.userData.time += 0.01;
+        const positions = particles.geometry.attributes.position.array;
+        const initialPositions = particles.geometry.attributes.initialPosition.array;
+
+        for (let i = 0; i < positions.length; i += 3) {
+          const initX = initialPositions[i];
+          const initY = initialPositions[i + 1];
+
+          if (particleParams.movementMode === 2) {
+            // Mode XY
+            positions[i] = initX + Math.sin(particles.userData.time + initY * 10) * particleParams.movement;
+            positions[i + 1] = initY + Math.cos(particles.userData.time + initX * 10) * particleParams.movement;
+          }
+        }
+
+        particles.geometry.attributes.position.needsUpdate = true;
+        needsRender = true;
+      }
+
+      if (needsRender) {
+        renderer.render(scene, camera);
+      }
+    }
+
+    // Event listener pour scroll
+    window.addEventListener('wheel', (event) => {
+      if (!hasCompletedFirstCycle) {
+        event.preventDefault();
+      } else {
+        if (Math.abs(targetZoomLevel) > 0.001 && Math.abs(targetZoomLevel - MAX_ZOOM_LEVEL) > 0.001) {
+          event.preventDefault();
+        }
+      }
+
+      const now = performance.now();
+      const deltaTime = now - lastScrollTime;
+      lastScrollTime = now;
+
+      const absDelta = Math.abs(event.deltaY);
+      const isTrackpad = absDelta < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
+
+      let scrollDelta;
+      if (isTrackpad) {
+        scrollDelta = event.deltaY * scrollConfig.trackpad.sensitivity;
+        wheelScrollAccumulator = 0;
+
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += scrollDelta;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= scrollDelta;
+        }
+      } else {
+        wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
+      }
+
+      targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+    }, { passive: false });
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialisation
+    camera.position.z = -minZoom;
+    loadImage(currentImageIndex);
+    animate();
+
+    console.log('🌊 Interface immersive subaquatique initialisée');
+  </script>
+</body>
+</html>
