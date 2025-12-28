@@ -1321,6 +1321,7 @@
     let particles;
     let currentImageIndex = 3; // Commence à 3 pour cycle propre: IMG_003 → 004 → 001 → 002 → 003
     const maxImageIndex = 4; // 4 images : IMG_001, IMG_002, IMG_003, IMG_004
+    let availableImages = []; // Images qui ont chargé avec succès (détection auto)
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
@@ -1562,16 +1563,47 @@
             const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
             colorCache.set(idx, colors);
 
-            resolve();
-          }, undefined, reject);
+            resolve({ success: true, index: idx });
+          }, undefined, (error) => {
+            reject({ success: false, index: idx, error });
+          });
         });
 
         loadPromises.push(promise);
       }
 
-      return Promise.all(loadPromises).then(() => {
+      // Utiliser allSettled pour charger toutes les images disponibles même si certaines échouent
+      return Promise.allSettled(loadPromises).then((results) => {
+        availableImages = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        results.forEach((result, index) => {
+          const imageIndex = index + 1;
+          if (result.status === 'fulfilled') {
+            availableImages.push(imageIndex);
+            successCount++;
+            console.log(`✅ IMG_${String(imageIndex).padStart(3, '0')} chargée avec succès`);
+          } else {
+            failCount++;
+            console.warn(`⚠️ IMG_${String(imageIndex).padStart(3, '0')} introuvable ou erreur - ignorée`);
+          }
+        });
+
+        // Validation : au moins 1 image doit être chargée
+        if (availableImages.length === 0) {
+          console.error('❌ Aucune image chargée! Vérifiez le dossier ./Ressources/');
+          return;
+        }
+
+        // Ajuster currentImageIndex si nécessaire pour pointer vers une image disponible
+        if (!availableImages.includes(currentImageIndex)) {
+          currentImageIndex = availableImages[0];
+          console.log(`📍 currentImageIndex ajusté à ${currentImageIndex} (première image disponible)`);
+        }
+
         imagesPreloaded = true;
-        console.log(`✅ ${maxImageIndex} images + couleurs pré-chargées en cache (zéro freeze)`);
+        console.log(`✅ ${successCount}/${maxImageIndex} images chargées (${failCount} ignorées) - cycle: ${availableImages.join(' → ')}`);
       });
     }
 
@@ -1808,20 +1840,27 @@
         return; // Empêcher transitions multiples
       }
 
-      // Passer à l'image suivante (cycle)
-      let nextImageIndex = currentImageIndex + 1;
-      if (nextImageIndex > maxImageIndex) {
-        nextImageIndex = 1;
+      // Validation: au moins une image disponible
+      if (availableImages.length === 0) {
+        console.error('❌ Aucune image disponible pour transition!');
+        return;
       }
+
+      // Trouver l'index actuel dans le tableau d'images disponibles
+      const currentIndex = availableImages.indexOf(currentImageIndex);
+
+      // Passer à l'image suivante dans le cycle des images disponibles
+      let nextIndex = (currentIndex + 1) % availableImages.length;
+      let nextImageIndex = availableImages[nextIndex];
 
       // SÉCURITÉ: Vérifier qu'on ne transite pas vers la même image
       if (nextImageIndex === currentImageIndex) {
         console.error('🔴 BUG: nextImageIndex === currentImageIndex =', currentImageIndex);
-        nextImageIndex = currentImageIndex + 1;
-        if (nextImageIndex > maxImageIndex) nextImageIndex = 1;
+        nextIndex = (currentIndex + 1) % availableImages.length;
+        nextImageIndex = availableImages[nextIndex];
       }
 
-      console.log(`🔄 Transition: IMG_${String(currentImageIndex).padStart(3, '0')} → IMG_${String(nextImageIndex).padStart(3, '0')}`);
+      console.log(`🔄 Transition: IMG_${String(currentImageIndex).padStart(3, '0')} → IMG_${String(nextImageIndex).padStart(3, '0')} (cycle disponibles: ${availableImages.join(' → ')})`);
 
       // Sauvegarder les couleurs actuelles
       if (particles && particles.geometry.attributes.color) {
