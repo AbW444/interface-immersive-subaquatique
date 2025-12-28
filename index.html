@@ -2040,7 +2040,7 @@
 
       // PRO WHEEL SMOOTHING: Accumulateur virtuel avec lerp adaptatif (technique Lenis)
       // Convertit les clics discrets de molette en mouvement fluide continu
-      if (Math.abs(wheelScrollAccumulator) > 0.0001) {
+      if (Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
         const wheelContribution = wheelScrollAccumulator * scrollConfig.wheel.lerp;
 
         // CYCLE DE SCROLL: Inverser selon la phase
@@ -2064,13 +2064,15 @@
           hasTriggeredTransition = true;
           console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image');
         }
-      } else if (scrollPhase === 'zoomOut' && targetZoomLevel <= 0.001) {
+      } else if (scrollPhase === 'zoomOut' && zoomLevel <= 0.001) {
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
         scrollPhase = 'zoomIn';
+        targetZoomLevel = 0; // Forcer à exactement 0
         hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
         // ACTIVER LA ZONE MORTE: il faut scroller 0.100 avant de re-zoomer
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
+        wheelScrollAccumulator = 0; // Vider l'accumulateur pour bloquer le zoom
         console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint) - Zone morte activée');
       }
 
@@ -2595,10 +2597,8 @@
           if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
             // Sortie de la zone morte
             isInDeadZone = false;
-            // Appliquer l'excédent de scroll au zoom
-            const excess = scrollDeadZoneAccumulator - SCROLL_DEAD_ZONE_DISTANCE;
-            targetZoomLevel += excess;
             scrollDeadZoneAccumulator = 0;
+            console.log('✅ Zone morte désactivée - zoom reprend');
           }
           // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
@@ -2621,10 +2621,8 @@
           if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
             // Sortie de la zone morte
             isInDeadZone = false;
-            // Appliquer l'excédent de scroll à l'accumulateur
-            const excess = scrollDeadZoneAccumulator - SCROLL_DEAD_ZONE_DISTANCE;
-            wheelScrollAccumulator = excess;
             scrollDeadZoneAccumulator = 0;
+            console.log('✅ Zone morte désactivée - zoom reprend');
           }
           // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
