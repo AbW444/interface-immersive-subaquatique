@@ -2075,6 +2075,8 @@
           transitionToNextImage();
           hasTriggeredTransition = true;
           console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image');
+        } else {
+          console.warn('⚠️ Zoom max atteint mais hasTriggeredTransition déjà true - transition bloquée!');
         }
       } else if (scrollPhase === 'zoomOut' && zoomLevel <= 0.001) {
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
@@ -2085,7 +2087,7 @@
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
         wheelScrollAccumulator = 0; // Vider l'accumulateur pour bloquer le zoom
-        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint) - Zone morte activée');
+        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint) - Zone morte activée + hasTriggeredTransition reset');
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2129,7 +2131,13 @@
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
-          console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3));
+          // RÉINITIALISER hasTriggeredTransition ici aussi pour éviter blocage
+          // Cela permet à la prochaine transition de se déclencher même si
+          // on n'atteint jamais exactement zoomLevel 0
+          if (scrollPhase === 'zoomOut') {
+            hasTriggeredTransition = false;
+            console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3) + ' - hasTriggeredTransition reset');
+          }
         }
       }
 
