@@ -1804,7 +1804,19 @@
       if (isTransitioning) return; // Empêcher transitions multiples
 
       // Passer à l'image suivante (cycle)
-      const nextImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
+      let nextImageIndex = currentImageIndex + 1;
+      if (nextImageIndex > maxImageIndex) {
+        nextImageIndex = 1;
+      }
+
+      // SÉCURITÉ: Vérifier qu'on ne transite pas vers la même image
+      if (nextImageIndex === currentImageIndex) {
+        console.error('🔴 BUG: nextImageIndex === currentImageIndex =', currentImageIndex);
+        nextImageIndex = currentImageIndex + 1;
+        if (nextImageIndex > maxImageIndex) nextImageIndex = 1;
+      }
+
+      console.log(`🔄 Transition: IMG_${String(currentImageIndex).padStart(3, '0')} → IMG_${String(nextImageIndex).padStart(3, '0')}`);
 
       // Sauvegarder les couleurs actuelles
       if (particles && particles.geometry.attributes.color) {
@@ -1817,7 +1829,7 @@
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
-        console.log(`🎨 Transition vers IMG_${String(currentImageIndex).padStart(3, '0')}`);
+        console.log(`🎨 Couleurs chargées pour IMG_${String(currentImageIndex).padStart(3, '0')}`);
       });
     }
 
