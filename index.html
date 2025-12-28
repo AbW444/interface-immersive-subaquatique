@@ -965,8 +965,8 @@
         <h3>📱 Trackpad</h3>
 
         <div class="scroll-param">
-          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.000267</span></label>
-          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.000267">
+          <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.000334</span></label>
+          <input type="range" id="trackpad-sensitivity" min="0.0001" max="0.001" step="0.00001" value="0.000334">
         </div>
 
         <div class="scroll-param">
@@ -2514,7 +2514,7 @@
     // Configuration par défaut (valeurs optimisées selon recherche UX 2025)
     const scrollConfig = {
       trackpad: {
-        sensitivity: 0.000267, // Divisé par 1.5 pour scroll plus lent
+        sensitivity: 0.000334, // Augmenté de 25% pour trackpad plus réactif
         threshold: 70,         // Seuil de détection trackpad
         frequency: 39          // Fréquence de détection trackpad
       },
@@ -2600,14 +2600,14 @@
 
     // Reset button
     scrollResetBtn.addEventListener('click', () => {
-      // Reset to PRO defaults (vitesses réduites: trackpad /1.5, molette /3)
-      scrollConfig.trackpad = { sensitivity: 0.000267, threshold: 70, frequency: 39 };
+      // Reset to PRO defaults (trackpad +25% réactivité, molette /3)
+      scrollConfig.trackpad = { sensitivity: 0.000334, threshold: 70, frequency: 39 };
       scrollConfig.wheel = { multiplier: 0.93, lerp: 0.22 };
       scrollConfig.global = { zoomLerp: 0.18, disparityLerp: 0.23 };
 
       // Update sliders
-      trackpadSensitivitySlider.value = 0.000267;
-      trackpadSensitivityVal.textContent = '0.000267';
+      trackpadSensitivitySlider.value = 0.000334;
+      trackpadSensitivityVal.textContent = '0.000334';
       trackpadThresholdSlider.value = 70;
       trackpadThresholdVal.textContent = '70';
       trackpadFrequencySlider.value = 39;
