@@ -1801,7 +1801,12 @@
 
     // Fonction pour transition fluide vers l'image suivante
     function transitionToNextImage() {
-      if (isTransitioning) return; // Empêcher transitions multiples
+      console.log(`📍 [AVANT] transitionToNextImage() - currentImageIndex=${currentImageIndex}, isTransitioning=${isTransitioning}`);
+
+      if (isTransitioning) {
+        console.warn('⚠️ transitionToNextImage() bloquée: isTransitioning déjà true');
+        return; // Empêcher transitions multiples
+      }
 
       // Passer à l'image suivante (cycle)
       let nextImageIndex = currentImageIndex + 1;
@@ -1821,6 +1826,7 @@
       // Sauvegarder les couleurs actuelles
       if (particles && particles.geometry.attributes.color) {
         oldColors = Array.from(particles.geometry.attributes.color.array);
+        console.log(`💾 oldColors sauvegardées (${oldColors.length} valeurs)`);
       }
 
       // Charger les nouvelles couleurs
@@ -1829,7 +1835,8 @@
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
-        console.log(`🎨 Couleurs chargées pour IMG_${String(currentImageIndex).padStart(3, '0')}`);
+        console.log(`🎨 Couleurs chargées pour IMG_${String(currentImageIndex).padStart(3, '0')} - isTransitioning=true`);
+        console.log(`📍 [APRÈS] currentImageIndex=${currentImageIndex}, isTransitioning=${isTransitioning}`);
       });
     }
 
@@ -2071,15 +2078,17 @@
       if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
         // Atteint le zoom max → changer d'image et passer en phase dezoom
         if (!hasTriggeredTransition) {
+          console.log(`🔝 ZOOM MAX atteint - targetZoomLevel=${targetZoomLevel.toFixed(3)}, zoomLevel=${zoomLevel.toFixed(3)}, currentImageIndex=${currentImageIndex}`);
           scrollPhase = 'zoomOut';
           transitionToNextImage();
           hasTriggeredTransition = true;
-          console.log('🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image');
+          console.log(`🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image - hasTriggeredTransition=true`);
         } else {
-          console.warn('⚠️ Zoom max atteint mais hasTriggeredTransition déjà true - transition bloquée!');
+          console.warn(`⚠️ Zoom max atteint mais hasTriggeredTransition déjà true - transition bloquée! currentImageIndex=${currentImageIndex}`);
         }
       } else if (scrollPhase === 'zoomOut' && zoomLevel <= 0.001) {
         // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
+        console.log(`🔻 RETOUR à État 1 - zoomLevel=${zoomLevel.toFixed(3)}, currentImageIndex=${currentImageIndex}`);
         scrollPhase = 'zoomIn';
         targetZoomLevel = 0; // Forcer à exactement 0
         hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
@@ -2087,7 +2096,7 @@
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
         wheelScrollAccumulator = 0; // Vider l'accumulateur pour bloquer le zoom
-        console.log('🔄 Phase transition: zoomOut → zoomIn (état 1 atteint) - Zone morte activée + hasTriggeredTransition reset');
+        console.log(`🔄 Phase: zoomOut → zoomIn - Zone morte activée - hasTriggeredTransition=false - IMG_${String(currentImageIndex).padStart(3, '0')} visible`);
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2104,15 +2113,26 @@
       if (isTransitioning && particles && oldColors && newColors) {
         // Calculer progression basée sur zoomLevel entre MAX_ZOOM_LEVEL et TRANSITION_END_ZOOM
         let transitionProgress = 0;
+        let previousProgress = window.lastTransitionProgress || 0;
 
         if (zoomLevel <= MAX_ZOOM_LEVEL && zoomLevel >= TRANSITION_END_ZOOM) {
-          // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.518116)
+          // Progression de 0 à 1 (transition inverse: de 0.826632 vers 0.418116)
           transitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
           transitionProgress = Math.max(0, Math.min(1, transitionProgress));
+
+          // Logger toutes les 10% de progression
+          const progressPercent = Math.floor(transitionProgress * 100);
+          const lastProgressPercent = Math.floor(previousProgress * 100);
+          if (progressPercent % 10 === 0 && progressPercent !== lastProgressPercent) {
+            console.log(`📊 Transition ${progressPercent}% - IMG_${String(currentImageIndex).padStart(3, '0')} - zoomLevel=${zoomLevel.toFixed(3)}`);
+          }
+          window.lastTransitionProgress = transitionProgress;
+
         } else if (zoomLevel < TRANSITION_END_ZOOM) {
           // Dépasse la fin de transition
           transitionProgress = 1.0;
           isTransitioning = false;
+          console.log(`🏁 Transition 100% atteinte - zoomLevel=${zoomLevel.toFixed(3)} < TRANSITION_END_ZOOM=${TRANSITION_END_ZOOM}`);
         }
 
         // Interpolation linéaire directe des couleurs (sans smoothing pour performance)
@@ -2131,12 +2151,13 @@
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
+          window.lastTransitionProgress = 0;
           // RÉINITIALISER hasTriggeredTransition ici aussi pour éviter blocage
           // Cela permet à la prochaine transition de se déclencher même si
           // on n'atteint jamais exactement zoomLevel 0
           if (scrollPhase === 'zoomOut') {
             hasTriggeredTransition = false;
-            console.log('✅ Transition image terminée à zoomLevel: ' + zoomLevel.toFixed(3) + ' - hasTriggeredTransition reset');
+            console.log(`✅ Transition terminée IMG_${String(currentImageIndex).padStart(3, '0')} - zoomLevel=${zoomLevel.toFixed(3)} - hasTriggeredTransition reset - scrollPhase=${scrollPhase}`);
           }
         }
       }
@@ -2620,7 +2641,7 @@
             // Sortie de la zone morte
             isInDeadZone = false;
             scrollDeadZoneAccumulator = 0;
-            console.log('✅ Zone morte désactivée - zoom reprend');
+            console.log(`✅ Zone morte désactivée - zoom reprend - IMG_${String(currentImageIndex).padStart(3, '0')} - scrollPhase=${scrollPhase}`);
           }
           // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
@@ -2644,7 +2665,7 @@
             // Sortie de la zone morte
             isInDeadZone = false;
             scrollDeadZoneAccumulator = 0;
-            console.log('✅ Zone morte désactivée - zoom reprend');
+            console.log(`✅ Zone morte désactivée - zoom reprend - IMG_${String(currentImageIndex).padStart(3, '0')} - scrollPhase=${scrollPhase}`);
           }
           // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
