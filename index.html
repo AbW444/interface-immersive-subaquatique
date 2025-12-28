@@ -432,7 +432,7 @@
     }
 
     function loadImage(imageIndex) {
-      const imagePath = `./Projet_test_HLS_LMPI/Ressources/test%20${String(imageIndex).padStart(3, '0')}.jpg`;
+      const imagePath = `./Ressources/test%20${String(imageIndex).padStart(3, '0')}.jpg`;
 
       textureLoader.load(imagePath, function (texture) {
         const canvas = document.createElement('canvas');
@@ -731,7 +731,7 @@
     sceneGroup.add(snow);
 
     // Précharger l'image 4 pour définir la hauteur de référence
-    const referencePath = `./Projet_test_HLS_LMPI/Ressources/test%20004.jpg`;
+    const referencePath = `./Ressources/test%20004.jpg`;
     textureLoader.load(referencePath, function (texture) {
       referenceHeight = texture.image.height;
       // Charger l'image initiale après avoir défini la référence
