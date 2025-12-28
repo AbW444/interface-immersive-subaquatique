@@ -2075,7 +2075,8 @@
       }
 
       // DÉTECTION DES POINTS DE BASCULE: Cycle bidirectionnel infini
-      if (scrollPhase === 'zoomIn' && targetZoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
+      // IMPORTANT: Utiliser zoomLevel (position réelle lissée) et non targetZoomLevel (cible scroll)
+      if (scrollPhase === 'zoomIn' && zoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
         // Atteint le zoom max → changer d'image et passer en phase dezoom
         if (!hasTriggeredTransition) {
           console.log(`🔝 ZOOM MAX atteint - targetZoomLevel=${targetZoomLevel.toFixed(3)}, zoomLevel=${zoomLevel.toFixed(3)}, currentImageIndex=${currentImageIndex}`);
