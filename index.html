@@ -1336,8 +1336,8 @@
 
     // Système de cycle de scroll bidirectionnel avec inversion automatique
     const MAX_ZOOM_LEVEL = 0.826632; // Point de zoom max (début transition image)
-    const TRANSITION_END_ZOOM = 0.518116; // Point de fin de transition
-    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.308516
+    const TRANSITION_END_ZOOM = 0.418116; // Point de fin de transition (augmenté de 0.1)
+    const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.408516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
     // Variables pour transition fluide entre images (basée sur position, pas temps)
@@ -2166,7 +2166,8 @@
             Math.abs(particleParams.hideBlack - lastReloadParams.hideBlack) > 0.001 ||
             particleParams.shape !== lastReloadParams.shape;
 
-          if (needsState1Reload && !reloadScheduled) {
+          // BLOQUER RELOAD pendant les transitions (évite freeze/saccades)
+          if (needsState1Reload && !reloadScheduled && !isTransitioning) {
             reloadScheduled = true;
             requestAnimationFrame(() => {
               loadImage(currentImageIndex);
@@ -2254,7 +2255,8 @@
         }
 
         // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
-        if (needsReload && !reloadScheduled) {
+        // BLOQUER RELOAD pendant les transitions (évite freeze/saccades)
+        if (needsReload && !reloadScheduled && !isTransitioning) {
           reloadScheduled = true;
           requestAnimationFrame(() => {
             loadImage(currentImageIndex);
