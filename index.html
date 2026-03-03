@@ -1744,12 +1744,18 @@
 
     // Pré-charger toutes les images en arrière-plan, puis charger la première
     function onReady() {
-      loadImage(currentImageIndex);
-      // Fade out loading screen
+      // 1. Faire disparaître entièrement le logo AVANT d'afficher quoi que ce soit
       const loadingScreen = document.getElementById('loading-screen');
       if (loadingScreen) {
-        loadingScreen.classList.add('hidden');
-        setTimeout(() => loadingScreen.remove(), 900);
+        loadingScreen.classList.add('hidden'); // Transition opacity 0.8s
+        // Attendre la fin du fade (800ms) + retirer du DOM + petit délai avant les photos
+        setTimeout(() => {
+          loadingScreen.remove();
+          // 2. Quelques ms après suppression → charger la première image
+          setTimeout(() => loadImage(currentImageIndex), 150);
+        }, 850);
+      } else {
+        loadImage(currentImageIndex);
       }
       // Scroll indicator: show after load, blink if no scroll after 5s
       const scrollInd = document.getElementById('scroll-indicator');
