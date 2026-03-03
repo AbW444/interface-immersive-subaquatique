@@ -11,10 +11,7 @@
   <title>Photographic Volume</title>
   <link rel="icon" type="image/svg+xml" href="Ressources/favicon.svg">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body.cursor-hidden, body.cursor-hidden * {
-      cursor: none !important;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
     body {
       margin: 0;
       overflow: hidden;
@@ -22,6 +19,38 @@
       background-color: #000000;
       position: relative;
       touch-action: none;
+      cursor: none;
+    }
+    /* Info overlay: curseur visible */
+    #info-overlay {
+      position: fixed; inset: 0; z-index: 20000;
+      background: rgba(0,0,0,0.92);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.5s ease;
+      cursor: default;
+    }
+    #info-overlay.visible {
+      opacity: 1; pointer-events: auto;
+    }
+    #info-overlay * { cursor: default; }
+    #info-overlay .info-content {
+      max-width: 520px; padding: 40px;
+      text-align: center; color: rgba(255,255,255,0.7);
+      font-family: 'Roboto', sans-serif; font-size: 13px;
+      line-height: 1.8; letter-spacing: 0.3px;
+    }
+    #info-overlay .info-title {
+      font-size: 18px; font-weight: 700; letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.9); margin-bottom: 24px;
+    }
+    #info-overlay .info-separator {
+      width: 40px; height: 1px; background: rgba(255,255,255,0.15);
+      margin: 20px auto;
+    }
+    #info-overlay .info-hint {
+      margin-top: 32px; font-size: 11px; color: rgba(255,255,255,0.3);
+      letter-spacing: 0.5px;
     }
     canvas {
       display: block;
@@ -831,6 +860,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Info overlay (Alt / clic droit / Esc) -->
+  <div id="info-overlay">
+    <div class="info-content">
+      <div class="info-title">PHOTOGRAPHIC VOLUME</div>
+      <div class="info-separator"></div>
+      <p>Une exploration immersive de la photographie en volume.</p>
+      <p>Naviguez à travers les couches de l'image en scrollant — chaque niveau de zoom révèle une nouvelle dimension sonore et visuelle.</p>
+      <div class="info-separator"></div>
+      <p style="font-size:11px; color:rgba(255,255,255,0.45);">Holosene — 2025</p>
+      <div class="info-hint">Appuyez sur Esc ou cliquez pour revenir</div>
+    </div>
+  </div>
+
   <!-- Loading screen -->
   <div id="loading-screen">
     <img class="loading-logo" src="Ressources/logo.svg" alt="">
@@ -2549,7 +2591,7 @@
           o.osc.frequency.setTargetAtTime(o.baseFreq * freqMultiplier, now, TAU);
         });
         // Volume en arc doux
-        const droneVol = T.droneVol * (0.6 + Math.sin(progress * Math.PI) * 0.4);
+        const droneVol = T.droneVol * 0.5 * (0.6 + Math.sin(progress * Math.PI) * 0.4);
         layers.drone.gain.gain.setTargetAtTime(droneVol, now, TAU);
         // Filtre drone s'ouvre avec le parcours (grave=étouffé, aigu=ouvert)
         const dFilterF = T.muffleFreq * 0.5 + proximity * T.muffleFreq * 0.8;
@@ -2557,7 +2599,7 @@
 
         // === RÉSONANCES ===
         // Les résonances montent aussi avec le freqMultiplier
-        const resoVol = T.resoVol * (0.3 + proximity * 0.7) *
+        const resoVol = T.resoVol * 0.5 * (0.3 + proximity * 0.7) *
                          (0.5 + Math.sin(progress * Math.PI * 2) * 0.5);
         layers.reso.gain.gain.setTargetAtTime(resoVol, now, TAU);
         const resoShift = 1 + Math.sin(now * 0.013 * Math.PI * 2) * 0.08;
@@ -2567,7 +2609,7 @@
 
         // === SUB-BASS ===
         const depthNorm = disparity / 2.77;
-        const subVol = T.subVol * depthNorm * (0.4 + proximity * 0.6);
+        const subVol = T.subVol * 0.5 * depthNorm * (0.4 + proximity * 0.6);
         layers.sub.gain.gain.setTargetAtTime(subVol, now, TAU);
         layers.sub.panDepth.gain.setTargetAtTime(depthNorm * 0.5, now, 0.6);
         // Sub descend avec profondeur
@@ -2575,7 +2617,7 @@
         layers.sub.osc.frequency.setTargetAtTime(subF, now, TAU);
 
         // === TEXTURE GRANULAIRE ===
-        const grainVol = T.grainVol * proximity * proximity;
+        const grainVol = T.grainVol * 0.5 * proximity * proximity;
         layers.grain.gain.gain.setTargetAtTime(grainVol, now, 0.4);
         // Bande centrée monte avec le parcours
         const gCenter = T.grainBand[0] + proximity * (T.grainBand[1] - T.grainBand[0]);
@@ -2583,7 +2625,7 @@
 
         // === BREATH / MOUVEMENT ===
         const breathInt = movement / 0.5;
-        layers.breath.gain.gain.setTargetAtTime(breathInt * 0.15, now, 0.5);
+        layers.breath.gain.gain.setTargetAtTime(breathInt * 0.075, now, 0.5);
         layers.breath.lfo.frequency.setTargetAtTime(
           T.breathRate + breathInt * T.breathRate * 3, now, 0.6
         );
@@ -2621,7 +2663,7 @@
         if (layers.krill && T.krillFreqs) {
           const kThresh = T.krillThreshold || 0.5;
           const krillIntensity = Math.max(0, (progress - kThresh) / (1 - kThresh));
-          const kVol = (T.krillVol || 0.03) * krillIntensity * krillIntensity;
+          const kVol = (T.krillVol || 0.03) * 0.5 * krillIntensity * krillIntensity;
           layers.krill.gain.gain.setTargetAtTime(kVol, now, 0.6);
           layers.krill.lfoGain.gain.setTargetAtTime(kVol * 0.35, now, 0.4);
           // Fréquences montent avec le zoom (plus aigu = plus microscopique)
@@ -3394,7 +3436,32 @@
     window.addEventListener('touchstart', autoStartAudio, { once: true });
     window.addEventListener('click', autoStartAudio, { once: true });
 
+    // === INFO OVERLAY (Alt / clic droit / Esc) ===
+    const infoOverlay = document.getElementById('info-overlay');
+    function toggleInfoOverlay(show) {
+      const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
+      infoOverlay.classList.toggle('visible', visible);
+    }
+    // Fermer l'overlay en cliquant dessus
+    infoOverlay.addEventListener('click', () => toggleInfoOverlay(false));
+    // Bloquer le menu contextuel natif, ouvrir l'info overlay à la place
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      toggleInfoOverlay(true);
+    });
+
     window.addEventListener('keydown', (event) => {
+      // Alt ou Esc → toggle info overlay
+      if (event.key === 'Alt' || (event.key === 'Escape' && !infoOverlay.classList.contains('visible'))) {
+        event.preventDefault();
+        toggleInfoOverlay(true);
+        return;
+      }
+      if (event.key === 'Escape' && infoOverlay.classList.contains('visible')) {
+        toggleInfoOverlay(false);
+        return;
+      }
+
       // Flèche gauche - Image précédente
       if (event.key === 'ArrowLeft') {
         currentImageIndex = currentImageIndex === 1 ? maxImageIndex : currentImageIndex - 1;
