@@ -2,16 +2,22 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Photographic Volume — espace immersif de photographies en particules 3D">
+  <meta name="theme-color" content="#000000">
+  <meta property="og:title" content="Photographic Volume">
+  <meta property="og:description" content="Espace immersif de photographies en particules 3D">
+  <meta property="og:type" content="website">
   <title>Photographic Volume</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       margin: 0;
-      overflow: hidden; /* Scroll désactivé - zoom uniquement */
+      overflow: hidden;
       font-family: 'Roboto', Arial, sans-serif;
-      background-color: #ffffff; /* FOND BLANC */
+      background-color: #000000;
       position: relative;
+      touch-action: none;
     }
     canvas {
       display: block;
@@ -19,6 +25,86 @@
       top: 0;
       left: 0;
       z-index: 1;
+    }
+
+    /* Loading screen */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-title {
+      font-size: clamp(18px, 4vw, 32px);
+      font-weight: 700;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: #fff;
+      margin-bottom: 40px;
+    }
+    .loading-bar-track {
+      width: min(280px, 60vw);
+      height: 2px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 1px;
+      overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      transition: width 0.3s ease;
+    }
+
+    /* Keyboard hints overlay */
+    #keyboard-hints {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      gap: 16px;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+      pointer-events: none;
+    }
+    #keyboard-hints.visible {
+      opacity: 1;
+    }
+    #keyboard-hints.fade-out {
+      opacity: 0;
+    }
+    .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.5px;
+    }
+    .hint-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 5px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.5);
+      font-family: 'Roboto', monospace;
     }
 
     /* ===============================================
@@ -697,6 +783,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div class="loading-title">Photographic Volume</div>
+    <div class="loading-bar-track">
+      <div class="loading-bar-fill" id="loading-bar"></div>
+    </div>
+  </div>
+
+  <!-- Keyboard hints (shown after load, fades out) -->
+  <div id="keyboard-hints">
+    <div class="hint-item"><span class="hint-key">Scroll</span> parcours</div>
+    <div class="hint-item"><span class="hint-key">I</span> params</div>
+    <div class="hint-item"><span class="hint-key">M</span> states</div>
+  </div>
+
   <!-- SCROLL CONFIG PANEL (Touche C) -->
   <div id="scroll-config-panel">
     <div class="scroll-config-header">⚙️ Scroll Configuration (Press C to toggle)</div>
@@ -1018,6 +1119,7 @@
         preserveDrawingBuffer: false,
         powerPreference: "high-performance"
       });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
     } catch (error) {
@@ -1185,11 +1287,15 @@
     };
     let imagesPreloaded = false;
 
+    // Constantes de résolution
+    const TARGET_WIDTH = 1720;
+    const TARGET_HEIGHT = 880;
+
     // Pré-charger toutes les images au démarrage
     function preloadAllImages() {
-      const targetWidth = 1720;
-      const targetHeight = 880;
+      const loadingBar = document.getElementById('loading-bar');
       const loadPromises = [];
+      let loadedCount = 0;
 
       for (let idx = 1; idx <= maxImageIndex; idx++) {
         const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
@@ -1233,8 +1339,12 @@
             const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
             colorCache.set(idx, colors);
 
+            loadedCount++;
+            if (loadingBar) loadingBar.style.width = `${loadedCount / maxImageIndex * 100}%`;
             resolve({ success: true, index: idx });
           }, undefined, (error) => {
+            loadedCount++;
+            if (loadingBar) loadingBar.style.width = `${loadedCount / maxImageIndex * 100}%`;
             reject({ success: false, index: idx, error });
           });
         });
@@ -1302,8 +1412,8 @@
 
     // Fonction de chargement d'image optimisée avec cache
     function loadImage(imageIndex) {
-      const targetWidth = 1720;
-      const targetHeight = 880;
+      const targetWidth = TARGET_WIDTH;
+      const targetHeight = TARGET_HEIGHT;
 
       // Fonction interne pour construire la géométrie à partir d'ImageData
       function buildGeometry(imgData) {
@@ -1451,8 +1561,8 @@
       }
 
       // Fallback si pas dans le cache (ne devrait pas arriver)
-      const targetWidth = 1720;
-      const targetHeight = 880;
+      const targetWidth = TARGET_WIDTH;
+      const targetHeight = TARGET_HEIGHT;
 
       if (imageCache.has(imageIndex)) {
         const imgData = imageCache.get(imageIndex);
@@ -1514,7 +1624,7 @@
       }
 
       if (particles && particles.geometry.attributes.color) {
-        oldColors = Array.from(particles.geometry.attributes.color.array);
+        oldColors = particles.geometry.attributes.color.array.slice();
       }
 
       extractImageColors(nextImageIndex, (colors) => {
@@ -1530,12 +1640,28 @@
     scene.add(ambientLight);
 
     // Pré-charger toutes les images en arrière-plan, puis charger la première
-    preloadAllImages().then(() => {
+    function onReady() {
       loadImage(currentImageIndex);
-    }).catch(err => {
+      // Fade out loading screen
+      const loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+        setTimeout(() => loadingScreen.remove(), 900);
+      }
+      // Show keyboard hints, then fade after 6s
+      const hints = document.getElementById('keyboard-hints');
+      if (hints) {
+        setTimeout(() => hints.classList.add('visible'), 1200);
+        setTimeout(() => {
+          hints.classList.add('fade-out');
+          setTimeout(() => hints.remove(), 2000);
+        }, 7000);
+      }
+    }
+
+    preloadAllImages().then(onReady).catch(err => {
       console.error('Erreur pré-chargement:', err);
-      // Fallback: charger quand même la première image
-      loadImage(currentImageIndex);
+      onReady();
     });
 
     // Position de la caméra (mobile) et sceneGroup (fixe)
@@ -1633,6 +1759,16 @@
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
+
+    // Cache des éléments debug DOM (évite getElementById à chaque frame)
+    const debugElements = {
+      panel: document.getElementById('debug-panel'),
+      zoomLevel: document.getElementById('debug-zoom-level'),
+      targetZoom: document.getElementById('debug-target-zoom'),
+      cameraZ: document.getElementById('debug-camera-z'),
+      scrollPhase: document.getElementById('debug-scroll-phase'),
+      isTransitioning: document.getElementById('debug-is-transitioning')
+    };
 
     // Animation
     function animate() {
@@ -1959,13 +2095,12 @@
       }
 
       // Mise à jour du panneau de debug (si visible)
-      const debugPanel = document.getElementById('debug-panel');
-      if (debugPanel && debugPanel.classList.contains('visible')) {
-        document.getElementById('debug-zoom-level').textContent = zoomLevel.toFixed(6);
-        document.getElementById('debug-target-zoom').textContent = targetZoomLevel.toFixed(6);
-        document.getElementById('debug-camera-z').textContent = camera.position.z.toFixed(6);
-        document.getElementById('debug-scroll-phase').textContent = scrollPhase;
-        document.getElementById('debug-is-transitioning').textContent = isTransitioning.toString();
+      if (debugElements.panel.classList.contains('visible')) {
+        debugElements.zoomLevel.textContent = zoomLevel.toFixed(6);
+        debugElements.targetZoom.textContent = targetZoomLevel.toFixed(6);
+        debugElements.cameraZ.textContent = camera.position.z.toFixed(6);
+        debugElements.scrollPhase.textContent = scrollPhase;
+        debugElements.isTransitioning.textContent = isTransitioning.toString();
       }
 
       // (Opt #5 - Early exit) Ne render que si nécessaire
@@ -1979,14 +2114,11 @@
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Cache des boutons pour éviter querySelectorAll répété
-    const cachedShapeButtons = document.querySelectorAll('.shape-btn');
-    const cachedMovementButtons = document.querySelectorAll('.movement-mode-btn');
-
-    // Cache des éléments UI pour updateUIValues (optimisation majeure)
+    // Cache des éléments UI pour updateUIValues
     const uiElements = {
       sizeValue: document.getElementById('size-value'),
       densityValue: document.getElementById('density-value'),
@@ -2003,41 +2135,6 @@
       hideBlackSlider: document.getElementById('hideBlack-slider'),
       randomnessSlider: document.getElementById('randomness-slider')
     };
-
-    // Throttle pour updateUIValues
-    let uiUpdateScheduled = false;
-    function throttledUpdateUIValues() {
-      if (!uiUpdateScheduled) {
-        uiUpdateScheduled = true;
-        requestAnimationFrame(() => {
-          updateUIValues();
-          uiUpdateScheduled = false;
-        });
-      }
-    }
-
-    // Throttle pour les mises à jour de boutons
-    let buttonUpdateScheduled = false;
-    let pendingButtonUpdates = { shape: null, movement: null };
-    function throttledUpdateButtons(shape, movementMode) {
-      pendingButtonUpdates.shape = shape;
-      pendingButtonUpdates.movement = movementMode;
-
-      if (!buttonUpdateScheduled) {
-        buttonUpdateScheduled = true;
-        requestAnimationFrame(() => {
-          // Mettre à jour les boutons de forme
-          cachedShapeButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.shape === pendingButtonUpdates.shape);
-          });
-          // Mettre à jour les boutons de mode de mouvement
-          cachedMovementButtons.forEach(btn => {
-            btn.classList.toggle('active', parseInt(btn.dataset.mode) === pendingButtonUpdates.movement);
-          });
-          buttonUpdateScheduled = false;
-        });
-      }
-    }
 
     /* ===============================================
        SCROLL CONFIG PANEL - Gestion
@@ -2181,12 +2278,11 @@
       const deltaTime = now - lastScrollTime;
       lastScrollTime = now;
 
-      const absDelta = absDeltaY;
-      const isTrackpad = absDelta < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
+      const isTrackpad = absDeltaY < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
 
       if (scrollConfigPanel.classList.contains('visible')) {
         scrollModeIndicator.textContent = isTrackpad ? '📱 Trackpad' : '🖱️ Mouse Wheel';
-        scrollDeltaIndicator.textContent = absDelta.toFixed(1);
+        scrollDeltaIndicator.textContent = absDeltaY.toFixed(1);
         scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
       }
 
@@ -2223,6 +2319,51 @@
 
       targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
     }, { passive: false });
+
+    // Support tactile — le swipe vertical produit le même effet que le scroll
+    let touchStartY = null;
+    let lastTouchY = null;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        lastTouchY = touchStartY;
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length !== 1 || lastTouchY === null) return;
+
+      const currentY = e.touches[0].clientY;
+      const deltaY = Math.abs(currentY - lastTouchY);
+      lastTouchY = currentY;
+
+      if (deltaY < 1) return;
+
+      const scrollDelta = deltaY * scrollConfig.trackpad.sensitivity * 3;
+
+      if (isInDeadZone) {
+        scrollDeadZoneAccumulator += scrollDelta;
+        if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
+          isInDeadZone = false;
+          scrollDeadZoneAccumulator = 0;
+        }
+      } else {
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += scrollDelta;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= scrollDelta;
+        }
+      }
+
+      targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      touchStartY = null;
+      lastTouchY = null;
+    });
 
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
