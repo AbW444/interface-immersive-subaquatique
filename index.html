@@ -9,7 +9,7 @@
   <meta property="og:description" content="Espace immersif de photographies en particules 3D">
   <meta property="og:type" content="website">
   <title>Photographic Volume</title>
-  <link rel="icon" type="image/svg+xml" href="Ressources/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="Ressources/favicon.svg">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body.cursor-hidden, body.cursor-hidden * {
@@ -48,28 +48,28 @@
       pointer-events: none;
     }
     .loading-logo {
-      width: clamp(48px, 12vw, 80px);
+      width: clamp(24px, 6vw, 40px);
       height: auto;
-      animation: logoBreathe 2.4s ease-in-out infinite;
-      filter: drop-shadow(0 0 20px rgba(253,5,2,0.25));
+      animation: logoBreathe 1.4s ease-in-out infinite, logoFade 1.4s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px rgba(253,5,2,0.2));
     }
     @keyframes logoBreathe {
       0%, 100% {
         transform: scale(1) translateY(0);
-        filter: drop-shadow(0 0 20px rgba(253,5,2,0.2));
+        filter: drop-shadow(0 0 12px rgba(253,5,2,0.15));
       }
-      30% {
-        transform: scale(1.06, 0.95) translateY(2px);
-        filter: drop-shadow(0 0 30px rgba(253,5,2,0.35));
+      40% {
+        transform: scale(1.05, 0.96) translateY(1px);
+        filter: drop-shadow(0 0 18px rgba(253,5,2,0.3));
       }
-      50% {
-        transform: scale(0.97, 1.04) translateY(-3px);
-        filter: drop-shadow(0 0 15px rgba(253,5,2,0.15));
+      60% {
+        transform: scale(0.97, 1.03) translateY(-2px);
+        filter: drop-shadow(0 0 10px rgba(253,5,2,0.12));
       }
-      70% {
-        transform: scale(1.03, 0.98) translateY(1px);
-        filter: drop-shadow(0 0 25px rgba(253,5,2,0.3));
-      }
+    }
+    @keyframes logoFade {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
     }
 
     /* Scroll indicator */
@@ -1804,6 +1804,38 @@
     let wheelScrollAccumulator = 0; // PRO: Accumulateur virtuel pour molette (technique Lenis/smooth-scroll)
     let lastScrollTime = 0; // Timestamp pour détection trackpad vs molette
 
+    // ═══════════════════════════════════════════════
+    // TOUCH SCROLL PRO — Variables et momentum
+    // (déclarées avant animate() pour éviter le temporal dead zone)
+    // ═══════════════════════════════════════════════
+    let touchLastY = null;
+    let touchLastTime = 0;
+    let touchVelocity = 0;         // Vélocité instantanée (px/ms)
+    let touchMomentum = 0;         // Momentum accumulé pour inertie
+    let touchActive = false;
+    const TOUCH_SENSITIVITY = 0.0012;  // Sensibilité directe du doigt
+    const TOUCH_MOMENTUM_DECAY = 0.92; // Friction: 0.92 = glisse bien, 0.85 = freine vite
+    const TOUCH_MOMENTUM_MIN = 0.0001; // Seuil d'arrêt du momentum
+    const TOUCH_VELOCITY_SMOOTHING = 0.4; // Lissage vélocité (0=brut, 1=très lissé)
+
+    function processTouchMomentum() {
+      if (touchActive || Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) return;
+
+      const scrollDelta = Math.abs(touchMomentum) * TOUCH_SENSITIVITY;
+
+      if (!isInDeadZone) {
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += scrollDelta;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= scrollDelta;
+        }
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+      }
+
+      touchMomentum *= TOUCH_MOMENTUM_DECAY; // Friction
+      if (Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) touchMomentum = 0;
+    }
+
     // Variables pour détection de reload des paramètres
     let lastReloadParams = {
       density: 0.6,
@@ -3188,20 +3220,7 @@
       targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
     }, { passive: false });
 
-    // ═══════════════════════════════════════════════
-    // TOUCH SCROLL PRO — Momentum + friction (modèle iOS-like)
-    // Sensation fluide, réponse immédiate, inertie naturelle
-    // ═══════════════════════════════════════════════
-    let touchLastY = null;
-    let touchLastTime = 0;
-    let touchVelocity = 0;         // Vélocité instantanée (px/ms)
-    let touchMomentum = 0;         // Momentum accumulé pour inertie
-    let touchActive = false;
-    const TOUCH_SENSITIVITY = 0.0012;  // Sensibilité directe du doigt
-    const TOUCH_MOMENTUM_DECAY = 0.92; // Friction: 0.92 = glisse bien, 0.85 = freine vite
-    const TOUCH_MOMENTUM_MIN = 0.0001; // Seuil d'arrêt du momentum
-    const TOUCH_VELOCITY_SMOOTHING = 0.4; // Lissage vélocité (0=brut, 1=très lissé)
-
+    // TOUCH SCROLL — Event listeners (variables et processTouchMomentum déclarés plus haut)
     window.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
       touchLastY = e.touches[0].clientY;
@@ -3256,26 +3275,6 @@
       touchActive = false;
       touchLastY = null;
     });
-
-    // Momentum tick intégré dans animate() — voir plus haut
-    // On ajoute le traitement dans la boucle principale
-    function processTouchMomentum() {
-      if (touchActive || Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) return;
-
-      const scrollDelta = Math.abs(touchMomentum) * TOUCH_SENSITIVITY;
-
-      if (!isInDeadZone) {
-        if (scrollPhase === 'zoomIn') {
-          targetZoomLevel += scrollDelta;
-        } else if (scrollPhase === 'zoomOut') {
-          targetZoomLevel -= scrollDelta;
-        }
-        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
-      }
-
-      touchMomentum *= TOUCH_MOMENTUM_DECAY; // Friction
-      if (Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) touchMomentum = 0;
-    }
 
     // Fonction partagée pour cycler le thème audio (clavier + bouton mobile)
     function cycleAudioTheme() {
