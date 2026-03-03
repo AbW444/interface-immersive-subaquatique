@@ -50,25 +50,29 @@
     .loading-logo {
       width: clamp(24px, 6vw, 40px);
       height: auto;
-      animation: logoBreathe 1.4s ease-in-out infinite, logoFade 1.4s ease-in-out infinite;
+      animation: logoBreathe 2.2s ease-in-out infinite, logoFade 2.2s ease-in-out infinite;
       filter: drop-shadow(0 0 12px rgba(253,5,2,0.2));
     }
     @keyframes logoBreathe {
       0%, 100% {
-        transform: scale(1) translateY(0);
+        transform: scale(1, 1);
         filter: drop-shadow(0 0 12px rgba(253,5,2,0.15));
       }
-      40% {
-        transform: scale(1.05, 0.96) translateY(1px);
-        filter: drop-shadow(0 0 18px rgba(253,5,2,0.3));
+      25% {
+        transform: scale(1.09, 0.93);
+        filter: drop-shadow(0 0 22px rgba(253,5,2,0.4));
       }
-      60% {
-        transform: scale(0.97, 1.03) translateY(-2px);
-        filter: drop-shadow(0 0 10px rgba(253,5,2,0.12));
+      50% {
+        transform: scale(0.94, 1.07);
+        filter: drop-shadow(0 0 8px rgba(253,5,2,0.1));
+      }
+      75% {
+        transform: scale(1.04, 0.97);
+        filter: drop-shadow(0 0 16px rgba(253,5,2,0.28));
       }
     }
     @keyframes logoFade {
-      0%, 100% { opacity: 0.4; }
+      0%, 100% { opacity: 0.35; }
       50% { opacity: 1; }
     }
 
@@ -818,12 +822,9 @@
       #scroll-indicator {
         bottom: 40px;
       }
-      /* Audio indicator adapté */
-      #audio-indicator {
-        top: 10px !important;
-        right: 10px !important;
-        font-size: 10px !important;
-      }
+      /* Audio: masquer icône musique sur mobile */
+      #audio-indicator { display: none !important; }
+      #mobile-audio-btn { display: none !important; }
     }
 
   </style>
@@ -1776,7 +1777,11 @@
       }
     }
 
-    preloadAllImages().then(onReady).catch(err => {
+    // Minimum 2.2s d'affichage du logo pour éviter l'effet "flash"
+    Promise.all([
+      preloadAllImages(),
+      new Promise(r => setTimeout(r, 2200))
+    ]).then(onReady).catch(err => {
       console.error('Erreur pré-chargement:', err);
       onReady();
     });
@@ -1958,28 +1963,33 @@
           color: 'rgba(80,160,140,0.7)'
         },
         2: {
-          name: 'Résonance 02 — Abyssale',
-          // Beaucoup plus grave, sub profond, tout étouffé
-          muffleFreq: 220,
-          droneFreqs: [36.71, 55], // D1, A1 — très grave
-          droneDetune: [-12, 0, 12],
+          name: 'Micro-Friction 02',
+          // Base similaire à 01, + couche krill/friction haute fréquence vers max zoom
+          muffleFreq: 450,
+          droneFreqs: [73.42, 110], // D2, A2 — même base que 01
+          droneDetune: [-8, 0, 8],
           droneType: 'sine',
-          droneVol: 0.144,
-          resoFreqs: [73.42, 110, 146.83], // D2, A2, D3
-          resoQ: 28,
-          resoVol: 0.03,
-          subFreq: 27.5, // A0 — infra
-          subVol: 0.28,
-          grainBand: [80, 280],
-          grainVol: 0.06,
-          breathRate: 0.04,
-          scrollBand: [200, 900],
+          droneVol: 0.09,
+          resoFreqs: [146.83, 220, 293.66, 440], // D3, A3, D4, A4
+          resoQ: 35,
+          resoVol: 0.025,
+          subFreq: 46.25, // Bb1
+          subVol: 0.14,
+          grainBand: [200, 600],
+          grainVol: 0.05,
+          breathRate: 0.06,
+          scrollBand: [350, 1400],
           scrollVol: 0.1,
-          warmDrive: 2.2,
-          reverbDecay: 1.8,
-          reverbDuration: 8,
-          freqRangeMultiplier: [1, 2.0], // ×1 → ×2 (octave: du très grave au grave)
-          color: 'rgba(40,90,120,0.7)'
+          warmDrive: 1.5,
+          reverbDecay: 2.0,
+          reverbDuration: 6,
+          freqRangeMultiplier: [1, 2.0], // ×1 → ×2
+          // Couche krill: friction haute fréquence — rappelle micro-organismes
+          krillFreqs: [3200, 4100, 5300, 6800, 7900], // Bandes très aiguës
+          krillQ: 30, // Filtres étroits = son tonal/grésillant
+          krillVol: 0.035,
+          krillThreshold: 0.4, // Émerge à partir de 40% du zoom
+          color: 'rgba(120,190,160,0.7)'
         },
         3: {
           name: 'Résonance 03 — Médium',
@@ -2349,6 +2359,45 @@
         transGain.gain.value = 0;
         transGain.connect(muffle);
 
+        // === KRILL / MICRO-FRICTION (thème 02): bruit rose filtré en bandes aiguës ===
+        let krillLayer = null;
+        if (T.krillFreqs) {
+          const krillGain = ctx.createGain();
+          krillGain.gain.value = 0;
+          const krillSrc = ctx.createBufferSource();
+          krillSrc.buffer = pinkBuf;
+          krillSrc.loop = true;
+
+          const krillFilters = T.krillFreqs.map(freq => {
+            const f = ctx.createBiquadFilter();
+            f.type = 'bandpass';
+            f.frequency.value = freq;
+            f.Q.value = T.krillQ || 30;
+            const g = ctx.createGain();
+            g.gain.value = 1 / T.krillFreqs.length;
+            krillSrc.connect(f);
+            f.connect(g);
+            g.connect(krillGain);
+            return { filter: f, gain: g, baseFreq: freq };
+          });
+
+          // LFO organique pour mouvement de l'essaim
+          const krillLfo = ctx.createOscillator();
+          krillLfo.type = 'sine';
+          krillLfo.frequency.value = 0.073; // ~14s — agitation micro-organismes
+          const krillLfoGain = ctx.createGain();
+          krillLfoGain.gain.value = 0;
+          krillLfo.connect(krillLfoGain);
+          krillLfoGain.connect(krillGain.gain);
+          krillLfo.start();
+
+          krillGain.connect(muffle);
+          krillSrc.start();
+
+          krillLayer = { gain: krillGain, src: krillSrc, filters: krillFilters,
+                         lfo: krillLfo, lfoGain: krillLfoGain };
+        }
+
         // Stocker toutes les couches
         layers = {
           drone: { gain: droneGain, oscs: droneOscs, filter: droneFilter,
@@ -2360,7 +2409,8 @@
           breath: { gain: breathGain, osc: breathOsc, ampGain: breathAmpGain,
                     lfo: breathLfo, lfoDepth: breathLfoDepth },
           scroll: { gain: scrollGain, src: scrollSrc, filter: scrollFilter },
-          trans: { gain: transGain, oscs: [] }
+          trans: { gain: transGain, oscs: [] },
+          krill: krillLayer
         };
       }
 
@@ -2403,6 +2453,14 @@
         // Transition
         layers.trans.oscs.forEach(o => { stop(o.osc); disc(o.osc); disc(o.gain); });
         disc(layers.trans.gain);
+
+        // Krill / Micro-friction
+        if (layers.krill) {
+          stop(layers.krill.src); disc(layers.krill.src);
+          layers.krill.filters.forEach(f => { disc(f.filter); disc(f.gain); });
+          stop(layers.krill.lfo); disc(layers.krill.lfo);
+          disc(layers.krill.lfoGain); disc(layers.krill.gain);
+        }
 
         layers = {};
       }
@@ -2551,6 +2609,19 @@
         );
         if (scrollVelocity < 0.001) {
           layers.scroll.gain.gain.setTargetAtTime(0, now, 0.25);
+        }
+
+        // === KRILL / MICRO-FRICTION (émerge vers max zoom) ===
+        if (layers.krill && T.krillFreqs) {
+          const kThresh = T.krillThreshold || 0.5;
+          const krillIntensity = Math.max(0, (progress - kThresh) / (1 - kThresh));
+          const kVol = (T.krillVol || 0.03) * krillIntensity * krillIntensity;
+          layers.krill.gain.gain.setTargetAtTime(kVol, now, 0.6);
+          layers.krill.lfoGain.gain.setTargetAtTime(kVol * 0.35, now, 0.4);
+          // Fréquences montent avec le zoom (plus aigu = plus microscopique)
+          layers.krill.filters.forEach(f => {
+            f.filter.frequency.setTargetAtTime(f.baseFreq * freqMultiplier, now, TAU);
+          });
         }
 
         // === TRANSITION IMAGE ===
@@ -3305,6 +3376,17 @@
         mobileBtn.addEventListener('click', cycleAudioTheme);
       }
     }
+
+    // Auto-démarrage thème audio 01 au premier geste utilisateur
+    let audioAutoStarted = false;
+    const autoStartAudio = () => {
+      if (audioAutoStarted) return;
+      audioAutoStarted = true;
+      cycleAudioTheme(); // Démarre thème 01
+    };
+    window.addEventListener('wheel', autoStartAudio, { once: true });
+    window.addEventListener('touchstart', autoStartAudio, { once: true });
+    window.addEventListener('click', autoStartAudio, { once: true });
 
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
