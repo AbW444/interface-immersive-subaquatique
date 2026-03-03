@@ -800,6 +800,13 @@
     <div class="hint-item"><span class="hint-key">Scroll</span> parcours</div>
     <div class="hint-item"><span class="hint-key">I</span> params</div>
     <div class="hint-item"><span class="hint-key">M</span> states</div>
+    <div class="hint-item"><span class="hint-key">S</span> son</div>
+  </div>
+
+  <!-- Indicateur audio -->
+  <div id="audio-indicator" style="position:fixed;top:16px;right:16px;z-index:60;display:none;align-items:center;gap:6px;padding:6px 12px;border-radius:16px;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.12);font-size:11px;color:rgba(255,255,255,0.5);font-family:'Roboto',sans-serif;letter-spacing:0.5px;transition:opacity 0.5s ease;">
+    <span id="audio-icon" style="font-size:14px;">&#9835;</span>
+    <span id="audio-label">OFF</span>
   </div>
 
   <!-- SCROLL CONFIG PANEL (Touche C) -->
@@ -1762,6 +1769,410 @@
       }
     };
 
+    /* ===============================================
+       MOTEUR AUDIO GÉNÉRATIF — Ambiance Sonore Procédurale
+       6 couches mappées aux paramètres visuels du parcours
+       =============================================== */
+    const AudioEngine = (() => {
+      let ctx = null; // AudioContext
+      let master = null; // Master gain
+      let isActive = false;
+      let isInitialized = false;
+
+      // Noeuds partagés
+      let convolver = null; // Reverb globale
+      let compressor = null; // Compression master
+
+      // === COUCHE 1: DRONE AMBIENT ===
+      // Fréquence fondamentale qui évolue avec le zoomLevel (voyage à travers les états)
+      // Technique: 3 oscillateurs désaccordés (unison) + filtre passe-bas
+      const drone = { oscs: [], gains: [], filter: null, masterGain: null };
+
+      // === COUCHE 2: TEXTURE GRANULAIRE / PROXIMITÉ ===
+      // Micro-grains sonores liés à la proximité caméra
+      // Plus on zoome, plus c'est dense et brillant (filtre s'ouvre)
+      const granular = { filter: null, masterGain: null, noiseSource: null, noiseGain: null };
+
+      // === COUCHE 3: BREATH / MOUVEMENT ===
+      // LFO qui pulse comme les particules respirent, mappé à movement
+      const breath = { osc: null, lfo: null, lfoGain: null, masterGain: null };
+
+      // === COUCHE 4: PROFONDEUR / SUB-BASS ===
+      // Sub-bass + largeur stéréo liés à disparity
+      const depth = { osc: null, masterGain: null, panner: null, lfo: null, lfoGain: null };
+
+      // === COUCHE 5: SCROLL TEXTURE ===
+      // Whoosh réactif à la vélocité du scroll (bruit filtré)
+      const scroll = { noiseSource: null, filter: null, masterGain: null };
+
+      // === COUCHE 6: TRANSITION IMAGE ===
+      // Changement harmonique lors du passage d'une image à l'autre
+      const transition = { oscs: [], masterGain: null };
+
+      // Gamme harmonique pour le drone (notes en Hz — La mineur naturel éthéré)
+      // A2, C3, E3, A3, C4, E4, A4
+      const SCALE = [110, 130.81, 164.81, 220, 261.63, 329.63, 440];
+
+      // Crée un buffer de bruit blanc réutilisable
+      function createNoiseBuffer(duration = 2) {
+        const length = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+      }
+
+      // Crée un buffer d'impulsion pour la reverb (réponse impulsionnelle synthétique)
+      function createReverbIR(duration = 3, decay = 2.5) {
+        const length = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = buffer.getChannelData(ch);
+          for (let i = 0; i < length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+          }
+        }
+        return buffer;
+      }
+
+      function init() {
+        if (isInitialized) return;
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Master chain: compressor → master gain → destination
+        compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -24;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 4;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.25;
+
+        master = ctx.createGain();
+        master.gain.value = 0; // Commence à 0, fade-in au démarrage
+
+        // Reverb convolver
+        convolver = ctx.createConvolver();
+        convolver.buffer = createReverbIR(3.5, 2.2);
+        const reverbGain = ctx.createGain();
+        reverbGain.gain.value = 0.3; // Wet/dry mix
+
+        // Routing: sources → compressor → [dry → master] + [wet → convolver → master]
+        compressor.connect(master);
+        compressor.connect(convolver);
+        convolver.connect(reverbGain);
+        reverbGain.connect(master);
+        master.connect(ctx.destination);
+
+        const noiseBuffer = createNoiseBuffer(2);
+
+        // --- COUCHE 1: DRONE AMBIENT ---
+        drone.masterGain = ctx.createGain();
+        drone.masterGain.gain.value = 0.12;
+        drone.filter = ctx.createBiquadFilter();
+        drone.filter.type = 'lowpass';
+        drone.filter.frequency.value = 400;
+        drone.filter.Q.value = 1.5;
+
+        // 3 oscillateurs désaccordés (unison pad)
+        const detuneValues = [-7, 0, 7]; // cents
+        for (let i = 0; i < 3; i++) {
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = SCALE[0]; // A2 = 110Hz
+          osc.detune.value = detuneValues[i];
+          const g = ctx.createGain();
+          g.gain.value = 0.33;
+          osc.connect(g);
+          g.connect(drone.filter);
+          osc.start();
+          drone.oscs.push(osc);
+          drone.gains.push(g);
+        }
+        // Ajouter une harmonique douce (quinte au dessus, très basse)
+        const droneHarmonic = ctx.createOscillator();
+        droneHarmonic.type = 'sine';
+        droneHarmonic.frequency.value = SCALE[0] * 1.5; // Quinte
+        droneHarmonic.detune.value = 3;
+        const dhGain = ctx.createGain();
+        dhGain.gain.value = 0.08;
+        droneHarmonic.connect(dhGain);
+        dhGain.connect(drone.filter);
+        droneHarmonic.start();
+        drone.oscs.push(droneHarmonic);
+        drone.gains.push(dhGain);
+
+        drone.filter.connect(drone.masterGain);
+        drone.masterGain.connect(compressor);
+
+        // --- COUCHE 2: TEXTURE GRANULAIRE / PROXIMITÉ ---
+        granular.masterGain = ctx.createGain();
+        granular.masterGain.gain.value = 0;
+        granular.filter = ctx.createBiquadFilter();
+        granular.filter.type = 'bandpass';
+        granular.filter.frequency.value = 800;
+        granular.filter.Q.value = 2.0;
+
+        // Bruit filtré comme base granulaire
+        granular.noiseSource = ctx.createBufferSource();
+        granular.noiseSource.buffer = noiseBuffer;
+        granular.noiseSource.loop = true;
+        granular.noiseGain = ctx.createGain();
+        granular.noiseGain.gain.value = 0.15;
+        granular.noiseSource.connect(granular.noiseGain);
+        granular.noiseGain.connect(granular.filter);
+        granular.filter.connect(granular.masterGain);
+        granular.masterGain.connect(compressor);
+        granular.noiseSource.start();
+
+        // --- COUCHE 3: BREATH / MOUVEMENT ---
+        breath.masterGain = ctx.createGain();
+        breath.masterGain.gain.value = 0;
+        breath.osc = ctx.createOscillator();
+        breath.osc.type = 'triangle';
+        breath.osc.frequency.value = SCALE[2]; // E3
+
+        // LFO pour moduler le volume (respiration)
+        breath.lfo = ctx.createOscillator();
+        breath.lfo.type = 'sine';
+        breath.lfo.frequency.value = 0.3; // Très lent: ~3.3s par cycle
+        breath.lfoGain = ctx.createGain();
+        breath.lfoGain.gain.value = 0; // Sera modulé par movement
+
+        // LFO → gain de l'oscillateur breath
+        const breathOscGain = ctx.createGain();
+        breathOscGain.gain.value = 0.1;
+        breath.osc.connect(breathOscGain);
+        breath.lfo.connect(breath.lfoGain);
+        breath.lfoGain.connect(breathOscGain.gain); // AM modulation
+        breathOscGain.connect(breath.masterGain);
+        breath.masterGain.connect(compressor);
+        breath.osc.start();
+        breath.lfo.start();
+
+        // --- COUCHE 4: PROFONDEUR / SUB-BASS ---
+        depth.masterGain = ctx.createGain();
+        depth.masterGain.gain.value = 0;
+        depth.osc = ctx.createOscillator();
+        depth.osc.type = 'sine';
+        depth.osc.frequency.value = 55; // A1 sub-bass
+        depth.panner = ctx.createStereoPanner();
+        depth.panner.pan.value = 0;
+
+        // LFO pour pan stéréo lent (sens de profondeur spatiale)
+        depth.lfo = ctx.createOscillator();
+        depth.lfo.type = 'sine';
+        depth.lfo.frequency.value = 0.08; // Très très lent: ~12.5s par cycle
+        depth.lfoGain = ctx.createGain();
+        depth.lfoGain.gain.value = 0; // Modulé par disparity
+
+        depth.lfo.connect(depth.lfoGain);
+        depth.lfoGain.connect(depth.panner.pan); // Pan auto
+
+        const depthOscGain = ctx.createGain();
+        depthOscGain.gain.value = 0.18;
+        depth.osc.connect(depthOscGain);
+        depthOscGain.connect(depth.panner);
+        depth.panner.connect(depth.masterGain);
+        depth.masterGain.connect(compressor);
+        depth.osc.start();
+        depth.lfo.start();
+
+        // --- COUCHE 5: SCROLL TEXTURE ---
+        scroll.masterGain = ctx.createGain();
+        scroll.masterGain.gain.value = 0;
+        scroll.filter = ctx.createBiquadFilter();
+        scroll.filter.type = 'bandpass';
+        scroll.filter.frequency.value = 2000;
+        scroll.filter.Q.value = 0.8;
+
+        scroll.noiseSource = ctx.createBufferSource();
+        scroll.noiseSource.buffer = noiseBuffer;
+        scroll.noiseSource.loop = true;
+        const scrollNoiseGain = ctx.createGain();
+        scrollNoiseGain.gain.value = 0.4;
+        scroll.noiseSource.connect(scrollNoiseGain);
+        scrollNoiseGain.connect(scroll.filter);
+        scroll.filter.connect(scroll.masterGain);
+        scroll.masterGain.connect(compressor);
+        scroll.noiseSource.start();
+
+        // --- COUCHE 6: TRANSITION IMAGE ---
+        transition.masterGain = ctx.createGain();
+        transition.masterGain.gain.value = 0;
+        transition.masterGain.connect(compressor);
+
+        isInitialized = true;
+      }
+
+      // Activation avec fade-in doux
+      function activate() {
+        if (!isInitialized) init();
+        if (ctx.state === 'suspended') ctx.resume();
+        isActive = true;
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0.7, now + 1.5);
+      }
+
+      // Désactivation avec fade-out
+      function deactivate() {
+        if (!isInitialized || !ctx) return;
+        isActive = false;
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0, now + 0.8);
+      }
+
+      function toggle() {
+        if (isActive) { deactivate(); } else { activate(); }
+        return isActive;
+      }
+
+      // ---- UPDATE PRINCIPAL: appelé à chaque frame d'animation ----
+      // Reçoit les paramètres visuels et met à jour toutes les couches sonores
+      function update(params) {
+        if (!isActive || !isInitialized) return;
+
+        const now = ctx.currentTime;
+        const {
+          zoomLevel: zoom,        // 0..0.826 — progression dans le parcours
+          movement,               // 0..0.5 — amplitude d'oscillation des particules
+          disparity,              // 0..2.77 — profondeur Z
+          scrollVelocity,         // vélocité instantanée du scroll
+          isTransitioning: trans, // transition image en cours
+          transitionProgress: tp  // progression de la transition 0..1
+        } = params;
+
+        // Progression normalisée 0..1 sur l'ensemble du parcours
+        const progress = zoom / MAX_ZOOM_LEVEL;
+        // Proximité inversée: 1 = très proche, 0 = très loin
+        const proximity = progress;
+
+        // === COUCHE 1: DRONE AMBIENT ===
+        // La fréquence fondamentale monte à travers la gamme au fil du parcours
+        const scaleIdx = progress * (SCALE.length - 1);
+        const fromIdx = Math.floor(scaleIdx);
+        const toIdx = Math.min(fromIdx + 1, SCALE.length - 1);
+        const frac = scaleIdx - fromIdx;
+        // Interpolation log pour les fréquences (perception logarithmique de la hauteur)
+        const targetFreq = SCALE[fromIdx] * Math.pow(SCALE[toIdx] / SCALE[fromIdx], frac);
+
+        // Rampe fluide pour le drone
+        drone.oscs[0].frequency.setTargetAtTime(targetFreq, now, 0.3);
+        drone.oscs[1].frequency.setTargetAtTime(targetFreq, now, 0.3);
+        drone.oscs[2].frequency.setTargetAtTime(targetFreq, now, 0.3);
+        drone.oscs[3].frequency.setTargetAtTime(targetFreq * 1.5, now, 0.3); // Quinte
+
+        // Le filtre s'ouvre progressivement (plus brillant en s'approchant)
+        const droneFilterFreq = 300 + proximity * 1200;
+        drone.filter.frequency.setTargetAtTime(droneFilterFreq, now, 0.2);
+
+        // Volume drone: légèrement plus fort au milieu du parcours
+        const droneVol = 0.08 + Math.sin(progress * Math.PI) * 0.06;
+        drone.masterGain.gain.setTargetAtTime(droneVol, now, 0.3);
+
+        // === COUCHE 2: TEXTURE GRANULAIRE / PROXIMITÉ ===
+        // Volume augmente avec la proximité (zoom avant = plus de texture)
+        const granVol = proximity * proximity * 0.12;
+        granular.masterGain.gain.setTargetAtTime(granVol, now, 0.15);
+
+        // Fréquence du filtre bandpass s'ouvre avec la proximité
+        const granFilterFreq = 400 + proximity * 3000;
+        granular.filter.frequency.setTargetAtTime(granFilterFreq, now, 0.1);
+        // Q diminue avec proximité (plus large = plus dense)
+        granular.filter.Q.setTargetAtTime(3.0 - proximity * 2.0, now, 0.1);
+
+        // === COUCHE 3: BREATH / MOUVEMENT ===
+        // S'active proportionnellement au paramètre movement des particules
+        const breathIntensity = movement / 0.5; // Normalisé 0..1
+        breath.masterGain.gain.setTargetAtTime(breathIntensity * 0.15, now, 0.2);
+
+        // Vitesse du LFO proportionnelle à movement (respiration plus rapide)
+        const breathLfoSpeed = 0.15 + breathIntensity * 0.8;
+        breath.lfo.frequency.setTargetAtTime(breathLfoSpeed, now, 0.3);
+
+        // Profondeur de modulation AM
+        breath.lfoGain.gain.setTargetAtTime(breathIntensity * 0.08, now, 0.2);
+
+        // La note de breath évolue aussi avec le parcours
+        const breathFreqIdx = Math.min(Math.floor(progress * 3), SCALE.length - 1);
+        breath.osc.frequency.setTargetAtTime(SCALE[breathFreqIdx] * 2, now, 0.5);
+
+        // === COUCHE 4: PROFONDEUR / SUB-BASS ===
+        // Volume proportionnel à disparity (plus il y a de profondeur Z, plus le sub est présent)
+        const depthIntensity = disparity / 2.77; // Normalisé 0..1
+        depth.masterGain.gain.setTargetAtTime(depthIntensity * 0.14, now, 0.25);
+
+        // Largeur stéréo proportionnelle à disparity
+        depth.lfoGain.gain.setTargetAtTime(depthIntensity * 0.6, now, 0.3);
+
+        // Fréquence sub descend avec la profondeur (plus profond = plus grave)
+        const subFreq = 65 - depthIntensity * 20; // 65Hz → 45Hz
+        depth.osc.frequency.setTargetAtTime(subFreq, now, 0.4);
+
+        // === COUCHE 5: SCROLL TEXTURE ===
+        // Réagit à la vélocité du scroll
+        const scrollIntensity = Math.min(scrollVelocity * 80, 1);
+        scroll.masterGain.gain.setTargetAtTime(scrollIntensity * 0.06, now, 0.05);
+
+        // Fréquence du filtre monte avec la vitesse (whoosh plus aigu = plus rapide)
+        const scrollFilterFreq = 800 + scrollIntensity * 4000;
+        scroll.filter.frequency.setTargetAtTime(scrollFilterFreq, now, 0.03);
+
+        // Decay rapide quand on arrête de scroller
+        if (scrollVelocity < 0.001) {
+          scroll.masterGain.gain.setTargetAtTime(0, now, 0.15);
+        }
+
+        // === COUCHE 6: TRANSITION IMAGE ===
+        if (trans && tp > 0) {
+          // Créer un accord de transition si pas encore actif
+          if (transition.oscs.length === 0) {
+            // Accord éthéré: utilise des harmoniques de la note courante
+            const baseFreq = targetFreq;
+            const chordFreqs = [baseFreq * 0.5, baseFreq * 0.75, baseFreq, baseFreq * 1.25];
+            for (let i = 0; i < chordFreqs.length; i++) {
+              const osc = ctx.createOscillator();
+              osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+              osc.frequency.value = chordFreqs[i];
+              osc.detune.value = (Math.random() - 0.5) * 15;
+              const g = ctx.createGain();
+              g.gain.value = 0;
+              osc.connect(g);
+              g.connect(transition.masterGain);
+              osc.start();
+              transition.oscs.push({ osc, gain: g });
+            }
+          }
+
+          // Volume en cloche: monte puis redescend sur la durée de la transition
+          const bellCurve = Math.sin(tp * Math.PI); // 0→1→0
+          transition.masterGain.gain.setTargetAtTime(bellCurve * 0.1, now, 0.1);
+          transition.oscs.forEach((o, i) => {
+            o.gain.gain.setTargetAtTime(bellCurve * 0.04, now, 0.1);
+          });
+        } else if (transition.oscs.length > 0) {
+          // Fin de transition: cleanup
+          transition.oscs.forEach(o => {
+            o.gain.gain.setTargetAtTime(0, now, 0.3);
+            setTimeout(() => { try { o.osc.stop(); } catch(e) {} }, 500);
+          });
+          transition.oscs = [];
+          transition.masterGain.gain.setTargetAtTime(0, now, 0.2);
+        }
+      }
+
+      return { init, activate, deactivate, toggle, update, get isActive() { return isActive; } };
+    })();
+
+    // État audio pour le suivi de vélocité du scroll
+    let audioScrollVelocity = 0;
+    let lastZoomForAudio = 0;
+
     // Fonction pour copier dans le presse-papiers
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).catch(() => {});
@@ -2116,6 +2527,19 @@
         debugElements.isTransitioning.textContent = isTransitioning.toString();
       }
 
+      // === MISE À JOUR AUDIO GÉNÉRATIF ===
+      // Calcule la vélocité du scroll et envoie tous les paramètres au moteur audio
+      audioScrollVelocity = Math.abs(zoomLevel - lastZoomForAudio);
+      lastZoomForAudio = zoomLevel;
+      AudioEngine.update({
+        zoomLevel,
+        movement: particleParams.movement,
+        disparity: currentAppliedDisparity,
+        scrollVelocity: audioScrollVelocity,
+        isTransitioning,
+        transitionProgress: window.lastTransitionProgress || 0
+      });
+
       // (Opt #5 - Early exit) Ne render que si nécessaire
       if (needsRender) {
         renderer.render(scene, camera);
@@ -2429,6 +2853,30 @@
       if (event.key === 'z' || event.key === 'Z') {
         const debugPanel = document.getElementById('debug-panel');
         debugPanel.classList.toggle('visible');
+      }
+
+      // Touche S - Activer/désactiver l'ambiance sonore
+      if (event.key === 's' || event.key === 'S') {
+        AudioEngine.toggle();
+        const indicator = document.getElementById('audio-indicator');
+        const label = document.getElementById('audio-label');
+        const icon = document.getElementById('audio-icon');
+        indicator.style.display = 'flex';
+        if (AudioEngine.isActive) {
+          label.textContent = 'ON';
+          icon.style.color = 'rgba(100,220,220,0.8)';
+          label.style.color = 'rgba(100,220,220,0.8)';
+        } else {
+          label.textContent = 'OFF';
+          icon.style.color = 'rgba(255,255,255,0.5)';
+          label.style.color = 'rgba(255,255,255,0.5)';
+        }
+        // Auto-hide l'indicateur après 3s
+        clearTimeout(indicator._hideTimeout);
+        indicator.style.opacity = '1';
+        indicator._hideTimeout = setTimeout(() => {
+          indicator.style.opacity = '0';
+        }, 3000);
       }
 
       // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
