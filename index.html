@@ -1905,118 +1905,131 @@
       // Toutes les couches audio
       let layers = {};
 
-      // ─── THÈMES SONORES ───
-      // Chaque thème définit une palette de fréquences, timbres et comportements
+      // ─── 5 PISTES "RÉSONANCE IMMERGÉE" ───
+      // Variantes: 01=original, 02=abyssale grave, 03=médium élargi, 04=cristallin aigu, 05=ultra-aigu spectral
+      // Toutes: scroll whoosh style Sonar (bande large, saturation tape)
+      // Mapping: max zoom = aigu, min zoom = grave (sur toutes les pistes)
       const THEMES = {
         1: {
-          name: 'Abyssal',
-          // Tim Hecker / Biosphere — drone étouffé, résonances profondes
-          muffleFreq: 280, // Très bas: tout semble sous l'eau
-          droneFreqs: [55, 82.41], // A1, E2 — grave profond
-          droneDetune: [-12, 0, 12],
-          droneType: 'sine',
-          droneVol: 0.09,
-          resoFreqs: [110, 165, 220], // Harmoniques naturelles
-          resoQ: 18, // Très résonant
-          resoVol: 0.025,
-          subFreq: 36.71, // D1 sub profond
-          subVol: 0.12,
-          grainBand: [120, 350], // Bande étroite, sourde
-          grainVol: 0.04,
-          breathRate: 0.08, // Très lent
-          scrollBand: [200, 600],
-          warmDrive: 1.8,
-          reverbDecay: 3.5,
-          reverbDuration: 6,
-          color: 'rgba(40,120,160,0.7)'
-        },
-        2: {
-          name: 'Mécanique intime',
-          // Nils Frahm / Ólafur Arnalds — felt piano, clicks mécaniques doux
-          muffleFreq: 450,
-          droneFreqs: [130.81, 196], // C3, G3 — tierce harmonique
-          droneDetune: [-5, 0, 5],
-          droneType: 'triangle',
-          droneVol: 0.06,
-          resoFreqs: [261.63, 392, 523.25], // C4, G4, C5
-          resoQ: 25, // Ping métallique doux
-          resoVol: 0.02,
-          subFreq: 65.41, // C2
-          subVol: 0.08,
-          grainBand: [300, 900],
-          grainVol: 0.03,
-          breathRate: 0.15,
-          scrollBand: [400, 1200],
-          warmDrive: 1.2,
-          reverbDecay: 2.8,
-          reverbDuration: 4.5,
-          color: 'rgba(180,140,90,0.7)'
-        },
-        3: {
-          name: 'Résonance immergée',
-          // Ryuichi Sakamoto "async" — harmoniques qui émergent du silence
+          name: 'Résonance 01',
+          // Original Résonance immergée — D2/A2, filtres Q=35 chantants
           muffleFreq: 350,
           droneFreqs: [73.42, 110], // D2, A2
           droneDetune: [-8, 0, 8],
           droneType: 'sine',
-          droneVol: 0.07,
+          droneVol: 0.14,
           resoFreqs: [146.83, 220, 293.66, 440], // D3, A3, D4, A4
-          resoQ: 35, // Très haut Q: chante
-          resoVol: 0.018,
+          resoQ: 35,
+          resoVol: 0.035,
           subFreq: 46.25, // Bb1
-          subVol: 0.1,
+          subVol: 0.2,
           grainBand: [180, 500],
-          grainVol: 0.035,
-          breathRate: 0.06, // Ultra lent
-          scrollBand: [250, 800],
-          warmDrive: 1.5,
+          grainVol: 0.07,
+          breathRate: 0.06,
+          scrollBand: [350, 1400], // Sonar-style: bande large
+          scrollVol: 0.12,
+          warmDrive: 1.8,
           reverbDecay: 2.0,
           reverbDuration: 7,
+          // Mapping grave→aigu: fréquences fondamentales à zoom=0 et zoom=max
+          freqRangeMultiplier: [1, 1.5], // ×1 → ×1.5 (quinte)
           color: 'rgba(80,160,140,0.7)'
         },
-        4: {
-          name: 'Sonar',
-          // Aphex Twin SAW2 / Boards of Canada — pings écho, bande dégradée
-          muffleFreq: 500,
-          droneFreqs: [98, 146.83], // G2, D3
-          droneDetune: [-15, 0, 15],
+        2: {
+          name: 'Résonance 02 — Abyssale',
+          // Beaucoup plus grave, sub profond, tout étouffé
+          muffleFreq: 220,
+          droneFreqs: [36.71, 55], // D1, A1 — très grave
+          droneDetune: [-12, 0, 12],
           droneType: 'sine',
-          droneVol: 0.05,
-          resoFreqs: [196, 293.66, 392], // G3, D4, G4
-          resoQ: 30,
-          resoVol: 0.022,
-          subFreq: 49, // G1
-          subVol: 0.09,
-          grainBand: [250, 700],
-          grainVol: 0.04,
-          breathRate: 0.12,
-          scrollBand: [350, 1000],
-          warmDrive: 2.2, // Plus de saturation tape
-          reverbDecay: 2.5,
-          reverbDuration: 5,
-          color: 'rgba(140,100,170,0.7)'
-        },
-        5: {
-          name: 'Flux thermique',
-          // Stars of the Lid / William Basinski — ultra lent, à peine perceptible
-          muffleFreq: 220, // Le plus étouffé
-          droneFreqs: [55, 73.42], // A1, D2
-          droneDetune: [-3, 0, 3],
-          droneType: 'sine',
-          droneVol: 0.11,
-          resoFreqs: [110, 146.83, 220], // A2, D3, A3
-          resoQ: 12, // Doux
-          resoVol: 0.015,
-          subFreq: 32.7, // C1 — infra-basse
-          subVol: 0.14,
-          grainBand: [80, 250],
-          grainVol: 0.025,
-          breathRate: 0.04, // Extrêmement lent (~25s par cycle)
-          scrollBand: [150, 400],
-          warmDrive: 1.4,
+          droneVol: 0.18,
+          resoFreqs: [73.42, 110, 146.83], // D2, A2, D3
+          resoQ: 28,
+          resoVol: 0.03,
+          subFreq: 27.5, // A0 — infra
+          subVol: 0.28,
+          grainBand: [80, 280],
+          grainVol: 0.06,
+          breathRate: 0.04,
+          scrollBand: [200, 900],
+          scrollVol: 0.1,
+          warmDrive: 2.2,
           reverbDecay: 1.8,
           reverbDuration: 8,
-          color: 'rgba(100,80,60,0.7)'
+          freqRangeMultiplier: [1, 2.0], // ×1 → ×2 (octave: du très grave au grave)
+          color: 'rgba(40,90,120,0.7)'
+        },
+        3: {
+          name: 'Résonance 03 — Médium',
+          // Registre médium élargi, résonances plus présentes
+          muffleFreq: 500,
+          droneFreqs: [110, 164.81], // A2, E3
+          droneDetune: [-6, 0, 6],
+          droneType: 'sine',
+          droneVol: 0.12,
+          resoFreqs: [220, 329.63, 440, 659.25], // A3, E4, A4, E5
+          resoQ: 40, // Encore plus chantant
+          resoVol: 0.04,
+          subFreq: 55, // A1
+          subVol: 0.16,
+          grainBand: [250, 800],
+          grainVol: 0.06,
+          breathRate: 0.08,
+          scrollBand: [400, 1800],
+          scrollVol: 0.14,
+          warmDrive: 1.5,
+          reverbDecay: 2.2,
+          reverbDuration: 6,
+          freqRangeMultiplier: [1, 1.8], // ×1 → ×1.8 (monte bien dans les aigus)
+          color: 'rgba(100,140,170,0.7)'
+        },
+        4: {
+          name: 'Résonance 04 — Cristallin',
+          // Registre aigu, résonances qui brillent, harmoniques hautes
+          muffleFreq: 700,
+          droneFreqs: [164.81, 246.94], // E3, B3
+          droneDetune: [-5, 0, 5],
+          droneType: 'sine',
+          droneVol: 0.1,
+          resoFreqs: [329.63, 493.88, 659.25, 987.77], // E4, B4, E5, B5
+          resoQ: 45, // Très haut: chante et scintille
+          resoVol: 0.035,
+          subFreq: 82.41, // E2
+          subVol: 0.12,
+          grainBand: [400, 1400],
+          grainVol: 0.05,
+          breathRate: 0.1,
+          scrollBand: [500, 2500],
+          scrollVol: 0.15,
+          warmDrive: 1.3,
+          reverbDecay: 2.5,
+          reverbDuration: 6.5,
+          freqRangeMultiplier: [1, 2.0], // ×1 → ×2 (monte haut)
+          color: 'rgba(140,180,200,0.7)'
+        },
+        5: {
+          name: 'Résonance 05 — Spectral',
+          // Ultra-aigu, presque supra, harmoniques cristallines, sub contrastant
+          muffleFreq: 1000,
+          droneFreqs: [246.94, 369.99], // B3, F#4
+          droneDetune: [-4, 0, 4],
+          droneType: 'triangle',
+          droneVol: 0.08,
+          resoFreqs: [493.88, 739.99, 987.77, 1479.98], // B4, F#5, B5, F#6
+          resoQ: 50, // Maximum: scintillement spectral
+          resoVol: 0.03,
+          subFreq: 61.74, // B1 — contraste grave/aigu
+          subVol: 0.14,
+          grainBand: [600, 2400],
+          grainVol: 0.04,
+          breathRate: 0.12,
+          scrollBand: [700, 3500],
+          scrollVol: 0.16,
+          warmDrive: 1.2,
+          reverbDecay: 2.8,
+          reverbDuration: 5.5,
+          freqRangeMultiplier: [1, 2.5], // ×1 → ×2.5 (couvre tout le spectre)
+          color: 'rgba(170,200,220,0.7)'
         }
       };
 
@@ -2111,9 +2124,9 @@
         warmth.oversample = '2x';
 
         compressor = ctx.createDynamicsCompressor();
-        compressor.threshold.value = -18;
-        compressor.knee.value = 20;
-        compressor.ratio.value = 3;
+        compressor.threshold.value = -12;
+        compressor.knee.value = 16;
+        compressor.ratio.value = 3.5;
         compressor.attack.value = 0.08; // Lent: préserve les transitoires
         compressor.release.value = 0.4;
 
@@ -2403,13 +2416,13 @@
             const n = ctx.currentTime;
             master.gain.cancelScheduledValues(n);
             master.gain.setValueAtTime(0, n);
-            master.gain.linearRampToValueAtTime(0.55, n + 2.0);
+            master.gain.linearRampToValueAtTime(1.6, n + 2.0);
           }, 700);
         } else {
           buildTheme(currentTheme);
           master.gain.cancelScheduledValues(now);
           master.gain.setValueAtTime(0, now);
-          master.gain.linearRampToValueAtTime(0.55, now + 2.5);
+          master.gain.linearRampToValueAtTime(1.6, now + 2.5);
         }
 
         isActive = true;
@@ -2429,6 +2442,7 @@
           movement,
           disparity,
           scrollVelocity,
+          scrollDirection = 1, // 1=avance, -1=recule
           isTransitioning: trans,
           transitionProgress: tp
         } = params;
@@ -2439,66 +2453,80 @@
         // Constante de temps longue pour transitions ultra-fluides (organique)
         const TAU = 0.8;
 
+        // === MAPPING GRAVE → AIGU ===
+        // freqRangeMultiplier[0] à zoom=0, freqRangeMultiplier[1] à zoom=max
+        const fRange = T.freqRangeMultiplier || [1, 1.5];
+        const freqMultiplier = fRange[0] + progress * (fRange[1] - fRange[0]);
+
         // === DRONE ===
-        // Fréquence monte subtilement avec le parcours (max +quarte au sommet)
-        const freqMultiplier = 1 + progress * 0.33; // ×1 → ×1.33
         layers.drone.oscs.forEach(o => {
           o.osc.frequency.setTargetAtTime(o.baseFreq * freqMultiplier, now, TAU);
         });
         // Volume en arc doux
         const droneVol = T.droneVol * (0.6 + Math.sin(progress * Math.PI) * 0.4);
         layers.drone.gain.gain.setTargetAtTime(droneVol, now, TAU);
-        // Filtre drone s'ouvre légèrement avec proximité
-        const dFilterF = T.muffleFreq * 0.6 + proximity * T.muffleFreq * 0.5;
+        // Filtre drone s'ouvre avec le parcours (grave=étouffé, aigu=ouvert)
+        const dFilterF = T.muffleFreq * 0.5 + proximity * T.muffleFreq * 0.8;
         layers.drone.filter.frequency.setTargetAtTime(dFilterF, now, 0.5);
 
         // === RÉSONANCES ===
-        // Volume émerge avec le parcours (harmoniques qui apparaissent)
-        const resoVol = T.resoVol * proximity * (0.5 + Math.sin(progress * Math.PI * 2) * 0.5);
+        // Les résonances montent aussi avec le freqMultiplier
+        const resoVol = T.resoVol * (0.3 + proximity * 0.7) *
+                         (0.5 + Math.sin(progress * Math.PI * 2) * 0.5);
         layers.reso.gain.gain.setTargetAtTime(resoVol, now, TAU);
-        // Sweep subtil des fréquences de résonance
         const resoShift = 1 + Math.sin(now * 0.013 * Math.PI * 2) * 0.08;
         layers.reso.filters.forEach(f => {
           f.filter.frequency.setTargetAtTime(f.baseFreq * resoShift * freqMultiplier, now, 1.2);
         });
 
         // === SUB-BASS ===
-        // Monte avec disparity (profondeur = basse)
         const depthNorm = disparity / 2.77;
         const subVol = T.subVol * depthNorm * (0.4 + proximity * 0.6);
         layers.sub.gain.gain.setTargetAtTime(subVol, now, TAU);
-        // Largeur stéréo proportionnelle à la profondeur
         layers.sub.panDepth.gain.setTargetAtTime(depthNorm * 0.5, now, 0.6);
-        // Fréquence descend avec profondeur
+        // Sub descend avec profondeur
         const subF = T.subFreq * (1 - depthNorm * 0.15);
         layers.sub.osc.frequency.setTargetAtTime(subF, now, TAU);
 
         // === TEXTURE GRANULAIRE ===
-        // Densité augmente avec proximité (zoom avant = plus de texture)
         const grainVol = T.grainVol * proximity * proximity;
         layers.grain.gain.gain.setTargetAtTime(grainVol, now, 0.4);
-        // Bande s'ouvre avec proximité
+        // Bande centrée monte avec le parcours
         const gCenter = T.grainBand[0] + proximity * (T.grainBand[1] - T.grainBand[0]);
-        layers.grain.filter.frequency.setTargetAtTime(gCenter, now, 0.3);
+        layers.grain.filter.frequency.setTargetAtTime(gCenter * freqMultiplier * 0.7, now, 0.3);
 
         // === BREATH / MOUVEMENT ===
-        // S'active proportionnellement au movement des particules
         const breathInt = movement / 0.5;
-        layers.breath.gain.gain.setTargetAtTime(breathInt * 0.12, now, 0.5);
+        layers.breath.gain.gain.setTargetAtTime(breathInt * 0.15, now, 0.5);
         layers.breath.lfo.frequency.setTargetAtTime(
           T.breathRate + breathInt * T.breathRate * 3, now, 0.6
         );
-        layers.breath.lfoDepth.gain.setTargetAtTime(breathInt * 0.06, now, 0.4);
-        // Note évolue avec le parcours
+        layers.breath.lfoDepth.gain.setTargetAtTime(breathInt * 0.08, now, 0.4);
         layers.breath.osc.frequency.setTargetAtTime(
           T.droneFreqs[0] * 2 * freqMultiplier, now, TAU
         );
 
-        // === SCROLL WHOOSH ===
+        // === SCROLL WHOOSH (style Sonar, directionnel) ===
         const scrollInt = Math.min(scrollVelocity * 60, 1);
-        layers.scroll.gain.gain.setTargetAtTime(scrollInt * 0.05, now, 0.04);
-        const sFreq = T.scrollBand[0] + scrollInt * (T.scrollBand[1] - T.scrollBand[0]);
+        const sVol = (T.scrollVol || 0.12) * scrollInt;
+        layers.scroll.gain.gain.setTargetAtTime(sVol, now, 0.04);
+
+        // DIRECTIONNEL: avancer = pitch monte, reculer = pitch descend
+        const scrollBase = T.scrollBand[0];
+        const scrollRange = T.scrollBand[1] - T.scrollBand[0];
+        let sFreq;
+        if (scrollDirection > 0) {
+          // Avancer: fréquence monte avec l'intensité (whoosh ascendant)
+          sFreq = scrollBase + scrollInt * scrollRange;
+        } else {
+          // Reculer: fréquence descend (whoosh descendant, plus sourd)
+          sFreq = scrollBase + scrollRange * 0.6 - scrollInt * scrollRange * 0.4;
+        }
         layers.scroll.filter.frequency.setTargetAtTime(sFreq, now, 0.03);
+        // Q légèrement différent selon la direction (avant=serré, arrière=large)
+        layers.scroll.filter.Q.setTargetAtTime(
+          scrollDirection > 0 ? 1.2 : 0.5, now, 0.05
+        );
         if (scrollVelocity < 0.001) {
           layers.scroll.gain.gain.setTargetAtTime(0, now, 0.25);
         }
@@ -2909,14 +2937,18 @@
       }
 
       // === MISE À JOUR AUDIO GÉNÉRATIF ===
-      // Calcule la vélocité du scroll et envoie tous les paramètres au moteur audio
-      audioScrollVelocity = Math.abs(zoomLevel - lastZoomForAudio);
+      // Calcule vélocité + direction du scroll pour le moteur audio
+      const zoomDelta = zoomLevel - lastZoomForAudio;
+      audioScrollVelocity = Math.abs(zoomDelta);
+      // scrollDirection: 1 = avance (zoom in), -1 = recule (zoom out)
+      const audioScrollDirection = zoomDelta >= 0 ? 1 : -1;
       lastZoomForAudio = zoomLevel;
       AudioEngine.update({
         zoomLevel,
         movement: particleParams.movement,
         disparity: currentAppliedDisparity,
         scrollVelocity: audioScrollVelocity,
+        scrollDirection: audioScrollDirection,
         isTransitioning,
         transitionProgress: window.lastTransitionProgress || 0
       });
