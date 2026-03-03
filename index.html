@@ -47,26 +47,29 @@
       opacity: 0;
       pointer-events: none;
     }
-    .loading-title {
-      font-size: clamp(18px, 4vw, 32px);
-      font-weight: 700;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-      color: #fff;
-      margin-bottom: 40px;
+    .loading-logo {
+      width: clamp(48px, 12vw, 80px);
+      height: auto;
+      animation: logoBreathe 2.4s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px rgba(253,5,2,0.25));
     }
-    .loading-bar-track {
-      width: min(280px, 60vw);
-      height: 2px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 1px;
-      overflow: hidden;
-    }
-    .loading-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: #fff;
-      transition: width 0.3s ease;
+    @keyframes logoBreathe {
+      0%, 100% {
+        transform: scale(1) translateY(0);
+        filter: drop-shadow(0 0 20px rgba(253,5,2,0.2));
+      }
+      30% {
+        transform: scale(1.06, 0.95) translateY(2px);
+        filter: drop-shadow(0 0 30px rgba(253,5,2,0.35));
+      }
+      50% {
+        transform: scale(0.97, 1.04) translateY(-3px);
+        filter: drop-shadow(0 0 15px rgba(253,5,2,0.15));
+      }
+      70% {
+        transform: scale(1.03, 0.98) translateY(1px);
+        filter: drop-shadow(0 0 25px rgba(253,5,2,0.3));
+      }
     }
 
     /* Scroll indicator */
@@ -94,9 +97,11 @@
       0%, 100% { opacity: 0.35; }
       50% { opacity: 0.85; }
     }
-    #scroll-indicator svg {
-      width: 24px;
-      height: 38px;
+    #scroll-indicator .scroll-desktop { width: 24px; height: 38px; }
+    #scroll-indicator .scroll-mobile { width: 28px; height: 44px; display: none; }
+    @media (pointer: coarse), (max-width: 768px) {
+      #scroll-indicator .scroll-desktop { display: none; }
+      #scroll-indicator .scroll-mobile { display: block; }
     }
 
     /* ===============================================
@@ -771,26 +776,91 @@
       background: #33dddd;
     }
 
+    /* ═══════════════════════════════════════════════
+       RESPONSIVE MOBILE
+       ═══════════════════════════════════════════════ */
+    @media (max-width: 768px), (pointer: coarse) {
+      /* Panneaux: plein écran mobile au lieu de flottants */
+      #settings-panel {
+        top: 0; right: 0; bottom: 0;
+        width: 100%;
+        max-width: 320px;
+        border-radius: 0;
+        border-left: 1px solid rgba(255,255,255,0.1);
+        max-height: 100vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #ux-states-panel {
+        top: 0; left: 0; bottom: 0;
+        width: 100%;
+        max-width: 320px;
+        border-radius: 0;
+        max-height: 100vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #scroll-config-panel {
+        top: auto; bottom: 0; left: 0; right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 12px 12px 0 0;
+        max-height: 60vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      #debug-panel {
+        top: auto; bottom: 0; left: 0;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+      }
+      /* Scroll indicator plus grand sur mobile */
+      #scroll-indicator {
+        bottom: 40px;
+      }
+      /* Audio indicator adapté */
+      #audio-indicator {
+        top: 10px !important;
+        right: 10px !important;
+        font-size: 10px !important;
+      }
+    }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <!-- Loading screen -->
   <div id="loading-screen">
-    <div class="loading-title">Photographic Volume</div>
-    <div class="loading-bar-track">
-      <div class="loading-bar-fill" id="loading-bar"></div>
-    </div>
+    <img class="loading-logo" src="Ressources/logo.svg" alt="">
   </div>
 
-  <!-- Keyboard hints (shown after load, fades out) -->
-  <!-- Scroll indicator (mouse icon + dot animation) -->
+  <!-- Scroll / swipe indicator (adaptatif desktop/mobile) -->
   <div id="scroll-indicator">
-    <svg viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Desktop: mouse icon -->
+    <svg class="scroll-desktop" viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="1" y="1" width="22" height="36" rx="11" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-      <circle id="scroll-dot" cx="12" cy="10" r="2.5" fill="rgba(255,255,255,0.5)">
+      <circle cx="12" cy="10" r="2.5" fill="rgba(255,255,255,0.5)">
         <animate attributeName="cy" values="10;26;10" dur="2.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
         <animate attributeName="opacity" values="0.7;0.3;0.7" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+    <!-- Mobile: swipe up gesture -->
+    <svg class="scroll-mobile" viewBox="0 0 28 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Finger circle -->
+      <circle cx="14" cy="30" r="7" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none"/>
+      <circle cx="14" cy="30" r="2" fill="rgba(255,255,255,0.4)"/>
+      <!-- Arrow up -->
+      <path d="M14 20 L14 6" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round">
+        <animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite"/>
+      </path>
+      <path d="M10 10 L14 5 L18 10" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite"/>
+      </path>
+      <!-- Finger motion indicator -->
+      <circle cx="14" cy="30" r="7" stroke="rgba(255,255,255,0.15)" stroke-width="1" fill="none">
+        <animate attributeName="cy" values="30;18" dur="2s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1"/>
+        <animate attributeName="opacity" values="0.3;0" dur="2s" repeatCount="indefinite"/>
       </circle>
     </svg>
   </div>
@@ -800,6 +870,9 @@
     <span id="audio-icon" style="font-size:13px;opacity:0.6;">&#9835;</span>
     <span id="audio-label">OFF</span>
   </div>
+
+  <!-- Mobile: bouton audio flottant (pas de clavier sur mobile) -->
+  <button id="mobile-audio-btn" style="display:none;position:fixed;bottom:16px;right:16px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.5);color:rgba(255,255,255,0.45);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">&#9835;</button>
 
   <!-- SCROLL CONFIG PANEL (Touche C) -->
   <div id="scroll-config-panel">
@@ -1108,21 +1181,32 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
+    // ═══════════════════════════════════════════════
+    // DÉTECTION MOBILE + ADAPTATION QUALITÉ
+    // ═══════════════════════════════════════════════
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                     || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+    const isPortrait = window.innerHeight > window.innerWidth;
+
     // Initialisation de la scène
     const scene = new THREE.Scene();
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(
+      isMobile && isPortrait ? 65 : 75, // FOV réduit en portrait = moins de distorsion
+      window.innerWidth / window.innerHeight, 0.1, 1000
+    );
 
     // Créer le renderer avec gestion d'erreur
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: !isMobile, // Désactiver AA sur mobile pour perf
         alpha: false,
         preserveDrawingBuffer: false,
         powerPreference: "high-performance"
       });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      // Mobile: limiter pixelRatio à 2 (au-delà = gaspillage GPU)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 2 : 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
     } catch (error) {
@@ -1290,13 +1374,17 @@
     };
     let imagesPreloaded = false;
 
-    // Constantes de résolution
-    const TARGET_WIDTH = 1720;
-    const TARGET_HEIGHT = 880;
+    // Résolution adaptée: mobile portrait = format vertical, desktop = paysage large
+    // Mobile: résolution réduite pour performance (moins de particules = plus fluide)
+    const TARGET_WIDTH = isMobile
+      ? (isPortrait ? 640 : 960)
+      : 1720;
+    const TARGET_HEIGHT = isMobile
+      ? (isPortrait ? 960 : 640)
+      : 880;
 
     // Pré-charger toutes les images au démarrage
     function preloadAllImages() {
-      const loadingBar = document.getElementById('loading-bar');
       const targetWidth = TARGET_WIDTH;
       const targetHeight = TARGET_HEIGHT;
       const loadPromises = [];
@@ -1313,27 +1401,45 @@
             tempCanvas.height = targetHeight;
             const tempContext = tempCanvas.getContext('2d');
 
-            // Calculer le ratio pour rogner (crop) au lieu d'étirer
+            // Mobile portrait: "contain" (photo entière visible, bandes noires)
+            // Desktop/paysage: "cover" (crop pour remplir)
             const srcWidth = texture.image.width;
             const srcHeight = texture.image.height;
             const targetRatio = targetWidth / targetHeight;
             const srcRatio = srcWidth / srcHeight;
 
             let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+            let drawX = 0, drawY = 0, drawW = targetWidth, drawH = targetHeight;
 
-            if (srcRatio > targetRatio) {
-              cropWidth = srcHeight * targetRatio;
-              cropX = (srcWidth - cropWidth) / 2;
+            if (isMobile && isPortrait) {
+              // CONTAIN: la photo entière est visible, centrée
+              tempContext.fillStyle = '#000';
+              tempContext.fillRect(0, 0, targetWidth, targetHeight);
+              if (srcRatio > targetRatio) {
+                drawW = targetWidth;
+                drawH = targetWidth / srcRatio;
+                drawY = (targetHeight - drawH) / 2;
+              } else {
+                drawH = targetHeight;
+                drawW = targetHeight * srcRatio;
+                drawX = (targetWidth - drawW) / 2;
+              }
             } else {
-              cropHeight = srcWidth / targetRatio;
-              cropY = (srcHeight - cropHeight) / 2;
+              // COVER: crop centré pour remplir
+              if (srcRatio > targetRatio) {
+                cropWidth = srcHeight * targetRatio;
+                cropX = (srcWidth - cropWidth) / 2;
+              } else {
+                cropHeight = srcWidth / targetRatio;
+                cropY = (srcHeight - cropHeight) / 2;
+              }
             }
 
             // Dessiner et extraire ImageData
             tempContext.drawImage(
               texture.image,
               cropX, cropY, cropWidth, cropHeight,
-              0, 0, targetWidth, targetHeight
+              drawX, drawY, drawW, drawH
             );
             const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
 
@@ -1345,11 +1451,11 @@
             colorCache.set(idx, colors);
 
             loadedCount++;
-            if (loadingBar) loadingBar.style.width = `${loadedCount / maxImageIndex * 100}%`;
+
             resolve({ success: true, index: idx });
           }, undefined, (error) => {
             loadedCount++;
-            if (loadingBar) loadingBar.style.width = `${loadedCount / maxImageIndex * 100}%`;
+
             reject({ success: false, index: idx, error });
           });
         });
@@ -1423,7 +1529,8 @@
       // Fonction interne pour construire la géométrie à partir d'ImageData
       function buildGeometry(imgData) {
 
-        const scaleFactor = 50;
+        // ScaleFactor adapté: mobile portrait = plus petit pour remplir l'écran
+        const scaleFactor = isMobile ? (isPortrait ? 38 : 45) : 50;
         const particleGeometry = new THREE.BufferGeometry();
 
         // Utiliser la texture cachée au lieu de la recréer
@@ -2477,6 +2584,9 @@
         needsResizeRender = false;
       }
 
+      // TOUCH MOMENTUM: inertie naturelle après le lâcher du doigt
+      processTouchMomentum();
+
       // PRO WHEEL SMOOTHING: Accumulateur virtuel avec lerp adaptatif (technique Lenis)
       // Convertit les clics discrets de molette en mouvement fluide continu
       if (Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
@@ -2821,8 +2931,12 @@
     // Gestion du redimensionnement
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
+      // Adapter FOV si rotation d'orientation mobile
+      if (isMobile) {
+        camera.fov = window.innerHeight > window.innerWidth ? 65 : 75;
+      }
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 2 : 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       needsResizeRender = true;
     });
@@ -2865,7 +2979,7 @@
     // Configuration par défaut (valeurs optimisées selon recherche UX 2025)
     const scrollConfig = {
       trackpad: {
-        sensitivity: 0.000334, // Augmenté de 25% pour trackpad plus réactif
+        sensitivity: 0.000450, // Sensibilité trackpad augmentée
         threshold: 70,         // Seuil de détection trackpad
         frequency: 39          // Fréquence de détection trackpad
       },
@@ -3042,28 +3156,47 @@
       targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
     }, { passive: false });
 
-    // Support tactile — le swipe vertical produit le même effet que le scroll
-    let touchStartY = null;
-    let lastTouchY = null;
+    // ═══════════════════════════════════════════════
+    // TOUCH SCROLL PRO — Momentum + friction (modèle iOS-like)
+    // Sensation fluide, réponse immédiate, inertie naturelle
+    // ═══════════════════════════════════════════════
+    let touchLastY = null;
+    let touchLastTime = 0;
+    let touchVelocity = 0;         // Vélocité instantanée (px/ms)
+    let touchMomentum = 0;         // Momentum accumulé pour inertie
+    let touchActive = false;
+    const TOUCH_SENSITIVITY = 0.0012;  // Sensibilité directe du doigt
+    const TOUCH_MOMENTUM_DECAY = 0.92; // Friction: 0.92 = glisse bien, 0.85 = freine vite
+    const TOUCH_MOMENTUM_MIN = 0.0001; // Seuil d'arrêt du momentum
+    const TOUCH_VELOCITY_SMOOTHING = 0.4; // Lissage vélocité (0=brut, 1=très lissé)
 
     window.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        touchStartY = e.touches[0].clientY;
-        lastTouchY = touchStartY;
-      }
+      if (e.touches.length !== 1) return;
+      touchLastY = e.touches[0].clientY;
+      touchLastTime = performance.now();
+      touchVelocity = 0;
+      touchMomentum = 0; // Couper l'inertie immédiatement (sensation de contrôle)
+      touchActive = true;
     }, { passive: false });
 
     window.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      if (e.touches.length !== 1 || lastTouchY === null) return;
+      if (!touchActive || e.touches.length !== 1 || touchLastY === null) return;
 
       const currentY = e.touches[0].clientY;
-      const deltaY = Math.abs(currentY - lastTouchY);
-      lastTouchY = currentY;
+      const now = performance.now();
+      const dt = Math.max(1, now - touchLastTime);
+      const deltaY = Math.abs(currentY - touchLastY);
 
-      if (deltaY < 1) return;
+      if (deltaY < 0.5) return;
 
-      const scrollDelta = deltaY * scrollConfig.trackpad.sensitivity * 3;
+      // Vélocité lissée (évite les saccades)
+      const instantVelocity = deltaY / dt;
+      touchVelocity = touchVelocity * TOUCH_VELOCITY_SMOOTHING +
+                       instantVelocity * (1 - TOUCH_VELOCITY_SMOOTHING);
+
+      // Scroll direct proportionnel au déplacement du doigt
+      const scrollDelta = deltaY * TOUCH_SENSITIVITY;
 
       if (isInDeadZone) {
         scrollDeadZoneAccumulator += scrollDelta;
@@ -3077,15 +3210,80 @@
         } else if (scrollPhase === 'zoomOut') {
           targetZoomLevel -= scrollDelta;
         }
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
       }
 
-      targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+      touchLastY = currentY;
+      touchLastTime = now;
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
-      touchStartY = null;
-      lastTouchY = null;
+      if (!touchActive) return;
+      // Lancer le momentum basé sur la dernière vélocité
+      touchMomentum = touchVelocity * 8; // Amplification de l'inertie
+      touchActive = false;
+      touchLastY = null;
     });
+
+    // Momentum tick intégré dans animate() — voir plus haut
+    // On ajoute le traitement dans la boucle principale
+    function processTouchMomentum() {
+      if (touchActive || Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) return;
+
+      const scrollDelta = Math.abs(touchMomentum) * TOUCH_SENSITIVITY;
+
+      if (!isInDeadZone) {
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += scrollDelta;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= scrollDelta;
+        }
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+      }
+
+      touchMomentum *= TOUCH_MOMENTUM_DECAY; // Friction
+      if (Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) touchMomentum = 0;
+    }
+
+    // Fonction partagée pour cycler le thème audio (clavier + bouton mobile)
+    function cycleAudioTheme() {
+      const result = AudioEngine.cycle();
+      const indicator = document.getElementById('audio-indicator');
+      const label = document.getElementById('audio-label');
+      const icon = document.getElementById('audio-icon');
+      const mobileBtn = document.getElementById('mobile-audio-btn');
+      if (result.active) {
+        label.textContent = result.theme + '/5 ' + result.name;
+        icon.style.color = result.color || 'rgba(100,220,220,0.7)';
+        label.style.color = 'rgba(255,255,255,0.55)';
+        if (mobileBtn) {
+          mobileBtn.style.color = result.color || 'rgba(100,220,220,0.7)';
+          mobileBtn.style.borderColor = result.color || 'rgba(100,220,220,0.3)';
+        }
+      } else {
+        label.textContent = 'OFF';
+        icon.style.color = 'rgba(255,255,255,0.35)';
+        label.style.color = 'rgba(255,255,255,0.35)';
+        if (mobileBtn) {
+          mobileBtn.style.color = 'rgba(255,255,255,0.45)';
+          mobileBtn.style.borderColor = 'rgba(255,255,255,0.15)';
+        }
+      }
+      clearTimeout(indicator._hideTimeout);
+      indicator.style.opacity = '1';
+      indicator._hideTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 3500);
+    }
+
+    // Mobile: afficher le bouton audio et le connecter
+    if (isMobile) {
+      const mobileBtn = document.getElementById('mobile-audio-btn');
+      if (mobileBtn) {
+        mobileBtn.style.display = 'flex';
+        mobileBtn.style.alignItems = 'center';
+        mobileBtn.style.justifyContent = 'center';
+        mobileBtn.addEventListener('click', cycleAudioTheme);
+      }
+    }
 
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
@@ -3126,26 +3324,9 @@
         debugPanel.classList.toggle('visible');
       }
 
-      // Touche S - Cycler entre les 5 thèmes sonores (OFF → 1 → 2 → 3 → 4 → 5 → OFF)
+      // Touche S - Cycler entre les 5 thèmes sonores
       if (event.key === 's' || event.key === 'S') {
-        const result = AudioEngine.cycle();
-        const indicator = document.getElementById('audio-indicator');
-        const label = document.getElementById('audio-label');
-        const icon = document.getElementById('audio-icon');
-        if (result.active) {
-          label.textContent = result.theme + '/5 ' + result.name;
-          icon.style.color = result.color || 'rgba(100,220,220,0.7)';
-          label.style.color = 'rgba(255,255,255,0.55)';
-        } else {
-          label.textContent = 'OFF';
-          icon.style.color = 'rgba(255,255,255,0.35)';
-          label.style.color = 'rgba(255,255,255,0.35)';
-        }
-        clearTimeout(indicator._hideTimeout);
-        indicator.style.opacity = '1';
-        indicator._hideTimeout = setTimeout(() => {
-          indicator.style.opacity = '0';
-        }, 3500);
+        cycleAudioTheme();
       }
 
       // Flèches haut/bas - Naviguer entre les états (quand interface M est ouverte)
