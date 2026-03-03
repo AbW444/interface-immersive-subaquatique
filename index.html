@@ -1294,6 +1294,8 @@
     // Pré-charger toutes les images au démarrage
     function preloadAllImages() {
       const loadingBar = document.getElementById('loading-bar');
+      const targetWidth = TARGET_WIDTH;
+      const targetHeight = TARGET_HEIGHT;
       const loadPromises = [];
       let loadedCount = 0;
 
