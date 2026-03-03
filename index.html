@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Particle Image Viewer</title>
+  <title>Photographic Volume</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -20,92 +20,6 @@
       left: 0;
       z-index: 1;
     }
-
-    /* ===============================================
-       ARRIÈRE-PLANS JONAS
-       =============================================== */
-
-    /* Fond de couleur pour Jonas normal (blanc) */
-    #jonas-bg-color {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      min-height: 100vh;
-      background-color: #ffffff;
-      z-index: 0;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-    }
-
-    #jonas-bg-color.visible {
-      opacity: 1;
-    }
-
-    /* Typo Jonas (noire sur transparent) - Touche J - PREMIER PLAN */
-    #jonas-background {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      min-height: 100vh;
-      background-image: url('./Ressources/fond_jonas.png?v=2');
-      background-size: cover;
-      background-position: top center;
-      background-repeat: no-repeat;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-      mix-blend-mode: multiply;
-    }
-
-    #jonas-background.visible {
-      opacity: 1;
-    }
-
-    /* Fond de couleur pour Jonas négatif (noir) */
-    #jonas-bg-color-negatif {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      min-height: 100vh;
-      background-color: #000000;
-      z-index: 0;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-    }
-
-    #jonas-bg-color-negatif.visible {
-      opacity: 1;
-    }
-
-    /* Typo Jonas négatif (blanche sur transparent) - Touche N - PREMIER PLAN */
-    #jonas-background-negatif {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      min-height: 100vh;
-      background-image: url('./Ressources/fond_jonas_negatif.png?v=2');
-      background-size: cover;
-      background-position: top center;
-      background-repeat: no-repeat;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-      mix-blend-mode: screen;
-    }
-
-    #jonas-background-negatif.visible {
-      opacity: 1;
-    }
-
-    /* FIN SECTION ARRIÈRE-PLANS JONAS */
 
     /* ===============================================
        INTERFACE DE PARAMÉTRAGE
@@ -559,169 +473,6 @@
     /* FIN INTERFACE ÉTATS DE LECTURE */
 
     /* ===============================================
-       SECTION DÉSACTIVÉE - ÉLÉMENTS UI SUPPRIMÉS
-       ===============================================
-       Cette section contient tous les éléments UI qui ont été désactivés :
-       - Curseur personnalisé
-       - Bouton reset/replace
-       - Flèches de navigation
-       - Titre "AURORA UNREALIS"
-       - Page d'accueil/intro overlay
-       - Boutons mode scène/caméra
-    */
-
-    /*
-    #custom-cursor {
-      position: fixed;
-      width: 16px;
-      height: 16px;
-      background-color: white;
-      pointer-events: none;
-      z-index: 99999;
-      box-shadow:
-        0 0 4px 1px rgba(85, 255, 255, 0.5),
-        0 0 8px 2px rgba(85, 255, 255, 0.3),
-        0 0 12px 3px rgba(106, 13, 173, 0.15);
-      left: 0;
-      top: 0;
-      transform: translate(-50%, -50%);
-      transition: opacity 0.5s ease-in-out;
-      mix-blend-mode: screen;
-    }
-
-    #ui-overlay {
-      position: absolute;
-      bottom: 0px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: row;
-      gap: 15px;
-      padding: 12px 15px;
-      border-radius: 10px;
-      display: none;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
-    }
-
-    #ui-overlay button {
-      background-color: transparent;
-      color: #55ffff;
-      border: none;
-      outline: none;
-      padding: 16px 35px;
-      margin: 3px;
-      font-size: 24px;
-      cursor: pointer;
-      border-radius: 50px;
-      font-family: "comma-sans", sans-serif;
-      font-weight: 700;
-      font-style: normal;
-      text-transform: uppercase;
-      opacity: 1;
-      transition: text-shadow 0.3s, transform 0.3s;
-      text-shadow:
-        0 0 8px rgba(85, 255, 255, 0.9),
-        0 0 16px rgba(85, 255, 255, 0.6),
-        0 0 24px rgba(106, 13, 173, 0.4);
-    }
-
-    .arrow {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: transparent;
-      color: #55ffff;
-      border: none;
-      cursor: pointer;
-      font-size: 60px;
-      font-weight: 400;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      opacity: 1;
-      transition: text-shadow 0.3s, transform 0.3s, opacity 0.5s ease-in-out;
-      display: none;
-      padding: 20px;
-      border-radius: 50%;
-    }
-
-    #page-title {
-      position: absolute;
-      top: 0px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: #55ffff;
-      font-size: clamp(22px, 4vw, 38px);
-      font-family: "new-astro", sans-serif;
-      font-weight: 700;
-      font-style: normal;
-      z-index: 15;
-      display: none;
-      cursor: pointer;
-      padding: 12px 25px;
-      white-space: nowrap;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
-      margin: 0 20px;
-    }
-
-    #intro-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 1);
-      backdrop-filter: blur(0.5px);
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      flex-direction: column;
-      color: #55ffff;
-      font-size: clamp(30px, 10vw, 216px);
-      font-family: "new-astro", sans-serif;
-      font-weight: 700;
-      font-style: normal;
-      z-index: 20;
-      padding: 30px clamp(15px, 4vw, 60px);
-      box-sizing: border-box;
-      overflow: visible;
-      transition: background 1.5s ease-out, opacity 1.0s ease-out;
-    }
-
-    #view-mode-container {
-      position: absolute;
-      bottom: 50%;
-      right: 12px;
-      transform: translateY(50%);
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 15;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
-    }
-
-    .view-mode-btn {
-      width: 50px;
-      height: 50px;
-      background-color: transparent;
-      border: 2px solid #55ffff;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      color: #55ffff;
-      transition: transform 0.3s ease;
-    }
-    */
-    /* FIN SECTION DÉSACTIVÉE */
-
-    /* ===============================================
        SCROLL CONFIG PANEL (Touche C)
        =============================================== */
     #scroll-config-panel {
@@ -946,15 +697,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- ARRIÈRE-PLANS JONAS -->
-  <!-- Fond blanc + typo noire (touche J) -->
-  <div id="jonas-bg-color"></div>
-  <div id="jonas-background"></div>
-
-  <!-- Fond noir + typo blanche (touche N) -->
-  <div id="jonas-bg-color-negatif"></div>
-  <div id="jonas-background-negatif"></div>
-
   <!-- SCROLL CONFIG PANEL (Touche C) -->
   <div id="scroll-config-panel">
     <div class="scroll-config-header">⚙️ Scroll Configuration (Press C to toggle)</div>
@@ -1192,31 +934,6 @@
     </div>
   </div>
 
-  <!-- ===============================================
-       SECTION DÉSACTIVÉE - ÉLÉMENTS HTML SUPPRIMÉS
-       =============================================== -->
-  <!--
-  <div id="custom-cursor"></div>
-  <div id="page-title" onclick="location.reload();">AURORA UNREALIS</div>
-  <div id="intro-overlay">
-    <div id="title-container">
-      <div>AURORA</div>
-      <div>UNREALIS</div>
-    </div>
-    <button id="startButton">&gt;&gt;</button>
-  </div>
-  <div id="ui-overlay">
-    <button id="resetCamera">replace</button>
-  </div>
-  <button id="arrow-left" class="arrow">&lt;</button>
-  <button id="arrow-right" class="arrow">&gt;</button>
-  <div id="view-mode-container">
-    <button id="mode-scene" class="view-mode-btn active">⊛</button>
-    <button id="mode-camera" class="view-mode-btn">◉</button>
-  </div>
-  -->
-  <!-- FIN SECTION DÉSACTIVÉE -->
-
   <!-- INTERFACE ÉTATS DE LECTURE (Touche M) -->
   <div id="ux-states-panel">
     <div class="ux-states-header">
@@ -1287,13 +1004,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    // ===============================================
-    // VERSION ÉPURÉE - UNIQUEMENT PARTICULES
-    // ===============================================
-
-    // Initialisation de la scène, caméra et rendu
+    // Initialisation de la scène
     const scene = new THREE.Scene();
-    // Pas de fond de scène - transparent pour voir les arrière-plans Jonas
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -1302,7 +1014,7 @@
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        alpha: true,
+        alpha: false,
         preserveDrawingBuffer: false,
         powerPreference: "high-performance"
       });
@@ -1319,8 +1031,8 @@
     scene.add(sceneGroup);
 
     let particles;
-    let currentImageIndex = 3; // Commence à 3 pour cycle propre: IMG_003 → 004 → 001 → 002 → 003
-    const maxImageIndex = 4; // 4 images : IMG_001, IMG_002, IMG_003, IMG_004
+    let currentImageIndex = 3; // Commence à IMG_003
+    const maxImageIndex = 3; // 3 images : IMG_001, IMG_002, IMG_003
     let availableImages = []; // Images qui ont chargé avec succès (détection auto)
     let referenceHeight = null;
 
@@ -1374,88 +1086,46 @@
     // États par défaut (toujours utilisés, pas de localStorage)
     let uxStates = [
       {
-        "name": "État 1",
-        "size": 0.04,
-        "density": 0.6000000000000001,
-        "disparity": 0,
-        "movement": 0,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 1",
+        size: 0.04, density: 0.6, disparity: 0,
+        movement: 0, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 2",
-        "size": 0.039999999869791684,
-        "density": 0.6,
-        "disparity": 2.5,
-        "movement": 0.03125,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 2",
+        size: 0.04, density: 0.6, disparity: 2.5,
+        movement: 0.031, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 3",
-        "size": 0.03999999960937498,
-        "density": 0.6,
-        "disparity": 2.5,
-        "movement": 0.0625,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 3",
+        size: 0.04, density: 0.6, disparity: 2.5,
+        movement: 0.063, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 4",
-        "size": 0.04,
-        "density": 0.6,
-        "disparity": 2.5,
-        "movement": 0.0875,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 4",
+        size: 0.04, density: 0.6, disparity: 2.5,
+        movement: 0.088, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 5",
-        "size": 0.04,
-        "density": 0.6,
-        "disparity": 2.5,
-        "movement": 0.25,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 5",
+        size: 0.04, density: 0.6, disparity: 2.5,
+        movement: 0.25, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 6",
-        "size": 0.04,
-        "density": 0.6,
-        "disparity": 2.5,
-        "movement": 0.5,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 6",
+        size: 0.04, density: 0.6, disparity: 2.5,
+        movement: 0.5, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
-        "name": "État 7",
-        "size": 0.04,
-        "density": 0.6,
-        "disparity": 2.7733333642577858,
-        "movement": 0.5,
-        "randomness": 0.4,
-        "saturation": 1,
-        "hideBlack": 0,
-        "shape": "circle",
-        "movementMode": 2
+        name: "État 7",
+        size: 0.04, density: 0.6, disparity: 2.77,
+        movement: 0.5, randomness: 0.4, saturation: 1,
+        hideBlack: 0, shape: "circle", movementMode: 2
       }
     ];
 
@@ -1583,27 +1253,21 @@
           if (result.status === 'fulfilled') {
             availableImages.push(imageIndex);
             successCount++;
-            console.log(`✅ IMG_${String(imageIndex).padStart(3, '0')} chargée avec succès`);
           } else {
             failCount++;
-            console.warn(`⚠️ IMG_${String(imageIndex).padStart(3, '0')} introuvable ou erreur - ignorée`);
           }
         });
 
-        // Validation : au moins 1 image doit être chargée
         if (availableImages.length === 0) {
-          console.error('❌ Aucune image chargée! Vérifiez le dossier ./Ressources/');
+          console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/');
           return;
         }
 
-        // Ajuster currentImageIndex si nécessaire pour pointer vers une image disponible
         if (!availableImages.includes(currentImageIndex)) {
           currentImageIndex = availableImages[0];
-          console.log(`📍 currentImageIndex ajusté à ${currentImageIndex} (première image disponible)`);
         }
 
         imagesPreloaded = true;
-        console.log(`✅ ${successCount}/${maxImageIndex} images chargées (${failCount} ignorées) - cycle: ${availableImages.join(' → ')}`);
       });
     }
 
@@ -1796,7 +1460,7 @@
         colorCache.set(imageIndex, colors);
         callback(colors);
       } else {
-        console.error(`Image ${imageIndex} non trouvée dans le cache!`);
+        console.error(`Image ${imageIndex} non trouvée dans le cache`);
       }
     }
 
@@ -1833,18 +1497,9 @@
 
     // Fonction pour transition fluide vers l'image suivante
     function transitionToNextImage() {
-      console.log(`📍 [AVANT] transitionToNextImage() - currentImageIndex=${currentImageIndex}, isTransitioning=${isTransitioning}`);
+      if (isTransitioning) return;
 
-      if (isTransitioning) {
-        console.warn('⚠️ transitionToNextImage() bloquée: isTransitioning déjà true');
-        return; // Empêcher transitions multiples
-      }
-
-      // Validation: au moins une image disponible
-      if (availableImages.length === 0) {
-        console.error('❌ Aucune image disponible pour transition!');
-        return;
-      }
+      if (availableImages.length === 0) return;
 
       // Trouver l'index actuel dans le tableau d'images disponibles
       const currentIndex = availableImages.indexOf(currentImageIndex);
@@ -1853,125 +1508,24 @@
       let nextIndex = (currentIndex + 1) % availableImages.length;
       let nextImageIndex = availableImages[nextIndex];
 
-      // SÉCURITÉ: Vérifier qu'on ne transite pas vers la même image
       if (nextImageIndex === currentImageIndex) {
-        console.error('🔴 BUG: nextImageIndex === currentImageIndex =', currentImageIndex);
         nextIndex = (currentIndex + 1) % availableImages.length;
         nextImageIndex = availableImages[nextIndex];
       }
 
-      console.log(`🔄 Transition: IMG_${String(currentImageIndex).padStart(3, '0')} → IMG_${String(nextImageIndex).padStart(3, '0')} (cycle disponibles: ${availableImages.join(' → ')})`);
-
-      // Sauvegarder les couleurs actuelles
       if (particles && particles.geometry.attributes.color) {
         oldColors = Array.from(particles.geometry.attributes.color.array);
-        console.log(`💾 oldColors sauvegardées (${oldColors.length} valeurs)`);
       }
 
-      // Charger les nouvelles couleurs
       extractImageColors(nextImageIndex, (colors) => {
         newColors = colors;
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
-        console.log(`🎨 Couleurs chargées pour IMG_${String(currentImageIndex).padStart(3, '0')} - isTransitioning=true`);
-        console.log(`📍 [APRÈS] currentImageIndex=${currentImageIndex}, isTransitioning=${isTransitioning}`);
       });
     }
 
-    /* ===============================================
-       SECTION DÉSACTIVÉE - ENVIRONNEMENT IMMERSIF
-       ===============================================
-       Cette section contient tout le code de l'environnement immersif :
-       - Étoiles (3 couches)
-       - Étoiles filantes
-       - Lune
-       - Neige
-       - Lumières
-    */
-
-    /*
-    const sphereRadius = 400;
-
-    function getRealisticStarColor() {
-      const rand = Math.random();
-      if (rand < 0.5) return new THREE.Color(1, 1, 1);
-      else if (rand < 0.7) return new THREE.Color(0.7, 0.85, 1);
-      else if (rand < 0.85) return new THREE.Color(1, 0.95, 0.7);
-      else return new THREE.Color(1, 0.7, 0.5);
-    }
-
-    function getUniformSpherePoint(radius) {
-      const theta = Math.random() * Math.PI * 2;
-      const u = Math.random() * 2 - 1;
-      const phi = Math.acos(u);
-      const x = radius * Math.sin(phi) * Math.cos(theta);
-      const y = radius * Math.sin(phi) * Math.sin(theta);
-      const z = radius * Math.cos(phi);
-      return { x, y, z };
-    }
-
-    // Grandes étoiles
-    const bigStarsGeometry = new THREE.BufferGeometry();
-    const bigStarsVertices = [];
-    const bigStarsColors = [];
-    for (let i = 0; i < 150; i++) {
-      const pos = getUniformSpherePoint(sphereRadius);
-      bigStarsVertices.push(pos.x, pos.y, pos.z);
-      const color = getRealisticStarColor();
-      bigStarsColors.push(color.r, color.g, color.b);
-    }
-    bigStarsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(bigStarsVertices, 3));
-    bigStarsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(bigStarsColors, 3));
-    const bigStarsMaterial = new THREE.PointsMaterial({
-      size: 0.07,
-      vertexColors: true,
-      transparent: true,
-      opacity: 1.0,
-    });
-    const bigStars = new THREE.Points(bigStarsGeometry, bigStarsMaterial);
-    sceneGroup.add(bigStars);
-
-    // Étoiles moyennes et petites (code similaire omis pour brièveté)
-
-    // Lune
-    const moonGeometry = new THREE.SphereGeometry(5, 32, 32);
-    const moonMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xaaaaaa });
-    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
-    moon.position.set(50, 100, -200);
-    sceneGroup.add(moon);
-
-    // Lumières
-    const moonLight = new THREE.PointLight(0xffffff, 1, 500);
-    moonLight.position.set(50, 100, -200);
-    sceneGroup.add(moonLight);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-
-    // Neige
-    const snowGeometry = new THREE.BufferGeometry();
-    const snowMaterial = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.02,
-      transparent: true,
-      opacity: 0.8,
-    });
-    const snowVertices = [];
-    for (let i = 0; i < 2000; i++) {
-      const x = (Math.random() - 0.5) * 200;
-      const y = Math.random() * 200;
-      const z = (Math.random() - 0.5) * 200;
-      snowVertices.push(x, y, z);
-    }
-    snowGeometry.setAttribute('position', new THREE.Float32BufferAttribute(snowVertices, 3));
-    const snow = new THREE.Points(snowGeometry, snowMaterial);
-    sceneGroup.add(snow);
-    */
-
-    /* FIN SECTION DÉSACTIVÉE - ENVIRONNEMENT */
-
-    // Lumière ambiante simple pour fond blanc
+    // Lumière ambiante
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
@@ -2077,11 +1631,7 @@
 
     // Fonction pour copier dans le presse-papiers
     function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        console.log('✅ Copié dans le presse-papiers:', text);
-      }).catch(err => {
-        console.error('❌ Erreur copie presse-papiers:', err);
-      });
+      navigator.clipboard.writeText(text).catch(() => {});
     }
 
     // Animation
@@ -2116,27 +1666,18 @@
       // DÉTECTION DES POINTS DE BASCULE: Cycle bidirectionnel infini
       // IMPORTANT: Utiliser zoomLevel (position réelle lissée) et non targetZoomLevel (cible scroll)
       if (scrollPhase === 'zoomIn' && zoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
-        // Atteint le zoom max → changer d'image et passer en phase dezoom
         if (!hasTriggeredTransition) {
-          console.log(`🔝 ZOOM MAX atteint - targetZoomLevel=${targetZoomLevel.toFixed(3)}, zoomLevel=${zoomLevel.toFixed(3)}, currentImageIndex=${currentImageIndex}`);
           scrollPhase = 'zoomOut';
           transitionToNextImage();
           hasTriggeredTransition = true;
-          console.log(`🔄 Phase transition: zoomIn → zoomOut (max atteint) + changement image - hasTriggeredTransition=true`);
-        } else {
-          console.warn(`⚠️ Zoom max atteint mais hasTriggeredTransition déjà true - transition bloquée! currentImageIndex=${currentImageIndex}`);
         }
       } else if (scrollPhase === 'zoomOut' && zoomLevel <= 0.001) {
-        // Retour à l'état 1 → repasser en phase zoom (cycle bidirectionnel)
-        console.log(`🔻 RETOUR à État 1 - zoomLevel=${zoomLevel.toFixed(3)}, currentImageIndex=${currentImageIndex}`);
         scrollPhase = 'zoomIn';
-        targetZoomLevel = 0; // Forcer à exactement 0
-        hasTriggeredTransition = false; // Réinitialiser pour prochain cycle
-        // ACTIVER LA ZONE MORTE: il faut scroller 0.100 avant de re-zoomer
+        targetZoomLevel = 0;
+        hasTriggeredTransition = false;
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
-        wheelScrollAccumulator = 0; // Vider l'accumulateur pour bloquer le zoom
-        console.log(`🔄 Phase: zoomOut → zoomIn - Zone morte activée - hasTriggeredTransition=false - IMG_${String(currentImageIndex).padStart(3, '0')} visible`);
+        wheelScrollAccumulator = 0;
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -2160,19 +1701,11 @@
           transitionProgress = (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE;
           transitionProgress = Math.max(0, Math.min(1, transitionProgress));
 
-          // Logger toutes les 10% de progression
-          const progressPercent = Math.floor(transitionProgress * 100);
-          const lastProgressPercent = Math.floor(previousProgress * 100);
-          if (progressPercent % 10 === 0 && progressPercent !== lastProgressPercent) {
-            console.log(`📊 Transition ${progressPercent}% - IMG_${String(currentImageIndex).padStart(3, '0')} - zoomLevel=${zoomLevel.toFixed(3)}`);
-          }
           window.lastTransitionProgress = transitionProgress;
 
         } else if (zoomLevel < TRANSITION_END_ZOOM) {
-          // Dépasse la fin de transition
           transitionProgress = 1.0;
           isTransitioning = false;
-          console.log(`🏁 Transition 100% atteinte - zoomLevel=${zoomLevel.toFixed(3)} < TRANSITION_END_ZOOM=${TRANSITION_END_ZOOM}`);
         }
 
         // Interpolation linéaire directe des couleurs (sans smoothing pour performance)
@@ -2197,7 +1730,6 @@
           // on n'atteint jamais exactement zoomLevel 0
           if (scrollPhase === 'zoomOut') {
             hasTriggeredTransition = false;
-            console.log(`✅ Transition terminée IMG_${String(currentImageIndex).padStart(3, '0')} - zoomLevel=${zoomLevel.toFixed(3)} - hasTriggeredTransition reset - scrollPhase=${scrollPhase}`);
           }
         }
       }
@@ -2623,7 +2155,6 @@
       disparityLerpSlider.value = 0.23;
       disparityLerpVal.textContent = '0.23';
 
-      console.log('✅ Scroll config reset to PRO defaults (accumulateur virtuel Lenis)');
     });
 
     // Copy config button
@@ -2631,16 +2162,12 @@
       const configJSON = JSON.stringify(scrollConfig, null, 2);
       try {
         await navigator.clipboard.writeText(configJSON);
-        scrollCopyBtn.textContent = '✅ Copied!';
-        console.log('📋 Config copied to clipboard:');
-        console.log(configJSON);
+        scrollCopyBtn.textContent = 'Copied!';
         setTimeout(() => {
           scrollCopyBtn.textContent = '📋 Copy Config to Clipboard';
         }, 2000);
       } catch (err) {
         console.error('Failed to copy:', err);
-        console.log('📋 Copy this config manually:');
-        console.log(configJSON);
       }
     });
 
@@ -2681,16 +2208,11 @@
             // Sortie de la zone morte
             isInDeadZone = false;
             scrollDeadZoneAccumulator = 0;
-            console.log(`✅ Zone morte désactivée - zoom reprend - IMG_${String(currentImageIndex).padStart(3, '0')} - scrollPhase=${scrollPhase}`);
           }
-          // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
-          // CYCLE DE SCROLL: Inverser selon la phase
           if (scrollPhase === 'zoomIn') {
-            // Scroll vers le bas = zoom IN (positif)
             targetZoomLevel += scrollDelta;
           } else if (scrollPhase === 'zoomOut') {
-            // Scroll vers le bas = zoom OUT (négatif) - INVERSION
             targetZoomLevel -= scrollDelta;
           }
         }
@@ -2702,14 +2224,10 @@
           const wheelDelta = event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
           scrollDeadZoneAccumulator += Math.abs(wheelDelta);
           if (scrollDeadZoneAccumulator >= SCROLL_DEAD_ZONE_DISTANCE) {
-            // Sortie de la zone morte
             isInDeadZone = false;
             scrollDeadZoneAccumulator = 0;
-            console.log(`✅ Zone morte désactivée - zoom reprend - IMG_${String(currentImageIndex).padStart(3, '0')} - scrollPhase=${scrollPhase}`);
           }
-          // Sinon, ne rien faire (le scroll est "absorbé" par la zone morte)
         } else {
-          // L'inversion selon phase sera appliquée dans animate()
           wheelScrollAccumulator += event.deltaY * scrollConfig.trackpad.sensitivity * scrollConfig.wheel.multiplier;
         }
       }
@@ -2721,26 +2239,6 @@
       // Les paramètres sont maintenant calculés dans animate() avec zoomLevel lissé
       // Cela élimine les "téléportations" des particules avec la molette!
     }, { passive: false });
-
-    /* ===============================================
-       ARRIÈRE-PLANS JONAS
-       =============================================== */
-
-    // Arrière-plans Jonas
-    let jonasBackgroundVisible = false;
-    const jonasBackground = document.getElementById('jonas-background');
-    const jonasBgColor = document.getElementById('jonas-bg-color');
-
-    let jonasBackgroundNegatifVisible = false;
-    const jonasBackgroundNegatif = document.getElementById('jonas-background-negatif');
-    const jonasBgColorNegatif = document.getElementById('jonas-bg-color-negatif');
-
-    // Activer le fond noir + typo blanche au chargement (comme touche N)
-    window.addEventListener('load', () => {
-      jonasBgColorNegatif.classList.add('visible');
-      jonasBackgroundNegatif.classList.add('visible');
-      jonasBackgroundNegatifVisible = true;
-    });
 
     window.addEventListener('keydown', (event) => {
       // Flèche gauche - Image précédente
@@ -2758,44 +2256,6 @@
       // Touche I - Ouvrir/fermer l'interface de paramétrage
       if (event.key === 'i' || event.key === 'I') {
         settingsPanel.classList.toggle('visible');
-      }
-
-      // Touche J - Fond blanc + Typo noire
-      if (event.key === 'j' || event.key === 'J') {
-        jonasBackgroundVisible = !jonasBackgroundVisible;
-
-        if (jonasBackgroundVisible) {
-          // Afficher fond blanc + typo noire
-          jonasBgColor.classList.add('visible');
-          jonasBackground.classList.add('visible');
-          // Masquer le négatif si visible
-          jonasBgColorNegatif.classList.remove('visible');
-          jonasBackgroundNegatif.classList.remove('visible');
-          jonasBackgroundNegatifVisible = false;
-        } else {
-          // Tout masquer
-          jonasBgColor.classList.remove('visible');
-          jonasBackground.classList.remove('visible');
-        }
-      }
-
-      // Touche N - Fond noir + Typo blanche
-      if (event.key === 'n' || event.key === 'N') {
-        jonasBackgroundNegatifVisible = !jonasBackgroundNegatifVisible;
-
-        if (jonasBackgroundNegatifVisible) {
-          // Afficher fond noir + typo blanche
-          jonasBgColorNegatif.classList.add('visible');
-          jonasBackgroundNegatif.classList.add('visible');
-          // Masquer le normal si visible
-          jonasBgColor.classList.remove('visible');
-          jonasBackground.classList.remove('visible');
-          jonasBackgroundVisible = false;
-        } else {
-          // Tout masquer
-          jonasBgColorNegatif.classList.remove('visible');
-          jonasBackgroundNegatif.classList.remove('visible');
-        }
       }
 
       // Touche M - Ouvrir l'interface États de Lecture
@@ -2856,8 +2316,6 @@
         }
       }
     });
-
-    /* FIN SECTION ARRIÈRE-PLANS JONAS */
 
     /* ===============================================
        GESTION INTERFACE ÉTATS DE LECTURE
@@ -2967,7 +2425,6 @@
       if (currentStateIndex >= 0 && currentStateIndex < uxStates.length) {
         // Sauvegarder les paramètres actuels dans l'état sélectionné
         saveCurrentState();
-        console.log(`État ${currentStateIndex + 1} mis à jour avec les paramètres actuels`);
       }
     });
 
@@ -2987,12 +2444,9 @@
         targetZoomLevel = 0;
         // Charger le premier état
         loadState(0);
-        console.log('Mode parcours UX activé');
       } else {
-        // Désactiver le mode
         uxToggleBtn.textContent = 'Actif';
         uxToggleBtn.classList.remove('active');
-        console.log('Mode parcours UX désactivé');
       }
     });
 
@@ -3178,98 +2632,6 @@
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
-
-    /* ===============================================
-       SECTION DÉSACTIVÉE - INTERACTIONS UTILISATEUR
-       ===============================================
-       Cette section contient tout le code d'interaction :
-       - Navigation avec flèches
-       - Zoom avec molette
-       - Drag and drop (clic maintenu)
-       - Mode scène/caméra
-       - Bouton reset
-       - Page d'accueil/intro
-       - Curseur personnalisé
-       - Événements tactiles
-    */
-
-    /*
-    // Variables d'interaction
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
-    let viewMode = 'scene';
-
-    // Navigation avec les flèches
-    document.getElementById('arrow-left').addEventListener('click', () => {
-      currentImageIndex = currentImageIndex === 1 ? maxImageIndex : currentImageIndex - 1;
-      loadImage(currentImageIndex);
-    });
-
-    document.getElementById('arrow-right').addEventListener('click', () => {
-      currentImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
-      loadImage(currentImageIndex);
-    });
-
-    // Zoom avec molette
-    window.addEventListener('wheel', (event) => {
-      event.preventDefault();
-      // Code de zoom...
-    }, { passive: false });
-
-    // Drag and drop
-    window.addEventListener('mousedown', (event) => {
-      isDragging = true;
-      previousMousePosition = { x: event.clientX, y: event.clientY };
-    });
-
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    window.addEventListener('mousemove', (event) => {
-      if (isDragging) {
-        const deltaMove = {
-          x: event.clientX - previousMousePosition.x,
-          y: event.clientY - previousMousePosition.y,
-        };
-
-        if (viewMode === 'scene') {
-          sceneGroup.rotation.y += deltaMove.x * 0.003;
-          sceneGroup.rotation.x += deltaMove.y * 0.003;
-        }
-
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-      }
-    });
-
-    // Bouton reset
-    document.getElementById('resetCamera').addEventListener('click', () => {
-      // Code reset...
-    });
-
-    // Modes scène/caméra
-    document.getElementById('mode-scene').addEventListener('click', () => {
-      viewMode = 'scene';
-    });
-
-    document.getElementById('mode-camera').addEventListener('click', () => {
-      viewMode = 'camera';
-    });
-
-    // Page d'accueil
-    document.getElementById('startButton').addEventListener('click', () => {
-      // Code intro...
-    });
-
-    // Curseur personnalisé
-    const customCursor = document.getElementById('custom-cursor');
-    document.addEventListener('mousemove', (e) => {
-      customCursor.style.left = e.clientX + 'px';
-      customCursor.style.top = e.clientY + 'px';
-    });
-    */
-
-    /* FIN SECTION DÉSACTIVÉE - INTERACTIONS */
 
   </script>
 </body>
