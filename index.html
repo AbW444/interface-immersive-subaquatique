@@ -2692,16 +2692,36 @@
         }
       }
 
+      // Fondu quand la page perd / regagne le focus
+      function _onVisibilityChange(hidden) {
+        if (!master || !ctx) return;
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        if (hidden) {
+          master.gain.linearRampToValueAtTime(0, now + 0.8);
+        } else {
+          master.gain.linearRampToValueAtTime(0.48, now + 1.2);
+        }
+      }
+
       return {
         init,
         cycle,
         update,
+        _onVisibilityChange,
         get isActive() { return isActive; },
         get currentTheme() { return currentTheme; },
         get themeName() { return currentTheme > 0 ? THEMES[currentTheme].name : 'OFF'; },
         get themeColor() { return currentTheme > 0 ? THEMES[currentTheme].color : null; }
       };
     })();
+
+    // === FONDU AUDIO QUAND ON QUITTE / REVIENT SUR LA PAGE ===
+    document.addEventListener('visibilitychange', () => {
+      if (!AudioEngine.isActive) return;
+      AudioEngine._onVisibilityChange(document.hidden);
+    });
 
     // Suivi vélocité scroll pour audio
     let audioScrollVelocity = 0;
@@ -3101,18 +3121,7 @@
       needsResizeRender = true;
     });
 
-    // Masquer le curseur après 3s d'inactivité
-    let cursorTimeout;
-    function resetCursorTimer() {
-      document.body.classList.remove('cursor-hidden');
-      clearTimeout(cursorTimeout);
-      cursorTimeout = setTimeout(() => {
-        document.body.classList.add('cursor-hidden');
-      }, 3000);
-    }
-    document.addEventListener('mousemove', resetCursorTimer);
-    document.addEventListener('mousedown', resetCursorTimer);
-    resetCursorTimer();
+    // Curseur masqué en permanence (visible uniquement dans l'info overlay)
 
     // Cache des éléments UI pour updateUIValues
     const uiElements = {
