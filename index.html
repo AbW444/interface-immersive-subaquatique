@@ -79,30 +79,17 @@
     .loading-logo {
       width: clamp(24px, 6vw, 40px);
       height: auto;
-      animation: logoBreathe 2.2s ease-in-out infinite, logoFade 2.2s ease-in-out infinite;
-      filter: drop-shadow(0 0 12px rgba(253,5,2,0.2));
+      animation: logoGlow 2.2s ease-in-out infinite;
     }
-    @keyframes logoBreathe {
+    @keyframes logoGlow {
       0%, 100% {
-        transform: scale(1, 1);
-        filter: drop-shadow(0 0 12px rgba(253,5,2,0.15));
-      }
-      25% {
-        transform: scale(1.09, 0.93);
-        filter: drop-shadow(0 0 22px rgba(253,5,2,0.4));
-      }
-      50% {
-        transform: scale(0.94, 1.07);
+        opacity: 0.35;
         filter: drop-shadow(0 0 8px rgba(253,5,2,0.1));
       }
-      75% {
-        transform: scale(1.04, 0.97);
-        filter: drop-shadow(0 0 16px rgba(253,5,2,0.28));
+      50% {
+        opacity: 1;
+        filter: drop-shadow(0 0 22px rgba(253,5,2,0.45));
       }
-    }
-    @keyframes logoFade {
-      0%, 100% { opacity: 0.35; }
-      50% { opacity: 1; }
     }
 
     /* Scroll indicator */
@@ -1786,15 +1773,15 @@
 
     // Pré-charger toutes les images en arrière-plan, puis charger la première
     function onReady() {
-      // 1. Faire disparaître entièrement le logo AVANT d'afficher quoi que ce soit
+      // 1. Faire disparaître le logo
       const loadingScreen = document.getElementById('loading-screen');
       if (loadingScreen) {
         loadingScreen.classList.add('hidden'); // Transition opacity 0.8s
-        // Attendre la fin du fade (800ms) + retirer du DOM + petit délai avant les photos
+        // 2. Attendre fin du fade du logo → écran noir pur pendant 1.2s → puis charger image
         setTimeout(() => {
           loadingScreen.remove();
-          // 2. Quelques ms après suppression → charger la première image
-          setTimeout(() => loadImage(currentImageIndex), 150);
+          // Écran noir (le body est déjà noir) — pause silencieuse
+          setTimeout(() => loadImage(currentImageIndex), 1200);
         }, 850);
       } else {
         loadImage(currentImageIndex);
@@ -2544,13 +2531,13 @@
             const n = ctx.currentTime;
             master.gain.cancelScheduledValues(n);
             master.gain.setValueAtTime(0, n);
-            master.gain.linearRampToValueAtTime(0.8, n + 2.0);
+            master.gain.linearRampToValueAtTime(0.48, n + 2.0);
           }, 700);
         } else {
           buildTheme(currentTheme);
           master.gain.cancelScheduledValues(now);
           master.gain.setValueAtTime(0, now);
-          master.gain.linearRampToValueAtTime(0.8, now + 2.5);
+          master.gain.linearRampToValueAtTime(0.48, now + 2.5);
         }
 
         isActive = true;
