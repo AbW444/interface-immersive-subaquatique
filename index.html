@@ -98,7 +98,7 @@
       50% { opacity: 0.85; }
     }
     #scroll-indicator .scroll-desktop { width: 24px; height: 38px; }
-    #scroll-indicator .scroll-mobile { width: 28px; height: 44px; display: none; }
+    #scroll-indicator .scroll-mobile { width: 24px; height: 38px; display: none; }
     @media (pointer: coarse), (max-width: 768px) {
       #scroll-indicator .scroll-desktop { display: none; }
       #scroll-indicator .scroll-mobile { display: block; }
@@ -845,22 +845,12 @@
         <animate attributeName="opacity" values="0.7;0.3;0.7" dur="2.2s" repeatCount="indefinite"/>
       </circle>
     </svg>
-    <!-- Mobile: swipe up gesture -->
-    <svg class="scroll-mobile" viewBox="0 0 28 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Finger circle -->
-      <circle cx="14" cy="30" r="7" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none"/>
-      <circle cx="14" cy="30" r="2" fill="rgba(255,255,255,0.4)"/>
-      <!-- Arrow up -->
-      <path d="M14 20 L14 6" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round">
-        <animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite"/>
-      </path>
-      <path d="M10 10 L14 5 L18 10" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-        <animate attributeName="opacity" values="0.5;0.2;0.5" dur="2s" repeatCount="indefinite"/>
-      </path>
-      <!-- Finger motion indicator -->
-      <circle cx="14" cy="30" r="7" stroke="rgba(255,255,255,0.15)" stroke-width="1" fill="none">
-        <animate attributeName="cy" values="30;18" dur="2s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1"/>
-        <animate attributeName="opacity" values="0.3;0" dur="2s" repeatCount="indefinite"/>
+    <!-- Mobile: rectangle scroll icon (similar to desktop, less rounded, full brightness) -->
+    <svg class="scroll-mobile" viewBox="0 0 24 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="22" height="36" rx="6" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="12" cy="10" r="2.5" fill="#fff">
+        <animate attributeName="cy" values="10;26;10" dur="2.2s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
+        <animate attributeName="opacity" values="1;0.5;1" dur="2.2s" repeatCount="indefinite"/>
       </circle>
     </svg>
   </div>
@@ -1949,7 +1939,7 @@
           droneFreqs: [73.42, 110], // D2, A2
           droneDetune: [-8, 0, 8],
           droneType: 'sine',
-          droneVol: 0.14,
+          droneVol: 0.112,
           resoFreqs: [146.83, 220, 293.66, 440], // D3, A3, D4, A4
           resoQ: 35,
           resoVol: 0.035,
@@ -1974,7 +1964,7 @@
           droneFreqs: [36.71, 55], // D1, A1 — très grave
           droneDetune: [-12, 0, 12],
           droneType: 'sine',
-          droneVol: 0.18,
+          droneVol: 0.144,
           resoFreqs: [73.42, 110, 146.83], // D2, A2, D3
           resoQ: 28,
           resoVol: 0.03,
@@ -1998,7 +1988,7 @@
           droneFreqs: [110, 164.81], // A2, E3
           droneDetune: [-6, 0, 6],
           droneType: 'sine',
-          droneVol: 0.12,
+          droneVol: 0.096,
           resoFreqs: [220, 329.63, 440, 659.25], // A3, E4, A4, E5
           resoQ: 40, // Encore plus chantant
           resoVol: 0.04,
@@ -2022,7 +2012,7 @@
           droneFreqs: [164.81, 246.94], // E3, B3
           droneDetune: [-5, 0, 5],
           droneType: 'sine',
-          droneVol: 0.1,
+          droneVol: 0.08,
           resoFreqs: [329.63, 493.88, 659.25, 987.77], // E4, B4, E5, B5
           resoQ: 45, // Très haut: chante et scintille
           resoVol: 0.035,
@@ -2046,7 +2036,7 @@
           droneFreqs: [246.94, 369.99], // B3, F#4
           droneDetune: [-4, 0, 4],
           droneType: 'triangle',
-          droneVol: 0.08,
+          droneVol: 0.064,
           resoFreqs: [493.88, 739.99, 987.77, 1479.98], // B4, F#5, B5, F#6
           resoQ: 50, // Maximum: scintillement spectral
           resoVol: 0.03,
@@ -2448,13 +2438,13 @@
             const n = ctx.currentTime;
             master.gain.cancelScheduledValues(n);
             master.gain.setValueAtTime(0, n);
-            master.gain.linearRampToValueAtTime(1.6, n + 2.0);
+            master.gain.linearRampToValueAtTime(0.8, n + 2.0);
           }, 700);
         } else {
           buildTheme(currentTheme);
           master.gain.cancelScheduledValues(now);
           master.gain.setValueAtTime(0, now);
-          master.gain.linearRampToValueAtTime(1.6, now + 2.5);
+          master.gain.linearRampToValueAtTime(0.8, now + 2.5);
         }
 
         isActive = true;
