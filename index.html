@@ -1218,8 +1218,8 @@
     scene.add(sceneGroup);
 
     let particles;
-    let currentImageIndex = 3; // Commence à IMG_003
-    const maxImageIndex = 3; // 3 images : IMG_001, IMG_002, IMG_003
+    let currentImageIndex = 1; // Sera mis à jour après détection
+    let maxImageIndex = 0; // Détecté dynamiquement
     let availableImages = []; // Images qui ont chargé avec succès (détection auto)
     let referenceHeight = null;
 
@@ -1383,112 +1383,83 @@
       ? (isPortrait ? 960 : 640)
       : 880;
 
-    // Pré-charger toutes les images au démarrage
+    // Pré-charger toutes les images au démarrage (détection dynamique)
+    // Probe séquentiellement IMG_001, IMG_002, ... jusqu'à ce qu'une image échoue
     function preloadAllImages() {
       const targetWidth = TARGET_WIDTH;
       const targetHeight = TARGET_HEIGHT;
-      const loadPromises = [];
-      let loadedCount = 0;
 
-      for (let idx = 1; idx <= maxImageIndex; idx++) {
-        const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      function processTexture(idx, texture) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = targetWidth;
+        tempCanvas.height = targetHeight;
+        const tempContext = tempCanvas.getContext('2d');
 
-        const promise = new Promise((resolve, reject) => {
-          textureLoader.load(imagePath, function (texture) {
-            // Canvas temporaire pour cette image
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = targetWidth;
-            tempCanvas.height = targetHeight;
-            const tempContext = tempCanvas.getContext('2d');
+        const srcWidth = texture.image.width;
+        const srcHeight = texture.image.height;
+        const targetRatio = targetWidth / targetHeight;
+        const srcRatio = srcWidth / srcHeight;
 
-            // Mobile portrait: "contain" (photo entière visible, bandes noires)
-            // Desktop/paysage: "cover" (crop pour remplir)
-            const srcWidth = texture.image.width;
-            const srcHeight = texture.image.height;
-            const targetRatio = targetWidth / targetHeight;
-            const srcRatio = srcWidth / srcHeight;
+        let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+        let drawX = 0, drawY = 0, drawW = targetWidth, drawH = targetHeight;
 
-            let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
-            let drawX = 0, drawY = 0, drawW = targetWidth, drawH = targetHeight;
+        if (isMobile && isPortrait) {
+          tempContext.fillStyle = '#000';
+          tempContext.fillRect(0, 0, targetWidth, targetHeight);
+          if (srcRatio > targetRatio) {
+            drawW = targetWidth;
+            drawH = targetWidth / srcRatio;
+            drawY = (targetHeight - drawH) / 2;
+          } else {
+            drawH = targetHeight;
+            drawW = targetHeight * srcRatio;
+            drawX = (targetWidth - drawW) / 2;
+          }
+        } else {
+          if (srcRatio > targetRatio) {
+            cropWidth = srcHeight * targetRatio;
+            cropX = (srcWidth - cropWidth) / 2;
+          } else {
+            cropHeight = srcWidth / targetRatio;
+            cropY = (srcHeight - cropHeight) / 2;
+          }
+        }
 
-            if (isMobile && isPortrait) {
-              // CONTAIN: la photo entière est visible, centrée
-              tempContext.fillStyle = '#000';
-              tempContext.fillRect(0, 0, targetWidth, targetHeight);
-              if (srcRatio > targetRatio) {
-                drawW = targetWidth;
-                drawH = targetWidth / srcRatio;
-                drawY = (targetHeight - drawH) / 2;
-              } else {
-                drawH = targetHeight;
-                drawW = targetHeight * srcRatio;
-                drawX = (targetWidth - drawW) / 2;
-              }
-            } else {
-              // COVER: crop centré pour remplir
-              if (srcRatio > targetRatio) {
-                cropWidth = srcHeight * targetRatio;
-                cropX = (srcWidth - cropWidth) / 2;
-              } else {
-                cropHeight = srcWidth / targetRatio;
-                cropY = (srcHeight - cropHeight) / 2;
-              }
-            }
+        tempContext.drawImage(
+          texture.image,
+          cropX, cropY, cropWidth, cropHeight,
+          drawX, drawY, drawW, drawH
+        );
+        const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
+        imageCache.set(idx, imgData);
 
-            // Dessiner et extraire ImageData
-            tempContext.drawImage(
-              texture.image,
-              cropX, cropY, cropWidth, cropHeight,
-              drawX, drawY, drawW, drawH
-            );
-            const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
-
-            // Stocker ImageData dans le cache
-            imageCache.set(idx, imgData);
-
-            // Pré-extraire les couleurs pour éviter freeze pendant transition
-            const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
-            colorCache.set(idx, colors);
-
-            loadedCount++;
-
-            resolve({ success: true, index: idx });
-          }, undefined, (error) => {
-            loadedCount++;
-
-            reject({ success: false, index: idx, error });
-          });
-        });
-
-        loadPromises.push(promise);
+        const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
+        colorCache.set(idx, colors);
       }
 
-      // Utiliser allSettled pour charger toutes les images disponibles même si certaines échouent
-      return Promise.allSettled(loadPromises).then((results) => {
-        availableImages = [];
-        let successCount = 0;
-        let failCount = 0;
-
-        results.forEach((result, index) => {
-          const imageIndex = index + 1;
-          if (result.status === 'fulfilled') {
-            availableImages.push(imageIndex);
-            successCount++;
-          } else {
-            failCount++;
-          }
-        });
-
-        if (availableImages.length === 0) {
-          console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/');
-          return;
+      // Probe images sequentially: load IMG_001, IMG_002, ... until one fails
+      return new Promise((resolveAll) => {
+        function probeNext(idx) {
+          const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+          textureLoader.load(imagePath, (texture) => {
+            processTexture(idx, texture);
+            availableImages.push(idx);
+            probeNext(idx + 1);
+          }, undefined, () => {
+            // This index failed — we've found all images
+            maxImageIndex = availableImages.length;
+            if (maxImageIndex === 0) {
+              console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/');
+              resolveAll();
+              return;
+            }
+            // Start on last available image
+            currentImageIndex = availableImages[availableImages.length - 1];
+            imagesPreloaded = true;
+            resolveAll();
+          });
         }
-
-        if (!availableImages.includes(currentImageIndex)) {
-          currentImageIndex = availableImages[0];
-        }
-
-        imagesPreloaded = true;
+        probeNext(1);
       });
     }
 
