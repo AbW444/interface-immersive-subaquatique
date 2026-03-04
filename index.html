@@ -1204,7 +1204,7 @@
       renderer = new THREE.WebGLRenderer({
         antialias: !isMobile, // Désactiver AA sur mobile pour perf
         alpha: false,
-        preserveDrawingBuffer: false,
+        preserveDrawingBuffer: true,
         powerPreference: "high-performance"
       });
       // Mobile: limiter pixelRatio à 2 (au-delà = gaspillage GPU)
@@ -3492,6 +3492,23 @@
       toggleInfoOverlay(true);
     });
 
+    // === SCREENSHOT UTILITY ===
+    function autoDownload(blob, filename) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none';
+      document.body.appendChild(a);
+      setTimeout(function() {
+        a.click();
+        setTimeout(function() {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 3000);
+      }, 50);
+    }
+
     window.addEventListener('keydown', (event) => {
       // Landing active: block all keyboard shortcuts except Escape to dismiss
       if (landingActive) {
@@ -3535,10 +3552,46 @@
         }
       }
 
-      // Touche C - Ouvrir l'interface de configuration du scroll
-      if (event.key === 'c' || event.key === 'C') {
+      // Shift+C - Ouvrir l'interface de configuration du scroll
+      if ((event.key === 'c' || event.key === 'C') && event.shiftKey) {
         const scrollConfigPanel = document.getElementById('scroll-config-panel');
         scrollConfigPanel.classList.toggle('visible');
+      }
+
+      // Touche C (sans modifier) - Screenshot résolution native
+      if (event.code === 'KeyC' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+        event.preventDefault();
+        if (typeof renderer !== 'undefined' && renderer) {
+          renderer.render(scene, camera);
+          renderer.domElement.toBlob(function(blob) {
+            if (!blob) return;
+            var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            autoDownload(blob, 'CAPTURE_' + ts + '.png');
+            console.log('📸 Screenshot (' + renderer.domElement.width + 'x' + renderer.domElement.height + ')');
+          }, 'image/png');
+        }
+      }
+
+      // Touche P - Screenshot HAUTE RÉSOLUTION (supersampling 2x)
+      if (event.code === 'KeyP' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+        event.preventDefault();
+        if (renderer && scene && camera) {
+          var prevPixelRatio = renderer.getPixelRatio();
+          var prevSize = new THREE.Vector2();
+          renderer.getSize(prevSize);
+          var hiresRatio = Math.max(prevPixelRatio, 2) * 2;
+          renderer.setPixelRatio(hiresRatio);
+          renderer.setSize(prevSize.x, prevSize.y);
+          renderer.render(scene, camera);
+          renderer.domElement.toBlob(function(blob) {
+            if (!blob) return;
+            var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            autoDownload(blob, 'CAPTURE_HIRES_' + ts + '.png');
+            console.log('📸 Hi-res (' + Math.round(prevSize.x * hiresRatio) + 'x' + Math.round(prevSize.y * hiresRatio) + ')');
+          }, 'image/png');
+          renderer.setPixelRatio(prevPixelRatio);
+          renderer.setSize(prevSize.x, prevSize.y);
+        }
       }
 
       // Touche Z - Ouvrir le panneau de debug zoom/camera
