@@ -8,7 +8,7 @@
   <meta property="og:title" content="Photographic Volume">
   <meta property="og:description" content="Espace immersif de photographies en particules 3D">
   <meta property="og:type" content="website">
-  <title>Photographic Volume</title>
+  <title>Volume Photographique</title>
   <link rel="icon" type="image/png" sizes="192x192" href="Ressources/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="Ressources/logo.png">
   <style>
@@ -41,7 +41,7 @@
       position: absolute; inset: 0;
       display: grid;
       grid-template-columns: auto 1fr auto;
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto 1fr auto auto;
       padding: 44px;
       gap: 0;
     }
@@ -63,7 +63,7 @@
     }
     #info-overlay .info-title-main {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(44px, 8vw, 86px);
+      font-size: clamp(22px, 4vw, 43px);
       font-style: italic; font-weight: 400;
       color: rgba(255, 255, 255, 0.92);
       line-height: 1.08;
@@ -92,7 +92,7 @@
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 16.5px; font-weight: 400; font-style: italic;
+      font-size: 19.8px; font-weight: 400; font-style: italic;
       color: rgba(255,255,255,0.58);
       margin-bottom: 7px;
     }
@@ -103,14 +103,14 @@
       align-self: end; justify-self: start;
     }
 
-    /* Son génératif — top-right */
+    /* Interaction — top-right */
     #info-overlay .info-section.right-top {
       grid-column: 3; grid-row: 1;
       align-self: start; justify-self: end;
       text-align: right;
     }
 
-    /* Interaction — bottom-right */
+    /* Son génératif — bottom-right */
     #info-overlay .info-section.left-bottom {
       grid-column: 3; grid-row: 3;
       align-self: end; justify-self: end;
@@ -129,9 +129,9 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
 
-    /* Footer — bottom-center */
+    /* Footer — bottom-center, spanning all columns */
     #info-overlay .info-footer {
-      grid-column: 2; grid-row: 3;
+      grid-column: 1 / -1; grid-row: 4;
       align-self: end; justify-self: center;
       text-align: center;
     }
@@ -855,13 +855,13 @@
       </div>
 
       <div class="info-section right-top">
-        <div class="info-section-title">Son génératif</div>
-        <p>Le son est synthétisé en temps réel. Chaque niveau de zoom modifie fréquences, résonances et textures. Le paysage audio évolue avec la profondeur visuelle.</p>
+        <div class="info-section-title">Interaction</div>
+        <p>Scrollez ou glissez pour naviguer. Le parcours est cyclique : zoom avant, transition, zoom arrière, puis reprise.</p>
       </div>
 
       <div class="info-section left-bottom">
-        <div class="info-section-title">Interaction</div>
-        <p>Scrollez ou glissez pour naviguer. Le parcours est cyclique : zoom avant, transition, zoom arrière, puis reprise.</p>
+        <div class="info-section-title">Son génératif</div>
+        <p>Le son est synthétisé en temps réel. Chaque niveau de zoom modifie fréquences, résonances et textures. Le paysage audio évolue avec la profondeur visuelle.</p>
       </div>
 
       <!-- Sound toggle — bottom-right -->
