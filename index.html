@@ -25,7 +25,6 @@
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
       background: rgba(0,0,0,0.82);
-      display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       cursor: default;
@@ -36,40 +35,37 @@
     }
     #info-overlay * { cursor: default; }
 
-    /* Central rectangle — same proportions as photos (3:2) */
+    /* Frame = full screen positioning container */
     #info-overlay .info-frame {
-      position: relative;
-      width: min(72vw, 860px);
-      aspect-ratio: 3 / 2;
+      position: absolute;
+      inset: 0;
     }
 
-    /* Title block — top-left, outside the frame */
+    /* Title block — top-left of screen */
     #info-overlay .info-title-block {
       position: absolute;
-      top: -8px; left: 0;
-      transform: translateY(-100%);
+      top: 40px; left: 44px;
     }
     #info-overlay .info-title-top {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px; font-weight: 400;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(13px, 2.4vw, 22px); font-weight: 400;
       letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255,255,255,0.50);
-      margin-bottom: 3px;
+      color: rgba(255,255,255,0.92);
+      margin-bottom: 2px;
     }
     #info-overlay .info-title-main {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(28px, 4vw, 44px);
+      font-size: clamp(44px, 8vw, 86px);
       font-style: italic; font-weight: 400;
       color: rgba(255,255,255,0.92);
       line-height: 1.05;
       text-shadow: 0 0 20px rgba(255,255,255,0.12), 0 0 50px rgba(255,255,255,0.06);
     }
 
-    /* Subtitle — top-right */
+    /* Subtitle — top-right of screen */
     #info-overlay .info-subtitle {
       position: absolute;
-      top: -8px; right: 0;
-      transform: translateY(-100%);
+      top: 44px; right: 44px;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 9px; font-weight: 400;
       letter-spacing: 0.18em; text-transform: uppercase;
@@ -77,20 +73,19 @@
       text-align: right;
     }
 
-    /* Frame border — subtle outline where the photo would be */
+    /* Frame border — hidden */
     #info-overlay .info-frame-border {
-      position: absolute; inset: 0;
-      border: 1px solid rgba(255,255,255,0.06);
+      display: none;
     }
 
-    /* Info sections — positioned around the frame edges */
+    /* Info sections — positioned at screen edges, away from center */
     #info-overlay .info-section {
       position: absolute;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 12px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
       color: rgba(255,255,255,0.42);
-      max-width: 280px;
+      max-width: 260px;
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -99,22 +94,22 @@
       margin-bottom: 6px;
     }
 
-    /* Section positions — distributed along edges */
+    /* Section positions — at screen edges */
     #info-overlay .info-section.left-top {
-      left: 20px; top: 20px;
+      left: 44px; bottom: 44px;
     }
     #info-overlay .info-section.left-bottom {
-      left: 20px; bottom: 20px;
+      left: 44px; bottom: 110px;
     }
     #info-overlay .info-section.right-top {
-      right: 20px; top: 20px;
+      right: 44px; top: 130px;
       text-align: right;
     }
 
-    /* Sound toggle — bottom-right of frame */
+    /* Sound toggle — bottom-right of screen */
     #info-overlay .info-sound-toggle {
       position: absolute;
-      bottom: 20px; right: 20px;
+      bottom: 110px; right: 44px;
       width: 28px; height: 28px;
       border: none; background: transparent;
       cursor: pointer; padding: 0;
@@ -123,12 +118,12 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 18px; height: 18px; }
 
-    /* Footer — bottom of frame, outside */
+    /* Footer — bottom-center of screen */
     #info-overlay .info-footer {
       position: absolute;
-      bottom: -8px; left: 0; right: 0;
-      transform: translateY(100%);
-      display: flex; justify-content: space-between; align-items: flex-start;
+      bottom: 44px; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
     }
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
@@ -140,6 +135,7 @@
       font-family: 'Space Grotesk', sans-serif;
       font-size: 9px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
+      margin-top: 4px;
     }
     canvas {
       display: block;
@@ -629,18 +625,19 @@
       /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
       /* Info overlay: mobile — stack vertically */
-      #info-overlay .info-frame {
-        width: 90vw; aspect-ratio: auto;
-        display: flex; flex-direction: column;
-        gap: 20px; padding: 60px 20px;
-      }
-      #info-overlay .info-title-block,
-      #info-overlay .info-subtitle,
-      #info-overlay .info-footer { position: static; transform: none; }
-      #info-overlay .info-section { position: static; max-width: none; text-align: left; }
-      #info-overlay .info-frame-border { display: none; }
-      #info-overlay .info-sound-toggle { position: static; margin-top: 10px; }
       #info-overlay { overflow-y: auto; }
+      #info-overlay .info-frame {
+        position: relative; inset: auto;
+        display: flex; flex-direction: column;
+        gap: 20px; padding: 40px 24px;
+        min-height: 100vh;
+      }
+      #info-overlay .info-title-block { position: static; }
+      #info-overlay .info-subtitle { position: static; text-align: left; margin-top: -12px; }
+      #info-overlay .info-section { position: static; max-width: none; text-align: left; margin-top: 0; }
+      #info-overlay .info-section.right-top { text-align: left; margin-top: 0; }
+      #info-overlay .info-footer { position: static; transform: none; text-align: left; margin-top: auto; padding-top: 20px; }
+      #info-overlay .info-sound-toggle { position: static; margin-top: 10px; }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 30px 24px; }
       .landing-scroll-hint { bottom: 28px; }
@@ -683,21 +680,21 @@
       font-size: clamp(13px, 2.4vw, 22px);
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      animation: landingFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+      animation: landingFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
     }
     .landing-title-line:nth-child(2) {
       font-size: clamp(44px, 8vw, 86px);
       font-style: italic;
       letter-spacing: 0.04em;
       text-shadow: 0 0 20px rgba(255, 255, 255, 0.12), 0 0 50px rgba(255, 255, 255, 0.06);
-      animation: landingFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
+      animation: landingFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
     }
     .landing-rule {
       width: 0;
       height: 1px;
       background: rgba(255, 255, 255, 0.12);
       margin: 36px auto;
-      animation: landingGrowLine 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards;
+      animation: landingGrowLine 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
     }
     .landing-desc {
       font-family: 'Space Grotesk', sans-serif;
@@ -705,21 +702,10 @@
       font-weight: 300;
       line-height: 1.35;
       letter-spacing: 0.015em;
-      color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.65);
       opacity: 0;
       transform: translateY(20px);
-      animation: landingFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.6s forwards;
-    }
-    .landing-credit {
-      margin-top: 32px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px;
-      font-weight: 400;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.18);
-      opacity: 0;
-      animation: landingFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 2.1s forwards;
+      animation: landingFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
     }
     .landing-scroll-hint {
       position: fixed;
@@ -727,9 +713,10 @@
       left: 50%;
       transform: translateX(-50%);
       opacity: 0;
-      animation: landingFadeIn 0.6s ease 2.8s forwards;
+      animation: landingFadeIn 0.4s ease 1.3s forwards;
     }
     .landing-scroll-hint svg {
+      filter: drop-shadow(0 0 6px rgba(255,255,255,0.25)) drop-shadow(0 0 14px rgba(255,255,255,0.1));
       animation: landingChevronPulse 2.8s ease-in-out infinite;
     }
     @keyframes landingFadeUp {
@@ -742,8 +729,8 @@
       to { opacity: 1; }
     }
     @keyframes landingChevronPulse {
-      0%, 100% { transform: translateY(0); opacity: 0.5; }
-      50% { transform: translateY(3px); opacity: 0.2; }
+      0%, 100% { transform: translateY(0); opacity: 0.7; }
+      50% { transform: translateY(4px); opacity: 0.3; }
     }
     /* Landing dismiss — CSS-driven transition (no scroll accumulator) */
     #landing-page.dismissing {
@@ -783,11 +770,10 @@
       <div class="landing-title-line">VOLUME</div>
       <div class="landing-rule"></div>
       <p class="landing-desc">Traverser l'espace perceptif<br>de la photographie.</p>
-      <p class="landing-credit">Holosene — 2025</p>
     </div>
     <div class="landing-scroll-hint" id="landing-scroll-hint">
-      <svg width="28" height="16" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 2L14 14L26 2" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="38" height="22" viewBox="0 0 38 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 3L19 19L35 3" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
   </div>
