@@ -851,6 +851,8 @@
       max-width: 680px;
       padding: 40px 30px;
       position: relative;
+      will-change: transform, opacity;
+      transform-origin: center center;
     }
     .landing-title-line {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -863,10 +865,12 @@
       transform: translateY(30px);
     }
     .landing-title-line:first-child {
+      letter-spacing: 0.14em;
       animation: landingFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
     }
     .landing-title-line:nth-child(2) {
       font-style: italic;
+      text-shadow: 0 0 18px rgba(255, 255, 255, 0.10), 0 0 40px rgba(255, 255, 255, 0.05);
       animation: landingFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
     }
     .landing-rule {
@@ -880,7 +884,7 @@
       font-family: 'Space Grotesk', sans-serif;
       font-size: clamp(14px, 1.8vw, 17px);
       font-weight: 300;
-      line-height: 1.75;
+      line-height: 1.35;
       letter-spacing: 0.015em;
       color: rgba(255, 255, 255, 0.4);
       opacity: 0;
@@ -903,20 +907,8 @@
       bottom: 36px;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
       opacity: 0;
       animation: landingFadeIn 0.6s ease 2.8s forwards;
-    }
-    .landing-scroll-hint-text {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 9px;
-      font-weight: 400;
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.18);
     }
     .landing-scroll-hint svg {
       animation: landingChevronPulse 2.8s ease-in-out infinite;
@@ -952,9 +944,8 @@
       <p class="landing-credit">Holosene — 2025</p>
     </div>
     <div class="landing-scroll-hint" id="landing-scroll-hint">
-      <span class="landing-scroll-hint-text">Explorer</span>
-      <svg width="14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 1L7 7L13 1" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="28" height="16" viewBox="0 0 28 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 2L14 14L26 2" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
   </div>
@@ -1363,7 +1354,7 @@
     // Landing page state
     let landingActive = true;
     let landingProgress = 0;
-    const LANDING_DISMISS_THRESHOLD = 150;
+    const LANDING_DISMISS_THRESHOLD = 280;
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
@@ -2845,6 +2836,16 @@
         needsResizeRender = false;
       }
 
+      // Volume zoom-in animation after landing dismissal
+      if (sceneGroup.scale.x < 0.999) {
+        const s = sceneGroup.scale.x + (1 - sceneGroup.scale.x) * 0.03;
+        sceneGroup.scale.set(s, s, s);
+        needsRender = true;
+      } else if (sceneGroup.scale.x > 0.999 && sceneGroup.scale.x < 1.0) {
+        sceneGroup.scale.set(1, 1, 1);
+        needsRender = true;
+      }
+
       // TOUCH MOMENTUM: inertie naturelle après le lâcher du doigt
       processTouchMomentum();
 
@@ -3362,50 +3363,41 @@
     // LANDING PAGE — Scroll-to-dismiss avec parallax
     // ═══════════════════════════════════════════════
     const landingPage = document.getElementById('landing-page');
-    const landingDOM = landingPage ? {
-      titles: landingPage.querySelectorAll('.landing-title-line'),
-      rule: landingPage.querySelector('.landing-rule'),
-      desc: landingPage.querySelector('.landing-desc'),
-      credit: landingPage.querySelector('.landing-credit'),
-      hint: document.getElementById('landing-scroll-hint')
-    } : null;
+    const landingContent = landingPage ? landingPage.querySelector('.landing-content') : null;
+    const landingHint = document.getElementById('landing-scroll-hint');
 
     function handleLandingScroll(rawDelta) {
       if (!landingActive || !landingPage) return;
       landingProgress = Math.min(1, landingProgress + rawDelta / LANDING_DISMISS_THRESHOLD);
 
-      // Eased progress for smooth visuals
       const p = landingProgress;
-      const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
 
-      // Parallax exit: each element lifts at different speed
-      if (landingDOM.titles[0]) {
-        landingDOM.titles[0].style.transform = `translateY(${-ease * 120}px)`;
-        landingDOM.titles[0].style.opacity = Math.max(0, 1 - ease * 2);
-      }
-      if (landingDOM.titles[1]) {
-        landingDOM.titles[1].style.transform = `translateY(${-ease * 100}px)`;
-        landingDOM.titles[1].style.opacity = Math.max(0, 1 - ease * 1.8);
-      }
-      if (landingDOM.rule) {
-        landingDOM.rule.style.opacity = Math.max(0, 1 - ease * 2.5);
-      }
-      if (landingDOM.desc) {
-        landingDOM.desc.style.transform = `translateY(${-ease * 60}px)`;
-        landingDOM.desc.style.opacity = Math.max(0, 1 - ease * 1.5);
-      }
-      if (landingDOM.credit) {
-        landingDOM.credit.style.transform = `translateY(${-ease * 40}px)`;
-        landingDOM.credit.style.opacity = Math.max(0, 1 - ease * 1.3);
-      }
-      if (landingDOM.hint) {
-        landingDOM.hint.style.opacity = Math.max(0, 1 - ease * 5);
+      // Scroll hint: disappears immediately
+      if (landingHint) {
+        landingHint.style.opacity = Math.max(0, 1 - p * 6);
       }
 
-      // Background fades to reveal particles underneath
-      landingPage.style.backgroundColor = `rgba(0, 0, 0, ${Math.max(0, 1 - ease)})`;
+      // PHASE 1 — ZOOM: content scales up from 1.0 → ~3.5 (whole range)
+      const scale = 1 + p * 2.5;
+      if (landingContent) {
+        landingContent.style.transform = `scale(${scale})`;
 
-      if (landingProgress >= 1) {
+        // PHASE 2 — FADE CONTENT: starts at 35%, fully gone by 65%
+        if (p > 0.35) {
+          const fadeP = Math.min(1, (p - 0.35) / 0.3);
+          landingContent.style.opacity = 1 - fadeP;
+        } else {
+          landingContent.style.opacity = 1;
+        }
+      }
+
+      // PHASE 3 — FADE BLACK: starts at 65%, reveals particles underneath
+      if (p > 0.65) {
+        const bgP = Math.min(1, (p - 0.65) / 0.35);
+        landingPage.style.backgroundColor = `rgba(0, 0, 0, ${1 - bgP})`;
+      }
+
+      if (p >= 1) {
         dismissLanding();
       }
     }
@@ -3414,6 +3406,9 @@
       landingActive = false;
       landingPage.classList.add('dismissing');
       setTimeout(() => landingPage.remove(), 100);
+      // Volume zoom-in: particles start slightly small and grow into view
+      sceneGroup.scale.set(0.86, 0.86, 0.86);
+      needsResizeRender = true;
       // Setup experience scroll indicator (deferred from onReady)
       setupExperienceScrollIndicator();
       // Setup audio auto-start (deferred from landing)
