@@ -42,7 +42,7 @@
       display: grid;
       grid-template-columns: auto 1fr auto;
       grid-template-rows: auto 1fr auto auto;
-      padding: 44px;
+      padding: 20px;
       gap: 0;
     }
 
@@ -58,14 +58,14 @@
       font-family: 'Instrument Serif', Georgia, serif;
       font-size: clamp(13px, 2.4vw, 22px); font-weight: 400;
       letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255, 255, 255, 1);
+      color: rgba(255, 255, 255, 0.92);
       line-height: 1.08;
     }
     #info-overlay .info-title-main {
       font-family: 'Instrument Serif', Georgia, serif;
       font-size: clamp(22px, 4vw, 43px);
       font-style: italic; font-weight: 400;
-      color: rgba(255, 255, 255, 1);
+      color: rgba(255, 255, 255, 0.92);
       line-height: 1.08;
       letter-spacing: 0.04em;
       position: relative;
@@ -84,13 +84,13 @@
       font-family: 'Space Grotesk', sans-serif;
       font-size: 15px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
-      color: rgba(255,255,255,1);
+      color: rgba(255,255,255,0.42);
       max-width: 308px;
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
       font-size: 23px; font-weight: 400; font-style: italic;
-      color: rgba(255,255,255,1);
+      color: rgba(255,255,255,0.58);
       margin-bottom: 7px;
     }
 
@@ -121,9 +121,9 @@
       width: 34px; height: 34px;
       border: none; background: transparent;
       cursor: pointer; padding: 0;
-      opacity: 1; transition: opacity 0.3s;
+      opacity: 0.35; transition: opacity 0.3s;
     }
-    #info-overlay .info-sound-toggle:hover { opacity: 0.7; }
+    #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
 
     /* Footer — bottom-center, spanning all columns */
@@ -135,12 +135,12 @@
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
       font-size: 11px; font-weight: 300;
-      color: rgba(255,255,255,1);
+      color: rgba(255,255,255,0.25);
       letter-spacing: 0.02em;
     }
     #info-overlay .info-hint {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px; color: rgba(255,255,255,1);
+      font-size: 10px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
     }
@@ -736,7 +736,7 @@
     }
     .landing-desc {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(14px, 1.8vw, 17px);
+      font-size: clamp(15px, 2vw, 19px);
       font-weight: 200;
       line-height: 1.35;
       letter-spacing: 0.015em;
@@ -775,7 +775,7 @@
       pointer-events: none;
     }
     #landing-page.dismissing .landing-content {
-      animation: landingZoomOut 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: landingZoomOut 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     #landing-page.dismissing .landing-scroll-hint {
       animation: landingHintFade 0.6s ease forwards;
@@ -789,7 +789,7 @@
       to { opacity: 0; }
     }
     #landing-page.dismissing {
-      animation: landingBgFade 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+      animation: landingBgFade 1.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
     }
     @keyframes landingBgFade {
       0%   { background: rgba(0,0,0,1); }
@@ -2819,6 +2819,33 @@
         // Déplacer la caméra (au lieu du sceneGroup) : de z=25 (loin) à z=0 (proche)
         camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
+        // Info overlay scroll-fade: progressive fade on forward path only
+        if (infoOverlay.classList.contains('visible')) {
+          const X = MAX_ZOOM_LEVEL;
+          const fadeStart = X * 0.25;
+          const fadeEnd = X * 0.75;
+          // Track state 0 for return path
+          if (zoomLevel <= 0.005) {
+            infoHasReachedZero = true;
+          }
+          // Only fade on forward (zoomIn) after having reached state 0
+          if (scrollPhase === 'zoomIn' && infoHasReachedZero && zoomLevel > fadeStart) {
+            const fadeProgress = Math.min(1, (zoomLevel - fadeStart) / (fadeEnd - fadeStart));
+            infoOverlay.style.opacity = 1 - fadeProgress;
+            if (fadeProgress >= 1) {
+              // Fully faded — dismiss
+              infoOverlay.classList.remove('visible');
+              infoOverlay.style.opacity = '';
+              infoHasReachedZero = false;
+              const scrollInd = document.getElementById('scroll-indicator');
+              if (scrollInd) scrollInd.style.display = '';
+            }
+          } else if (scrollPhase === 'zoomOut' || zoomLevel <= fadeStart) {
+            // On return path or below fade threshold: keep fully visible
+            infoOverlay.style.opacity = '';
+          }
+        }
+
         needsRender = true;
       }
 
@@ -3305,7 +3332,7 @@
       // CSS-driven animation (2.8s): zoom content out, fade black bg
       landingPage.classList.add('dismissing');
       // Remove after CSS animation completes
-      setTimeout(() => landingPage.remove(), 3000);
+      setTimeout(() => landingPage.remove(), 2000);
       // Volume zoom-in: particles emerge from small scale
       sceneGroup.scale.set(0.55, 0.55, 0.55);
       needsResizeRender = true;
@@ -3519,6 +3546,10 @@
 
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
+    // Info overlay scroll-fade: only on forward path (zoomIn away from state 0)
+    let infoFadeAllowed = false; // becomes true after reaching state 0 on return
+    let infoHasReachedZero = true; // start true so first zoomIn triggers fade
+
     function toggleInfoOverlay(show) {
       if (landingActive) return;
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
