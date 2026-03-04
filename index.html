@@ -744,7 +744,8 @@
       width: 6px; height: 6px;
       margin: 36px auto;
       opacity: 0;
-      animation: landingCursorIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards;
+      transform: translateY(20px);
+      animation: landingFadeUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.1s forwards;
       filter: drop-shadow(0 0 1px rgba(209,0,0,0.6)) drop-shadow(0 0 2.5px rgba(209,0,0,0.25));
     }
     .landing-rule img {
@@ -775,9 +776,6 @@
     }
     @keyframes landingFadeUp {
       to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes landingCursorIn {
-      to { opacity: 1; }
     }
     @keyframes landingFadeIn {
       to { opacity: 1; }
@@ -849,6 +847,7 @@
       width: 6px; height: 6px;
       margin: 30px auto;
       opacity: 0;
+      transform: translateY(15px);
       filter: drop-shadow(0 0 1px rgba(209,0,0,0.6)) drop-shadow(0 0 2.5px rgba(209,0,0,0.25));
     }
     .intro-rule img {
@@ -877,7 +876,7 @@
       animation: introFadeUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
     }
     #intro-page.active .intro-rule {
-      animation: introCursorIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards;
+      animation: introFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
     }
     #intro-page.active .intro-text-secondary {
       animation: introFadeUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
@@ -891,9 +890,6 @@
     }
     @keyframes introFadeUp {
       to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes introCursorIn {
-      to { opacity: 1; }
     }
     @keyframes introHintIn {
       to { opacity: 1; }
