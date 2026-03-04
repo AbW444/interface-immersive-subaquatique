@@ -16,14 +16,15 @@
     /* Custom cursor — image-based */
     #custom-cursor {
       position: fixed; top: 0; left: 0;
-      width: 7px; height: 7px;
+      width: 6px; height: 6px;
       pointer-events: none;
       z-index: 99999;
       opacity: 0;
       transition: opacity 0.5s ease;
-      transform: translate(-50%, -50%);
-      will-change: transform, left, top;
+      transform: translate3d(-50%, -50%, 0);
+      will-change: transform, opacity;
       filter: drop-shadow(0 0 1px rgba(209,0,0,0.6)) drop-shadow(0 0 2.5px rgba(209,0,0,0.25));
+      contain: layout style;
     }
     #custom-cursor img {
       display: block;
@@ -46,13 +47,11 @@
       background: transparent;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
-      cursor: default;
       overflow: hidden;
     }
     #info-overlay.visible {
       opacity: 1; pointer-events: auto;
     }
-    #info-overlay * { cursor: default; }
 
     /* Absolute positioning — elements pinned to screen edges */
     #info-overlay .info-frame {
@@ -742,7 +741,7 @@
       50%  { filter: url(#grain-filter-2); }
     }
     .landing-rule {
-      width: 7px; height: 7px;
+      width: 6px; height: 6px;
       margin: 36px auto;
       opacity: 0;
       animation: landingCursorIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.3s forwards;
@@ -847,7 +846,7 @@
       transform: translateY(25px);
     }
     .intro-rule {
-      width: 7px; height: 7px;
+      width: 6px; height: 6px;
       margin: 30px auto;
       opacity: 0;
       filter: drop-shadow(0 0 1px rgba(209,0,0,0.6)) drop-shadow(0 0 2.5px rgba(209,0,0,0.25));
@@ -2985,12 +2984,18 @@
         if (infoFading) {
           const elapsed = performance.now() - infoFadeStartTime;
           const fadeProgress = Math.min(1, elapsed / INFO_FADE_DURATION);
-          infoOverlay.style.opacity = 1 - fadeProgress;
+          const remainingOpacity = 1 - fadeProgress;
+          infoOverlay.style.opacity = remainingOpacity;
+          // Cursor follows same fade
+          customCursor.style.opacity = remainingOpacity;
           if (fadeProgress >= 1) {
             infoOverlay.classList.remove('visible');
             infoOverlay.style.opacity = '';
             infoFading = false;
             infoHasReachedZero = false;
+            // Sync cursor off
+            cursorAllowed = false;
+            setCursorVisible(false);
             const scrollInd = document.getElementById('scroll-indicator');
             if (scrollInd) scrollInd.style.display = '';
           }
@@ -3724,18 +3729,15 @@
     let infoFadeStartTime = 0; // timestamp when fade started
     let infoFading = false; // currently fading out
     const INFO_FADE_DURATION = 800; // ms for full fade out
+    let cursorAllowed = false; // gated by info overlay visibility
 
     function toggleInfoOverlay(show) {
       if (landingActive) return;
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
       infoOverlay.classList.toggle('visible', visible);
-      // Cursor follows same visibility as info overlay
+      // Cursor perfectly synced with info overlay
       cursorAllowed = visible;
-      if (visible) {
-        showCursor();
-      } else {
-        hideCursor();
-      }
+      setCursorVisible(visible);
       const scrollInd = document.getElementById('scroll-indicator');
       if (scrollInd) scrollInd.style.display = visible ? 'none' : '';
     }
@@ -3747,49 +3749,50 @@
       toggleInfoOverlay(true);
     });
 
-    // === CUSTOM CURSOR (strict, image-based) ===
-    // Cursor is only visible when info overlay is visible (cursorAllowed)
+    // === CUSTOM CURSOR (GPU-accelerated, synced with info overlay) ===
     const customCursor = document.getElementById('custom-cursor');
-    let cursorVisible = false;
-    let cursorAllowed = false; // gated by info overlay
-    let cursorTimeout = null;
-    function showCursor() {
-      if (!cursorAllowed) return;
-      if (!cursorVisible) { cursorVisible = true; customCursor.classList.add('visible'); }
-      clearTimeout(cursorTimeout);
-      cursorTimeout = setTimeout(hideCursor, 2500);
-    }
-    function hideCursor() {
-      cursorVisible = false;
-      customCursor.classList.remove('visible');
-      customCursor.style.opacity = '';
-      clearTimeout(cursorTimeout);
-    }
+    // cursorAllowed declared above (before toggleInfoOverlay)
+    let cursorX = 0, cursorY = 0;
+    let cursorRafId = 0;
     const EDGE_MARGIN = 60;
+
+    function updateCursorTransform(targetOpacity) {
+      customCursor.style.transform = 'translate3d(' + cursorX + 'px,' + cursorY + 'px,0) translate(-50%,-50%)';
+      if (targetOpacity !== undefined) customCursor.style.opacity = targetOpacity;
+    }
+
+    function setCursorVisible(on) {
+      customCursor.classList.toggle('visible', on);
+      if (!on) customCursor.style.opacity = '';
+    }
+
     window.addEventListener('mousemove', (e) => {
-      customCursor.style.left = e.clientX + 'px';
-      customCursor.style.top = e.clientY + 'px';
-      if (!cursorAllowed) return;
-      // Fade near edges
-      const dx = Math.min(e.clientX, window.innerWidth - e.clientX);
-      const dy = Math.min(e.clientY, window.innerHeight - e.clientY);
-      const edgeDist = Math.min(dx, dy);
-      if (edgeDist < EDGE_MARGIN) {
-        customCursor.style.opacity = (edgeDist / EDGE_MARGIN).toFixed(3);
-        cursorVisible = true;
-        customCursor.classList.add('visible');
-        clearTimeout(cursorTimeout);
-        cursorTimeout = setTimeout(hideCursor, 2500);
-      } else {
-        customCursor.style.opacity = '';
-        showCursor();
+      cursorX = e.clientX;
+      cursorY = e.clientY;
+      if (!cursorRafId) {
+        cursorRafId = requestAnimationFrame(() => {
+          cursorRafId = 0;
+          if (!cursorAllowed) {
+            updateCursorTransform();
+            return;
+          }
+          // Edge fade
+          const dx = Math.min(cursorX, window.innerWidth - cursorX);
+          const dy = Math.min(cursorY, window.innerHeight - cursorY);
+          const edgeDist = Math.min(dx, dy);
+          if (edgeDist < EDGE_MARGIN) {
+            updateCursorTransform((edgeDist / EDGE_MARGIN).toFixed(3));
+            customCursor.classList.add('visible');
+          } else {
+            updateCursorTransform();
+          }
+        });
       }
     }, { passive: true });
-    window.addEventListener('mouseleave', hideCursor);
-    window.addEventListener('blur', hideCursor);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) hideCursor();
-    });
+
+    window.addEventListener('mouseleave', () => setCursorVisible(false));
+    window.addEventListener('blur', () => setCursorVisible(false));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) setCursorVisible(false); });
 
     // === SCREENSHOT UTILITY ===
     function autoDownload(blob, filename) {
