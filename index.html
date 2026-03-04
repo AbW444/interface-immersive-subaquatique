@@ -726,7 +726,7 @@
       font-size: clamp(34px, 6.2vw, 68px);
       font-style: italic;
       letter-spacing: 0.04em;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 30px rgba(255, 255, 255, 0.3), 0 0 60px rgba(255, 255, 255, 0.2), 0 0 100px rgba(255, 255, 255, 0.12), 0 0 150px rgba(255, 255, 255, 0.06);
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
       position: relative;
       animation: landingFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
     }
@@ -734,7 +734,7 @@
       content: 'PHOTOGRAPHIQUE';
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 30px rgba(255, 255, 255, 0.3), 0 0 60px rgba(255, 255, 255, 0.2), 0 0 100px rgba(255, 255, 255, 0.12), 0 0 150px rgba(255, 255, 255, 0.06);
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
       color: transparent;
       pointer-events: none;
     }
@@ -790,10 +790,10 @@
       pointer-events: none;
     }
     #landing-page.dismissing .landing-content {
-      animation: landingZoomOut 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: landingZoomOut 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     #landing-page.dismissing .landing-scroll-hint {
-      animation: landingHintFade 0.3s ease forwards;
+      animation: landingHintFade 0.6s ease forwards;
     }
     @keyframes landingZoomOut {
       0%   { transform: scale(1); opacity: 1; }
@@ -804,7 +804,7 @@
       to { opacity: 0; }
     }
     #landing-page.dismissing {
-      animation: landingBgFade 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+      animation: landingBgFade 2.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
     }
     @keyframes landingBgFade {
       0%   { background: rgba(0,0,0,1); }
@@ -3317,10 +3317,10 @@
     function dismissLanding() {
       if (!landingActive) return;
       landingActive = false;
-      // CSS-driven animation (1.4s): zoom content out, fade black bg
+      // CSS-driven animation (2.8s): zoom content out, fade black bg
       landingPage.classList.add('dismissing');
       // Remove after CSS animation completes
-      setTimeout(() => landingPage.remove(), 1500);
+      setTimeout(() => landingPage.remove(), 3000);
       // Volume zoom-in: particles emerge from small scale
       sceneGroup.scale.set(0.55, 0.55, 0.55);
       needsResizeRender = true;
