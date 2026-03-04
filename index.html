@@ -2834,30 +2834,29 @@
         // Déplacer la caméra (au lieu du sceneGroup) : de z=25 (loin) à z=0 (proche)
         camera.position.z = -minZoom - (-minZoom - maxZoom) * zoomLevel;
 
-        // Info overlay scroll-fade: progressive fade on forward path only
-        if (infoOverlay.classList.contains('visible')) {
-          const X = MAX_ZOOM_LEVEL;
-          const fadeStart = X * 0.25;
-          const fadeEnd = X * 0.75;
-          // Track state 0 for return path
-          if (zoomLevel <= 0.005) {
-            infoHasReachedZero = true;
-          }
-          // Only fade on forward (zoomIn) after having reached state 0
+        // Info overlay time-fade: trigger at 1/4 of X on forward path, then fade by time
+        if (zoomLevel <= 0.005) {
+          infoHasReachedZero = true;
+        }
+        if (infoOverlay.classList.contains('visible') && !infoFading) {
+          const fadeStart = MAX_ZOOM_LEVEL * 0.25;
           if (scrollPhase === 'zoomIn' && infoHasReachedZero && zoomLevel > fadeStart) {
-            const fadeProgress = Math.min(1, (zoomLevel - fadeStart) / (fadeEnd - fadeStart));
-            infoOverlay.style.opacity = 1 - fadeProgress;
-            if (fadeProgress >= 1) {
-              // Fully faded — dismiss
-              infoOverlay.classList.remove('visible');
-              infoOverlay.style.opacity = '';
-              infoHasReachedZero = false;
-              const scrollInd = document.getElementById('scroll-indicator');
-              if (scrollInd) scrollInd.style.display = '';
-            }
-          } else if (scrollPhase === 'zoomOut' || zoomLevel <= fadeStart) {
-            // On return path or below fade threshold: keep fully visible
+            // Trigger time-based fade
+            infoFading = true;
+            infoFadeStartTime = performance.now();
+          }
+        }
+        if (infoFading) {
+          const elapsed = performance.now() - infoFadeStartTime;
+          const fadeProgress = Math.min(1, elapsed / INFO_FADE_DURATION);
+          infoOverlay.style.opacity = 1 - fadeProgress;
+          if (fadeProgress >= 1) {
+            infoOverlay.classList.remove('visible');
             infoOverlay.style.opacity = '';
+            infoFading = false;
+            infoHasReachedZero = false;
+            const scrollInd = document.getElementById('scroll-indicator');
+            if (scrollInd) scrollInd.style.display = '';
           }
         }
 
@@ -3561,9 +3560,11 @@
 
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
-    // Info overlay scroll-fade: only on forward path (zoomIn away from state 0)
-    let infoFadeAllowed = false; // becomes true after reaching state 0 on return
+    // Info overlay time-fade: triggered at 1/4 of X on forward path
     let infoHasReachedZero = true; // start true so first zoomIn triggers fade
+    let infoFadeStartTime = 0; // timestamp when fade started
+    let infoFading = false; // currently fading out
+    const INFO_FADE_DURATION = 800; // ms for full fade out
 
     function toggleInfoOverlay(show) {
       if (landingActive) return;
