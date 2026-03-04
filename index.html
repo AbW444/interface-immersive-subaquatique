@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="description" content="Photographic Volume — espace immersif de photographies en particules 3D">
+  <meta name="description" content="Photographic Volume, espace immersif de photographies en particules 3D">
   <meta name="theme-color" content="#000000">
   <meta property="og:title" content="Photographic Volume">
   <meta property="og:description" content="Espace immersif de photographies en particules 3D">
@@ -48,7 +48,7 @@
     /* Frame border — hidden */
     #info-overlay .info-frame-border { display: none; }
 
-    /* Title block — top-left */
+    /* Title block — top-left, identical to landing */
     #info-overlay .info-title-block {
       grid-column: 1; grid-row: 1;
       align-self: start; justify-self: start;
@@ -57,28 +57,17 @@
       font-family: 'Instrument Serif', Georgia, serif;
       font-size: clamp(13px, 2.4vw, 22px); font-weight: 400;
       letter-spacing: 0.22em; text-transform: uppercase;
-      color: rgba(255,255,255,0.92);
-      margin-bottom: 2px;
+      color: rgba(255, 255, 255, 0.92);
+      line-height: 1.08;
     }
     #info-overlay .info-title-main {
       font-family: 'Instrument Serif', Georgia, serif;
       font-size: clamp(44px, 8vw, 86px);
       font-style: italic; font-weight: 400;
-      color: rgba(255,255,255,0.92);
-      line-height: 1.05;
-      text-shadow: 0 0 25px rgba(255,255,255,0.22), 0 0 60px rgba(255,255,255,0.10);
-    }
-
-    /* Subtitle — top-right */
-    #info-overlay .info-subtitle {
-      grid-column: 3; grid-row: 1;
-      align-self: start; justify-self: end;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 9px; font-weight: 400;
-      letter-spacing: 0.18em; text-transform: uppercase;
-      color: rgba(255,255,255,0.30);
-      text-align: right;
-      padding-top: 6px;
+      color: rgba(255, 255, 255, 0.92);
+      line-height: 1.08;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
     }
 
     /* Info sections — shared styles */
@@ -102,13 +91,11 @@
       align-self: end; justify-self: start;
     }
 
-    /* Son génératif — top-right, below subtitle */
+    /* Son génératif — top-right */
     #info-overlay .info-section.right-top {
       grid-column: 3; grid-row: 1;
-      align-self: end; justify-self: end;
+      align-self: start; justify-self: end;
       text-align: right;
-      margin-top: 24px;
-      padding-top: 40px;
     }
 
     /* Interaction — bottom-right */
@@ -643,14 +630,12 @@
         min-height: 100vh;
       }
       #info-overlay .info-title-block,
-      #info-overlay .info-subtitle,
       #info-overlay .info-section,
       #info-overlay .info-footer,
       #info-overlay .info-sound-toggle {
         grid-column: auto; grid-row: auto;
         align-self: auto; justify-self: auto;
       }
-      #info-overlay .info-subtitle { text-align: left; margin-top: -12px; padding-top: 0; }
       #info-overlay .info-section { max-width: none; text-align: left !important; margin-top: 0; padding-top: 0; }
       #info-overlay .info-footer { text-align: left; margin-top: auto; padding-top: 20px; }
       #info-overlay .info-sound-toggle { margin-top: 10px; }
@@ -782,8 +767,8 @@
   <!-- Page d'accueil -->
   <div id="landing-page">
     <div class="landing-content">
-      <div class="landing-title-line">PHOTOGRAPHIC</div>
       <div class="landing-title-line">VOLUME</div>
+      <div class="landing-title-line">Immergé</div>
       <div class="landing-rule"></div>
       <p class="landing-desc">Traverser l'espace perceptif<br>de la photographie.</p>
     </div>
@@ -800,12 +785,9 @@
 
       <!-- Title — above frame, top-left -->
       <div class="info-title-block">
-        <div class="info-title-top">Photographic</div>
-        <div class="info-title-main">Volume</div>
+        <div class="info-title-top">VOLUME</div>
+        <div class="info-title-main">Immergé</div>
       </div>
-
-      <!-- Subtitle — above frame, top-right -->
-      <div class="info-subtitle">Holosene — 2025</div>
 
       <!-- Frame outline -->
       <div class="info-frame-border"></div>
@@ -813,17 +795,17 @@
       <!-- Sections — inside the frame, positioned at edges -->
       <div class="info-section left-top">
         <div class="info-section-title">Concept</div>
-        <p>Chaque photographie est décomposée en particules positionnées dans un espace 3D. Le scroll contrôle la profondeur — les couches se séparent et révèlent la structure interne de l'image.</p>
+        <p>Chaque photographie est décomposée en particules positionnées dans un espace 3D. Le scroll contrôle la profondeur, les couches se séparent et révèlent la structure interne de l'image.</p>
       </div>
 
       <div class="info-section right-top">
         <div class="info-section-title">Son génératif</div>
-        <p>Le son est synthétisé en temps réel. Chaque niveau de zoom modifie fréquences, résonances et textures — le paysage audio évolue avec la profondeur visuelle.</p>
+        <p>Le son est synthétisé en temps réel. Chaque niveau de zoom modifie fréquences, résonances et textures. Le paysage audio évolue avec la profondeur visuelle.</p>
       </div>
 
       <div class="info-section left-bottom">
         <div class="info-section-title">Interaction</div>
-        <p>Scrollez ou glissez pour naviguer. Le parcours est cyclique — zoom avant, transition, zoom arrière, puis reprise.</p>
+        <p>Scrollez ou glissez pour naviguer. Le parcours est cyclique : zoom avant, transition, zoom arrière, puis reprise.</p>
       </div>
 
       <!-- Sound toggle — bottom-right -->
