@@ -3764,11 +3764,9 @@
     // cursorAllowed declared above (before toggleInfoOverlay)
     let cursorX = 0, cursorY = 0;
     let cursorRafId = 0;
-    const EDGE_MARGIN = 60;
 
-    function updateCursorTransform(targetOpacity) {
+    function updateCursorTransform() {
       customCursor.style.transform = 'translate3d(' + cursorX + 'px,' + cursorY + 'px,0) translate(-50%,-50%)';
-      if (targetOpacity !== undefined) customCursor.style.opacity = targetOpacity;
     }
 
     function setCursorVisible(on) {
@@ -3786,16 +3784,7 @@
             updateCursorTransform();
             return;
           }
-          // Edge fade
-          const dx = Math.min(cursorX, window.innerWidth - cursorX);
-          const dy = Math.min(cursorY, window.innerHeight - cursorY);
-          const edgeDist = Math.min(dx, dy);
-          if (edgeDist < EDGE_MARGIN) {
-            updateCursorTransform((edgeDist / EDGE_MARGIN).toFixed(3));
-            customCursor.classList.add('visible');
-          } else {
-            updateCursorTransform();
-          }
+          updateCursorTransform();
         });
       }
     }, { passive: true });
