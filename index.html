@@ -70,19 +70,19 @@
       text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
     }
 
-    /* Info sections — shared styles */
+    /* Info sections — shared styles (+10% size) */
     #info-overlay .info-section {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px; font-weight: 300;
+      font-size: 13.2px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
       color: rgba(255,255,255,0.42);
-      max-width: 280px;
+      max-width: 308px;
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 15px; font-weight: 400; font-style: italic;
+      font-size: 16.5px; font-weight: 400; font-style: italic;
       color: rgba(255,255,255,0.58);
-      margin-bottom: 6px;
+      margin-bottom: 7px;
     }
 
     /* Concept — bottom-left */
@@ -109,13 +109,13 @@
     #info-overlay .info-sound-toggle {
       grid-column: 3; grid-row: 2;
       align-self: center; justify-self: end;
-      width: 28px; height: 28px;
+      width: 34px; height: 34px;
       border: none; background: transparent;
       cursor: pointer; padding: 0;
       opacity: 0.35; transition: opacity 0.3s;
     }
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
-    #info-overlay .info-sound-toggle svg { width: 18px; height: 18px; }
+    #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
 
     /* Footer — bottom-center */
     #info-overlay .info-footer {
@@ -125,13 +125,13 @@
     }
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px; font-weight: 300;
+      font-size: 11px; font-weight: 300;
       color: rgba(255,255,255,0.25);
       letter-spacing: 0.02em;
     }
     #info-overlay .info-hint {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 9px; color: rgba(255,255,255,0.18);
+      font-size: 10px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
     }
@@ -199,13 +199,29 @@
       border: 1px solid rgba(255,255,255,0.06);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      cursor: default;
+      position: relative;
     }
+    .admin-panel * { cursor: default; }
+    .admin-panel button, .admin-panel input[type="range"], .admin-panel select { cursor: pointer; }
     .admin-panel .panel-title {
       font-family: 'Instrument Serif', Georgia, serif;
       font-weight: 400;
       color: rgba(255,255,255,0.8);
       letter-spacing: 0.04em;
     }
+    .admin-panel .panel-close {
+      position: absolute; top: 12px; right: 12px;
+      width: 24px; height: 24px;
+      border: none; background: transparent;
+      color: rgba(255,255,255,0.35);
+      font-size: 18px; line-height: 1;
+      cursor: pointer; padding: 0;
+      transition: color 0.2s;
+      font-family: 'Space Grotesk', sans-serif;
+      z-index: 10;
+    }
+    .admin-panel .panel-close:hover { color: rgba(255,255,255,0.7); }
     /* Shared scrollbar */
     .admin-panel ::-webkit-scrollbar { width: 4px; }
     .admin-panel ::-webkit-scrollbar-track { background: transparent; }
@@ -786,7 +802,7 @@
       <!-- Title — above frame, top-left -->
       <div class="info-title-block">
         <div class="info-title-top">VOLUME</div>
-        <div class="info-title-main">Immergé</div>
+        <div class="info-title-main">IMMERGÉ</div>
       </div>
 
       <!-- Frame outline -->
@@ -858,6 +874,7 @@
 
   <!-- SCROLL CONFIG PANEL (Touche C) -->
   <div id="scroll-config-panel" class="admin-panel">
+    <button class="panel-close" onclick="this.parentElement.classList.remove('visible')">&times;</button>
     <div class="scroll-config-header panel-title">Scroll Configuration</div>
     <div class="scroll-config-content">
 
@@ -935,6 +952,7 @@
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
   <div id="settings-panel" class="admin-panel">
+    <button class="panel-close" onclick="this.parentElement.classList.remove('visible')">&times;</button>
     <div class="settings-content">
 
       <!-- Point Size -->
@@ -1095,6 +1113,7 @@
 
   <!-- INTERFACE ÉTATS DE LECTURE (Touche M) -->
   <div id="ux-states-panel" class="admin-panel">
+    <button class="panel-close" onclick="this.parentElement.classList.remove('visible')">&times;</button>
     <div class="ux-states-header">
       <h2 class="ux-states-title panel-title">États de Lecture</h2>
     </div>
@@ -1128,6 +1147,7 @@
 
   <!-- DEBUG PANEL (Touche Z) -->
   <div id="debug-panel" class="admin-panel">
+    <button class="panel-close" onclick="this.parentElement.classList.remove('visible')">&times;</button>
     <div class="debug-header panel-title">Debug Zoom & Camera</div>
 
     <div class="debug-row">
@@ -3265,26 +3285,20 @@
     function setupExperienceScrollIndicator() {
       const scrollInd = document.getElementById('scroll-indicator');
       if (!scrollInd) return;
-      let idleTimer = null;
 
-      function showIndicator() {
+      // Show once after 5s of inactivity
+      const showTimer = setTimeout(() => {
         scrollInd.classList.add('visible');
-      }
-      function hideIndicator() {
+      }, 5000);
+
+      // On first scroll, hide permanently and remove
+      const dismissIndicator = () => {
+        clearTimeout(showTimer);
         scrollInd.classList.remove('visible');
-      }
-      function resetIdleTimer() {
-        hideIndicator();
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(showIndicator, 5000);
-      }
-
-      // Start the first idle timer
-      idleTimer = setTimeout(showIndicator, 5000);
-
-      // Any scroll/touch resets the timer
-      window.addEventListener('wheel', resetIdleTimer);
-      window.addEventListener('touchmove', resetIdleTimer);
+        setTimeout(() => scrollInd.remove(), 1200);
+      };
+      window.addEventListener('wheel', dismissIndicator, { once: true });
+      window.addEventListener('touchmove', dismissIndicator, { once: true });
     }
 
     window.addEventListener('wheel', (event) => {
@@ -3464,6 +3478,11 @@
       if (landingActive) return; // Blocked during landing
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
       infoOverlay.classList.toggle('visible', visible);
+      // Hide scroll indicator when info is shown
+      const scrollInd = document.getElementById('scroll-indicator');
+      if (scrollInd) {
+        scrollInd.style.display = visible ? 'none' : '';
+      }
     }
     // Fermer l'overlay en cliquant dessus
     infoOverlay.addEventListener('click', () => toggleInfoOverlay(false));
