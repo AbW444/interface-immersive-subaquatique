@@ -1803,6 +1803,7 @@
     let currentAppliedDisparity = 0; // Disparity actuellement appliquée (avec lerp)
     let needsPositionUpdate = false; // Batch GPU updates pour éviter appels multiples
     let wheelScrollAccumulator = 0; // PRO: Accumulateur virtuel pour molette (technique Lenis/smooth-scroll)
+    let trackpadScrollAccumulator = 0; // Accumulateur inertie trackpad
     let lastScrollTime = 0; // Timestamp pour détection trackpad vs molette
 
     // ═══════════════════════════════════════════════
@@ -2791,6 +2792,18 @@
       // TOUCH MOMENTUM: inertie naturelle après le lâcher du doigt
       processTouchMomentum();
 
+      // TRACKPAD INERTIA: Accumulateur avec lerp doux pour effet de glissement
+      if (Math.abs(trackpadScrollAccumulator) > 0.0001 && !isInDeadZone) {
+        const tpContribution = trackpadScrollAccumulator * scrollConfig.trackpad.inertiaLerp;
+        if (scrollPhase === 'zoomIn') {
+          targetZoomLevel += tpContribution;
+        } else if (scrollPhase === 'zoomOut') {
+          targetZoomLevel -= tpContribution;
+        }
+        targetZoomLevel = Math.max(0, Math.min(MAX_ZOOM_LEVEL, targetZoomLevel));
+        trackpadScrollAccumulator *= (1 - scrollConfig.trackpad.inertiaLerp);
+      }
+
       // PRO WHEEL SMOOTHING: Accumulateur virtuel avec lerp adaptatif (technique Lenis)
       // Convertit les clics discrets de molette en mouvement fluide continu
       if (Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
@@ -2823,6 +2836,7 @@
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
         wheelScrollAccumulator = 0;
+        trackpadScrollAccumulator = 0;
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -3204,7 +3218,8 @@
       trackpad: {
         sensitivity: 0.000450, // Sensibilité trackpad augmentée
         threshold: 70,         // Seuil de détection trackpad
-        frequency: 39          // Fréquence de détection trackpad
+        frequency: 39,         // Fréquence de détection trackpad
+        inertiaLerp: 0.08      // Lerp d'inertie trackpad (plus bas = plus de glissement)
       },
       wheel: {
         // PRO: Système d'accumulateur virtuel (technique Lenis/smooth-scroll)
@@ -3213,7 +3228,7 @@
         lerp: 0.22             // Distribution fluide sur plusieurs frames (300-500ms)
       },
       global: {
-        zoomLerp: 0.18,        // Réponse linéaire et prévisible
+        zoomLerp: 0.12,        // Plus bas = plus de glissement/persistance
         disparityLerp: 0.23
       }
     };
@@ -3289,9 +3304,9 @@
     // Reset button
     scrollResetBtn.addEventListener('click', () => {
       // Reset to PRO defaults (trackpad +25% réactivité, molette /3)
-      scrollConfig.trackpad = { sensitivity: 0.000334, threshold: 70, frequency: 39 };
+      scrollConfig.trackpad = { sensitivity: 0.000334, threshold: 70, frequency: 39, inertiaLerp: 0.08 };
       scrollConfig.wheel = { multiplier: 0.93, lerp: 0.22 };
-      scrollConfig.global = { zoomLerp: 0.18, disparityLerp: 0.23 };
+      scrollConfig.global = { zoomLerp: 0.12, disparityLerp: 0.23 };
 
       // Update sliders
       trackpadSensitivitySlider.value = 0.000334;
@@ -3306,8 +3321,8 @@
       wheelLerpSlider.value = 0.22;
       wheelLerpVal.textContent = '0.22';
 
-      zoomLerpSlider.value = 0.18;
-      zoomLerpVal.textContent = '0.18';
+      zoomLerpSlider.value = 0.12;
+      zoomLerpVal.textContent = '0.12';
       disparityLerpSlider.value = 0.23;
       disparityLerpVal.textContent = '0.23';
 
@@ -3419,11 +3434,8 @@
             scrollDeadZoneAccumulator = 0;
           }
         } else {
-          if (scrollPhase === 'zoomIn') {
-            targetZoomLevel += scrollDelta;
-          } else if (scrollPhase === 'zoomOut') {
-            targetZoomLevel -= scrollDelta;
-          }
+          // Accumuler pour inertie/glissement
+          trackpadScrollAccumulator += scrollDelta;
         }
       } else {
         if (isInDeadZone) {
