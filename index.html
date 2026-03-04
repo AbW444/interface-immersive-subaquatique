@@ -3874,6 +3874,10 @@
       }, 50);
     }
 
+    // Buffer pour saisie numérique → navigation directe vers image
+    let numBuffer = '';
+    let numBufferTimer = null;
+
     window.addEventListener('keydown', (event) => {
       AudioEngine.ensureContextRunning();
       // Landing/intro active: block all keyboard shortcuts except Escape to dismiss
@@ -3893,6 +3897,32 @@
       }
       if (event.key === 'Escape' && infoOverlay.classList.contains('visible')) {
         toggleInfoOverlay(false);
+        return;
+      }
+
+      // Saisie numérique → navigation directe vers image (ex: "005" → IMG_005)
+      if (event.key >= '0' && event.key <= '9') {
+        numBuffer += event.key;
+        clearTimeout(numBufferTimer);
+        if (numBuffer.length >= 3) {
+          // 3 chiffres saisis → navigation immédiate
+          const targetIdx = parseInt(numBuffer, 10);
+          numBuffer = '';
+          if (availableImages.indexOf(targetIdx) !== -1) {
+            currentImageIndex = targetIdx;
+            loadImage(currentImageIndex);
+          }
+        } else {
+          // Attendre encore des chiffres (800ms timeout)
+          numBufferTimer = setTimeout(() => {
+            const targetIdx = parseInt(numBuffer, 10);
+            numBuffer = '';
+            if (availableImages.indexOf(targetIdx) !== -1) {
+              currentImageIndex = targetIdx;
+              loadImage(currentImageIndex);
+            }
+          }, 800);
+        }
         return;
       }
 
