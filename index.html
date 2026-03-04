@@ -2714,8 +2714,15 @@
         if (!layers.drone) buildTheme(currentTheme);
         master.gain.cancelScheduledValues(now);
         master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.48, now + 1.2);
+        master.gain.linearRampToValueAtTime(0.576, now + 1.2);
         isActive = true;
+      }
+
+      // Resume AudioContext on user interaction (browsers suspend after inactivity)
+      function ensureContextRunning() {
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume();
+        }
       }
 
       return {
@@ -2725,6 +2732,7 @@
         mute,
         unmute,
         update,
+        ensureContextRunning,
         _onVisibilityChange,
         get isActive() { return isActive; },
         get currentTheme() { return currentTheme; },
@@ -3356,6 +3364,7 @@
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
+      AudioEngine.ensureContextRunning();
 
       // Landing page: scroll to dismiss
       if (landingActive) {
@@ -3431,6 +3440,7 @@
 
     window.addEventListener('touchmove', (e) => {
       e.preventDefault();
+      AudioEngine.ensureContextRunning();
       // Landing page: touch to dismiss
       if (landingActive) {
         if (e.touches.length === 1 && touchLastY !== null) {
@@ -3614,6 +3624,7 @@
     }
 
     window.addEventListener('keydown', (event) => {
+      AudioEngine.ensureContextRunning();
       // Landing active: block all keyboard shortcuts except Escape to dismiss
       if (landingActive) {
         if (event.key === 'Escape') dismissLanding();
