@@ -35,16 +35,23 @@
     }
     #info-overlay * { cursor: default; }
 
-    /* Frame = full screen positioning container */
+    /* CSS Grid — 3 columns × 3 rows, content hugs screen edges */
     #info-overlay .info-frame {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-rows: auto 1fr auto;
+      padding: 44px;
+      gap: 0;
     }
 
-    /* Title block — top-left of screen */
+    /* Frame border — hidden */
+    #info-overlay .info-frame-border { display: none; }
+
+    /* Title block — top-left */
     #info-overlay .info-title-block {
-      position: absolute;
-      top: 40px; left: 44px;
+      grid-column: 1; grid-row: 1;
+      align-self: start; justify-self: start;
     }
     #info-overlay .info-title-top {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -59,33 +66,28 @@
       font-style: italic; font-weight: 400;
       color: rgba(255,255,255,0.92);
       line-height: 1.05;
-      text-shadow: 0 0 20px rgba(255,255,255,0.12), 0 0 50px rgba(255,255,255,0.06);
+      text-shadow: 0 0 25px rgba(255,255,255,0.22), 0 0 60px rgba(255,255,255,0.10);
     }
 
-    /* Subtitle — top-right of screen */
+    /* Subtitle — top-right */
     #info-overlay .info-subtitle {
-      position: absolute;
-      top: 44px; right: 44px;
+      grid-column: 3; grid-row: 1;
+      align-self: start; justify-self: end;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 9px; font-weight: 400;
       letter-spacing: 0.18em; text-transform: uppercase;
       color: rgba(255,255,255,0.30);
       text-align: right;
+      padding-top: 6px;
     }
 
-    /* Frame border — hidden */
-    #info-overlay .info-frame-border {
-      display: none;
-    }
-
-    /* Info sections — positioned at screen edges, away from center */
+    /* Info sections — shared styles */
     #info-overlay .info-section {
-      position: absolute;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 12px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
       color: rgba(255,255,255,0.42);
-      max-width: 260px;
+      max-width: 280px;
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -94,22 +96,32 @@
       margin-bottom: 6px;
     }
 
-    /* Section positions — at screen edges */
+    /* Concept — bottom-left */
     #info-overlay .info-section.left-top {
-      left: 44px; bottom: 44px;
+      grid-column: 1; grid-row: 3;
+      align-self: end; justify-self: start;
     }
-    #info-overlay .info-section.left-bottom {
-      left: 44px; bottom: 110px;
-    }
+
+    /* Son génératif — top-right, below subtitle */
     #info-overlay .info-section.right-top {
-      right: 44px; top: 130px;
+      grid-column: 3; grid-row: 1;
+      align-self: end; justify-self: end;
+      text-align: right;
+      margin-top: 24px;
+      padding-top: 40px;
+    }
+
+    /* Interaction — bottom-right */
+    #info-overlay .info-section.left-bottom {
+      grid-column: 3; grid-row: 3;
+      align-self: end; justify-self: end;
       text-align: right;
     }
 
-    /* Sound toggle — bottom-right of screen */
+    /* Sound toggle — middle-right */
     #info-overlay .info-sound-toggle {
-      position: absolute;
-      bottom: 110px; right: 44px;
+      grid-column: 3; grid-row: 2;
+      align-self: center; justify-self: end;
       width: 28px; height: 28px;
       border: none; background: transparent;
       cursor: pointer; padding: 0;
@@ -118,11 +130,10 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 18px; height: 18px; }
 
-    /* Footer — bottom-center of screen */
+    /* Footer — bottom-center */
     #info-overlay .info-footer {
-      position: absolute;
-      bottom: 44px; left: 50%;
-      transform: translateX(-50%);
+      grid-column: 2; grid-row: 3;
+      align-self: end; justify-self: center;
       text-align: center;
     }
     #info-overlay .info-tech {
@@ -627,17 +638,22 @@
       /* Info overlay: mobile — stack vertically */
       #info-overlay { overflow-y: auto; }
       #info-overlay .info-frame {
-        position: relative; inset: auto;
         display: flex; flex-direction: column;
         gap: 20px; padding: 40px 24px;
         min-height: 100vh;
       }
-      #info-overlay .info-title-block { position: static; }
-      #info-overlay .info-subtitle { position: static; text-align: left; margin-top: -12px; }
-      #info-overlay .info-section { position: static; max-width: none; text-align: left; margin-top: 0; }
-      #info-overlay .info-section.right-top { text-align: left; margin-top: 0; }
-      #info-overlay .info-footer { position: static; transform: none; text-align: left; margin-top: auto; padding-top: 20px; }
-      #info-overlay .info-sound-toggle { position: static; margin-top: 10px; }
+      #info-overlay .info-title-block,
+      #info-overlay .info-subtitle,
+      #info-overlay .info-section,
+      #info-overlay .info-footer,
+      #info-overlay .info-sound-toggle {
+        grid-column: auto; grid-row: auto;
+        align-self: auto; justify-self: auto;
+      }
+      #info-overlay .info-subtitle { text-align: left; margin-top: -12px; padding-top: 0; }
+      #info-overlay .info-section { max-width: none; text-align: left !important; margin-top: 0; padding-top: 0; }
+      #info-overlay .info-footer { text-align: left; margin-top: auto; padding-top: 20px; }
+      #info-overlay .info-sound-toggle { margin-top: 10px; }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 30px 24px; }
       .landing-scroll-hint { bottom: 28px; }
@@ -686,7 +702,7 @@
       font-size: clamp(44px, 8vw, 86px);
       font-style: italic;
       letter-spacing: 0.04em;
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.12), 0 0 50px rgba(255, 255, 255, 0.06);
+      text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
       animation: landingFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
     }
     .landing-rule {
@@ -822,7 +838,7 @@
       <!-- Footer — below frame -->
       <div class="info-footer">
         <div class="info-tech">Three.js · Web Audio API</div>
-        <div class="info-hint">Cliquez ou Esc pour revenir</div>
+        <div class="info-hint">Cliquez ou Alt pour revenir</div>
       </div>
 
     </div>
@@ -3267,24 +3283,26 @@
     function setupExperienceScrollIndicator() {
       const scrollInd = document.getElementById('scroll-indicator');
       if (!scrollInd) return;
-      let userHasScrolled = false;
-      const markScrolled = () => {
-        if (!userHasScrolled) {
-          userHasScrolled = true;
-          scrollInd.classList.remove('pulse');
-          scrollInd.style.opacity = '0';
-          setTimeout(() => scrollInd.remove(), 1500);
-        }
-      };
-      window.addEventListener('wheel', markScrolled, { once: true });
-      window.addEventListener('touchmove', markScrolled, { once: true });
-      setTimeout(() => scrollInd.classList.add('visible'), 400);
-      setTimeout(() => {
-        if (!userHasScrolled) scrollInd.classList.add('pulse');
-      }, 5000);
-      setTimeout(() => {
-        if (!userHasScrolled) markScrolled();
-      }, 20000);
+      let idleTimer = null;
+
+      function showIndicator() {
+        scrollInd.classList.add('visible');
+      }
+      function hideIndicator() {
+        scrollInd.classList.remove('visible');
+      }
+      function resetIdleTimer() {
+        hideIndicator();
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(showIndicator, 5000);
+      }
+
+      // Start the first idle timer
+      idleTimer = setTimeout(showIndicator, 5000);
+
+      // Any scroll/touch resets the timer
+      window.addEventListener('wheel', resetIdleTimer);
+      window.addEventListener('touchmove', resetIdleTimer);
     }
 
     window.addEventListener('wheel', (event) => {
