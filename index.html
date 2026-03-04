@@ -172,9 +172,9 @@
     #loading-screen {
       position: fixed;
       inset: 0;
-      z-index: 9999;
+      z-index: 20000;
       background: #000;
-      transition: opacity 1s ease;
+      transition: opacity 1.2s ease;
     }
     #loading-screen.hidden {
       opacity: 0;
@@ -841,14 +841,12 @@
       color: rgba(255, 255, 255, 0.85);
       opacity: 0;
       transform: translateY(25px);
-      animation: introFadeUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
     }
     .intro-rule {
       width: 0;
       height: 1px;
       background: rgba(255, 255, 255, 0.10);
       margin: 30px auto;
-      animation: introGrowLine 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards;
     }
     .intro-text-secondary {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -860,7 +858,6 @@
       color: rgba(255, 255, 255, 0.6);
       opacity: 0;
       transform: translateY(20px);
-      animation: introFadeUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
     }
     .intro-scroll-hint {
       position: fixed;
@@ -868,6 +865,18 @@
       left: 50%;
       transform: translateX(-50%);
       opacity: 0;
+    }
+    /* Animations only when active */
+    #intro-page.active .intro-text {
+      animation: introFadeUp 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+    }
+    #intro-page.active .intro-rule {
+      animation: introGrowLine 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards;
+    }
+    #intro-page.active .intro-text-secondary {
+      animation: introFadeUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
+    }
+    #intro-page.active .intro-scroll-hint {
       animation: introHintIn 0.6s ease 2.0s forwards;
     }
     .intro-scroll-hint svg {
@@ -936,7 +945,7 @@
   </div>
 
   <!-- Page d'introduction (origine des photographies) -->
-  <div id="intro-page" style="display:none;">
+  <div id="intro-page">
     <div class="intro-content">
       <p class="intro-text">Ces photographies sont issues<br>d'archives personnelles,<br>collectées entre 2018 et 2024.</p>
       <div class="intro-rule"></div>
@@ -3470,12 +3479,10 @@
       if (!landingActive) return;
       landingActive = false;
       landingPage.classList.add('dismissing');
-      setTimeout(() => {
-        landingPage.remove();
-        // Show intro page after landing is gone
-        introPage.style.display = 'flex';
-        introActive = true;
-      }, 2000);
+      // Activate intro immediately (it's already visible behind landing)
+      introPage.classList.add('active');
+      introActive = true;
+      setTimeout(() => landingPage.remove(), 2000);
     }
 
     function dismissIntro() {
