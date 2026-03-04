@@ -126,19 +126,6 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
 
-    /* Info overlay dismiss animation — same as landing */
-    #info-overlay.dismissing {
-      pointer-events: none;
-    }
-    #info-overlay.dismissing .info-frame {
-      animation: infoZoomOut 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes infoZoomOut {
-      0%   { transform: scale(1); opacity: 1; }
-      50%  { opacity: 0; }
-      100% { transform: scale(3.5); opacity: 0; }
-    }
-
     /* Footer — bottom-center, spanning all columns */
     #info-overlay .info-footer {
       grid-column: 1 / -1; grid-row: 4;
@@ -3366,13 +3353,6 @@
         return;
       }
 
-      // Info overlay: scroll to dismiss (like landing), continue exploration
-      if (infoActive && !infoDismissing) {
-        dismissInfoOverlay();
-        return;
-      }
-      if (infoDismissing) return;
-
       // Scroll bidirectionnel : haut et bas produisent le même effet
       const absDeltaY = Math.abs(event.deltaY);
 
@@ -3445,12 +3425,6 @@
         return;
       }
 
-      // Info overlay: touch to dismiss (like landing), continue exploration
-      if (infoActive && !infoDismissing) {
-        dismissInfoOverlay();
-        return;
-      }
-      if (infoDismissing) return;
       if (!touchActive || e.touches.length !== 1 || touchLastY === null) return;
 
       const currentY = e.touches[0].clientY;
@@ -3545,59 +3519,19 @@
 
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
-    let infoActive = false;
-    let infoDismissing = false;
-
-    function showInfoOverlay() {
-      if (landingActive || infoActive || infoDismissing) return;
-      // Animate experience back to state 0 (zoom out to start)
-      targetZoomLevel = 0;
-      scrollPhase = 'zoomIn';
-      hasTriggeredTransition = false;
-      wheelScrollAccumulator = 0;
-      isInDeadZone = false;
-      scrollDeadZoneAccumulator = 0;
-      // Show overlay after a short delay to let zoom-out begin
-      setTimeout(() => {
-        infoOverlay.classList.add('visible');
-        infoActive = true;
-        const scrollInd = document.getElementById('scroll-indicator');
-        if (scrollInd) scrollInd.style.display = 'none';
-      }, 400);
-    }
-
-    function dismissInfoOverlay() {
-      if (!infoActive || infoDismissing) return;
-      infoDismissing = true;
-      infoActive = false;
-      // Zoom-out animation like landing page
-      infoOverlay.classList.add('dismissing');
-      setTimeout(() => {
-        infoOverlay.classList.remove('visible', 'dismissing');
-        // Reset frame transform for next show
-        const frame = infoOverlay.querySelector('.info-frame');
-        if (frame) frame.style.transform = '';
-        infoDismissing = false;
-        const scrollInd = document.getElementById('scroll-indicator');
-        if (scrollInd) scrollInd.style.display = '';
-      }, 1500);
-    }
-
     function toggleInfoOverlay(show) {
       if (landingActive) return;
-      const visible = show !== undefined ? show : !infoActive;
-      if (visible) {
-        showInfoOverlay();
-      } else {
-        dismissInfoOverlay();
-      }
+      const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
+      infoOverlay.classList.toggle('visible', visible);
+      const scrollInd = document.getElementById('scroll-indicator');
+      if (scrollInd) scrollInd.style.display = visible ? 'none' : '';
     }
     // Fermer l'overlay en cliquant dessus
-    infoOverlay.addEventListener('click', () => dismissInfoOverlay());
+    infoOverlay.addEventListener('click', () => toggleInfoOverlay(false));
     // Bloquer le menu contextuel natif, ouvrir l'info overlay à la place
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      showInfoOverlay();
+      toggleInfoOverlay(true);
     });
 
     // === SCREENSHOT UTILITY ===
@@ -3625,13 +3559,13 @@
         return;
       }
       // Alt ou Esc → toggle info overlay
-      if (event.key === 'Alt' || (event.key === 'Escape' && !infoActive)) {
+      if (event.key === 'Alt' || (event.key === 'Escape' && !infoOverlay.classList.contains('visible'))) {
         event.preventDefault();
         toggleInfoOverlay(true);
         return;
       }
-      if (event.key === 'Escape' && infoActive) {
-        dismissInfoOverlay();
+      if (event.key === 'Escape' && infoOverlay.classList.contains('visible')) {
+        toggleInfoOverlay(false);
         return;
       }
 
