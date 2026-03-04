@@ -12,7 +12,21 @@
   <link rel="icon" type="image/png" sizes="192x192" href="Ressources/logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="Ressources/logo.png">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; cursor: none !important; }
+    /* Custom cursor with fade */
+    #custom-cursor {
+      position: fixed; top: 0; left: 0;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.7);
+      pointer-events: none;
+      z-index: 99999;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+    }
+    #custom-cursor.visible { opacity: 1; }
     body {
       margin: 0;
       overflow: hidden;
@@ -801,6 +815,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <div id="custom-cursor"></div>
   <!-- SVG grain filters for glow effect -->
   <svg style="position:absolute;width:0;height:0" aria-hidden="true">
     <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
@@ -3565,6 +3580,23 @@
       toggleInfoOverlay(true);
     });
 
+    // === CUSTOM CURSOR WITH FADE ===
+    const customCursor = document.getElementById('custom-cursor');
+    let cursorTimeout = null;
+    window.addEventListener('mousemove', (e) => {
+      customCursor.style.left = e.clientX + 'px';
+      customCursor.style.top = e.clientY + 'px';
+      customCursor.classList.add('visible');
+      clearTimeout(cursorTimeout);
+      cursorTimeout = setTimeout(() => {
+        customCursor.classList.remove('visible');
+      }, 2000);
+    });
+    window.addEventListener('mouseleave', () => {
+      customCursor.classList.remove('visible');
+      clearTimeout(cursorTimeout);
+    });
+
     // === SCREENSHOT UTILITY ===
     function autoDownload(blob, filename) {
       var url = URL.createObjectURL(blob);
@@ -3589,10 +3621,10 @@
         if (event.key === 'Escape') dismissLanding();
         return;
       }
-      // Alt ou Esc → toggle info overlay
-      if (event.key === 'Alt' || (event.key === 'Escape' && !infoOverlay.classList.contains('visible'))) {
+      // Alt → toggle info overlay / Esc → fermer
+      if (event.key === 'Alt') {
         event.preventDefault();
-        toggleInfoOverlay(true);
+        toggleInfoOverlay();
         return;
       }
       if (event.key === 'Escape' && infoOverlay.classList.contains('visible')) {
