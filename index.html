@@ -25,79 +25,120 @@
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
       background: rgba(0,0,0,0.82);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      display: flex; align-items: flex-start; justify-content: flex-start;
+      display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       cursor: default;
-      overflow-y: auto;
+      overflow: hidden;
     }
     #info-overlay.visible {
       opacity: 1; pointer-events: auto;
     }
     #info-overlay * { cursor: default; }
-    #info-overlay .info-content {
-      max-width: 560px; width: 100%;
-      padding: 80px 60px;
-      text-align: left; color: rgba(255,255,255,0.38);
-      font-family: 'Space Grotesk', sans-serif; font-size: 14px;
-      font-weight: 300; line-height: 1.7; letter-spacing: 0.01em;
+
+    /* Central rectangle — same proportions as photos (3:2) */
+    #info-overlay .info-frame {
+      position: relative;
+      width: min(72vw, 860px);
+      aspect-ratio: 3 / 2;
     }
-    #info-overlay .info-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      margin-bottom: 40px;
-    }
-    #info-overlay .info-title {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-weight: 400; letter-spacing: 0.04em;
-      color: rgba(255,255,255,0.88);
-      line-height: 1.1;
+
+    /* Title block — top-left, outside the frame */
+    #info-overlay .info-title-block {
+      position: absolute;
+      top: -8px; left: 0;
+      transform: translateY(-100%);
     }
     #info-overlay .info-title-top {
-      display: block;
-      font-size: clamp(11px, 2vw, 15px);
-      font-style: normal;
-      letter-spacing: 0.20em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
-      margin-bottom: 4px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; font-weight: 400;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.50);
+      margin-bottom: 3px;
     }
     #info-overlay .info-title-main {
-      display: block;
-      font-size: clamp(36px, 6vw, 56px);
-      font-style: italic;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: clamp(28px, 4vw, 44px);
+      font-style: italic; font-weight: 400;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.05;
       text-shadow: 0 0 20px rgba(255,255,255,0.12), 0 0 50px rgba(255,255,255,0.06);
     }
-    #info-overlay .info-sound-toggle {
-      margin-top: 12px;
-      width: 32px; height: 32px;
-      border: none; background: transparent;
-      cursor: pointer; padding: 0;
-      opacity: 0.3; transition: opacity 0.3s;
-    }
-    #info-overlay .info-sound-toggle:hover { opacity: 0.6; }
-    #info-overlay .info-sound-toggle svg {
-      width: 20px; height: 20px;
-    }
+
+    /* Subtitle — top-right */
     #info-overlay .info-subtitle {
-      font-size: 10px; font-weight: 400;
+      position: absolute;
+      top: -8px; right: 0;
+      transform: translateY(-100%);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px; font-weight: 400;
       letter-spacing: 0.18em; text-transform: uppercase;
-      color: rgba(255,255,255,0.18); margin-bottom: 40px;
+      color: rgba(255,255,255,0.30);
+      text-align: right;
     }
-    #info-overlay .info-separator {
-      width: 24px; height: 1px; background: rgba(255,255,255,0.08);
-      margin: 24px 0;
+
+    /* Frame border — subtle outline where the photo would be */
+    #info-overlay .info-frame-border {
+      position: absolute; inset: 0;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* Info sections — positioned around the frame edges */
+    #info-overlay .info-section {
+      position: absolute;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; font-weight: 300;
+      line-height: 1.65; letter-spacing: 0.01em;
+      color: rgba(255,255,255,0.42);
+      max-width: 280px;
     }
     #info-overlay .info-section-title {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 17px; font-weight: 400; font-style: italic;
-      color: rgba(255,255,255,0.50); margin-bottom: 8px;
+      font-size: 15px; font-weight: 400; font-style: italic;
+      color: rgba(255,255,255,0.58);
+      margin-bottom: 6px;
     }
-    #info-overlay .info-text {
-      margin-bottom: 18px;
+
+    /* Section positions — distributed along edges */
+    #info-overlay .info-section.left-top {
+      left: 20px; top: 20px;
+    }
+    #info-overlay .info-section.left-bottom {
+      left: 20px; bottom: 20px;
+    }
+    #info-overlay .info-section.right-top {
+      right: 20px; top: 20px;
+      text-align: right;
+    }
+
+    /* Sound toggle — bottom-right of frame */
+    #info-overlay .info-sound-toggle {
+      position: absolute;
+      bottom: 20px; right: 20px;
+      width: 28px; height: 28px;
+      border: none; background: transparent;
+      cursor: pointer; padding: 0;
+      opacity: 0.35; transition: opacity 0.3s;
+    }
+    #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
+    #info-overlay .info-sound-toggle svg { width: 18px; height: 18px; }
+
+    /* Footer — bottom of frame, outside */
+    #info-overlay .info-footer {
+      position: absolute;
+      bottom: -8px; left: 0; right: 0;
+      transform: translateY(100%);
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    #info-overlay .info-tech {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; font-weight: 300;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.02em;
     }
     #info-overlay .info-hint {
-      margin-top: 48px; font-size: 9px; color: rgba(255,255,255,0.12);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 9px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
     }
     canvas {
@@ -587,9 +628,19 @@
       }
       /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
-      /* Info overlay: mobile */
-      #info-overlay .info-content { padding: 40px 24px; font-size: 13px; }
-      #info-overlay .info-header { flex-direction: row; }
+      /* Info overlay: mobile — stack vertically */
+      #info-overlay .info-frame {
+        width: 90vw; aspect-ratio: auto;
+        display: flex; flex-direction: column;
+        gap: 20px; padding: 60px 20px;
+      }
+      #info-overlay .info-title-block,
+      #info-overlay .info-subtitle,
+      #info-overlay .info-footer { position: static; transform: none; }
+      #info-overlay .info-section { position: static; max-width: none; text-align: left; }
+      #info-overlay .info-frame-border { display: none; }
+      #info-overlay .info-sound-toggle { position: static; margin-top: 10px; }
+      #info-overlay { overflow-y: auto; }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 30px 24px; }
       .landing-scroll-hint { bottom: 28px; }
@@ -694,8 +745,31 @@
       0%, 100% { transform: translateY(0); opacity: 0.5; }
       50% { transform: translateY(3px); opacity: 0.2; }
     }
+    /* Landing dismiss — CSS-driven transition (no scroll accumulator) */
     #landing-page.dismissing {
       pointer-events: none;
+    }
+    #landing-page.dismissing .landing-content {
+      animation: landingZoomOut 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #landing-page.dismissing .landing-scroll-hint {
+      animation: landingHintFade 0.3s ease forwards;
+    }
+    @keyframes landingZoomOut {
+      0%   { transform: scale(1); opacity: 1; }
+      50%  { opacity: 0; }
+      100% { transform: scale(3.5); opacity: 0; }
+    }
+    @keyframes landingHintFade {
+      to { opacity: 0; }
+    }
+    #landing-page.dismissing {
+      animation: landingBgFade 1.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    }
+    @keyframes landingBgFade {
+      0%   { background: rgba(0,0,0,1); }
+      60%  { background: rgba(0,0,0,1); }
+      100% { background: rgba(0,0,0,0); }
     }
 
   </style>
@@ -720,40 +794,51 @@
 
   <!-- Info overlay (Alt / clic droit / Esc) -->
   <div id="info-overlay">
-    <div class="info-content">
+    <div class="info-frame">
 
-      <div class="info-header">
-        <div class="info-title">
-          <span class="info-title-top">Photographic</span>
-          <span class="info-title-main">Volume</span>
-        </div>
-        <button class="info-sound-toggle" id="info-sound-toggle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-            <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-            <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-          </svg>
-        </button>
+      <!-- Title — above frame, top-left -->
+      <div class="info-title-block">
+        <div class="info-title-top">Photographic</div>
+        <div class="info-title-main">Volume</div>
       </div>
 
+      <!-- Subtitle — above frame, top-right -->
       <div class="info-subtitle">Holosene — 2025</div>
 
-      <div class="info-separator"></div>
+      <!-- Frame outline -->
+      <div class="info-frame-border"></div>
 
-      <div class="info-section-title">Concept</div>
-      <p class="info-text">Chaque photographie est décomposée en centaines de milliers de particules positionnées dans un espace tridimensionnel. Le scroll contrôle la profondeur de champ — les couches se séparent et révèlent la structure interne de l'image.</p>
+      <!-- Sections — inside the frame, positioned at edges -->
+      <div class="info-section left-top">
+        <div class="info-section-title">Concept</div>
+        <p>Chaque photographie est décomposée en particules positionnées dans un espace 3D. Le scroll contrôle la profondeur — les couches se séparent et révèlent la structure interne de l'image.</p>
+      </div>
 
-      <div class="info-section-title">Son génératif</div>
-      <p class="info-text">Le son est entièrement synthétisé en temps réel. Chaque niveau de zoom modifie les fréquences, les résonances et les textures sonores — le paysage audio évolue avec la profondeur visuelle.</p>
+      <div class="info-section right-top">
+        <div class="info-section-title">Son génératif</div>
+        <p>Le son est synthétisé en temps réel. Chaque niveau de zoom modifie fréquences, résonances et textures — le paysage audio évolue avec la profondeur visuelle.</p>
+      </div>
 
-      <div class="info-section-title">Interaction</div>
-      <p class="info-text">Scrollez ou glissez pour naviguer. Le parcours est cyclique : zoom avant, transition vers l'image suivante, zoom arrière, puis reprise. Chaque cycle traverse sept états visuels distincts.</p>
+      <div class="info-section left-bottom">
+        <div class="info-section-title">Interaction</div>
+        <p>Scrollez ou glissez pour naviguer. Le parcours est cyclique — zoom avant, transition, zoom arrière, puis reprise.</p>
+      </div>
 
-      <div class="info-separator"></div>
+      <!-- Sound toggle — bottom-right -->
+      <button class="info-sound-toggle" id="info-sound-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+          <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+      </button>
 
-      <p class="info-text" style="color:rgba(255,255,255,0.20); font-size:12px;">Projet de recherche — décomposition spatiale et resynthèse perceptive de l'image fixe.<br>Three.js · Web Audio API</p>
+      <!-- Footer — below frame -->
+      <div class="info-footer">
+        <div class="info-tech">Three.js · Web Audio API</div>
+        <div class="info-hint">Cliquez ou Esc pour revenir</div>
+      </div>
 
-      <div class="info-hint">Cliquez ou Esc pour revenir</div>
     </div>
   </div>
 
@@ -1143,8 +1228,6 @@
     let targetZoomLevel = 0;
     // Landing page state
     let landingActive = true;
-    let landingProgress = 0;
-    const LANDING_DISMISS_THRESHOLD = 280;
     const minZoom = -25; // Position loin
     const maxZoom = -2;  // Position proche
 
@@ -3192,50 +3275,21 @@
     // LANDING PAGE — Scroll-to-dismiss avec parallax
     // ═══════════════════════════════════════════════
     const landingPage = document.getElementById('landing-page');
-    const landingContent = landingPage ? landingPage.querySelector('.landing-content') : null;
-    const landingHint = document.getElementById('landing-scroll-hint');
 
     function handleLandingScroll(rawDelta) {
       if (!landingActive || !landingPage) return;
-      landingProgress = Math.min(1, landingProgress + rawDelta / LANDING_DISMISS_THRESHOLD);
-
-      const p = landingProgress;
-
-      // Scroll hint: disappears immediately
-      if (landingHint) {
-        landingHint.style.opacity = Math.max(0, 1 - p * 6);
-      }
-
-      // PHASE 1 — ZOOM: content scales up from 1.0 → ~3.5 (whole range)
-      const scale = 1 + p * 2.5;
-      if (landingContent) {
-        landingContent.style.transform = `scale(${scale})`;
-
-        // PHASE 2 — FADE CONTENT: starts at 35%, fully gone by 65%
-        if (p > 0.35) {
-          const fadeP = Math.min(1, (p - 0.35) / 0.3);
-          landingContent.style.opacity = 1 - fadeP;
-        } else {
-          landingContent.style.opacity = 1;
-        }
-      }
-
-      // PHASE 3 — FADE BLACK: starts at 65%, reveals particles underneath
-      if (p > 0.65) {
-        const bgP = Math.min(1, (p - 0.65) / 0.35);
-        landingPage.style.backgroundColor = `rgba(0, 0, 0, ${1 - bgP})`;
-      }
-
-      if (p >= 1) {
-        dismissLanding();
-      }
+      // Any scroll triggers the transition — no accumulator
+      dismissLanding();
     }
 
     function dismissLanding() {
+      if (!landingActive) return;
       landingActive = false;
+      // CSS-driven animation (1.4s): zoom content out, fade black bg
       landingPage.classList.add('dismissing');
-      setTimeout(() => landingPage.remove(), 100);
-      // Volume zoom-in: particles start small and grow into view
+      // Remove after CSS animation completes
+      setTimeout(() => landingPage.remove(), 1500);
+      // Volume zoom-in: particles emerge from small scale
       sceneGroup.scale.set(0.55, 0.55, 0.55);
       needsResizeRender = true;
       // Setup experience scroll indicator (deferred from onReady)
