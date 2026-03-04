@@ -694,13 +694,13 @@
       transform: translateY(30px);
     }
     .landing-title-line:first-child {
-      font-size: clamp(13px, 2.4vw, 22px);
+      font-size: clamp(16px, 3vw, 28px);
       letter-spacing: 0.22em;
       text-transform: uppercase;
       animation: landingFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
     }
     .landing-title-line:nth-child(2) {
-      font-size: clamp(44px, 8vw, 86px);
+      font-size: clamp(34px, 6.2vw, 68px);
       font-style: italic;
       letter-spacing: 0.04em;
       text-shadow: 0 0 25px rgba(255, 255, 255, 0.22), 0 0 60px rgba(255, 255, 255, 0.10), 0 0 100px rgba(255, 255, 255, 0.05);
@@ -746,7 +746,7 @@
       to { opacity: 1; }
     }
     @keyframes landingChevronPulse {
-      0%, 100% { transform: translateY(0); opacity: 0.7; }
+      0%, 100% { transform: translateY(0); opacity: 1; }
       50% { transform: translateY(4px); opacity: 0.3; }
     }
     /* Landing dismiss — CSS-driven transition (no scroll accumulator) */
@@ -789,8 +789,8 @@
       <p class="landing-desc">Traverser l'espace perceptif<br>de la photographie.</p>
     </div>
     <div class="landing-scroll-hint" id="landing-scroll-hint">
-      <svg width="38" height="22" viewBox="0 0 38 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M3 3L19 19L35 3" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg width="28" height="16" viewBox="0 0 38 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 3L19 19L35 3" stroke="rgba(255,255,255,1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
   </div>
@@ -1458,7 +1458,7 @@
               return;
             }
             // Start on last available image
-            currentImageIndex = availableImages[availableImages.length - 1];
+            currentImageIndex = availableImages[0];
             imagesPreloaded = true;
             resolveAll();
           });
