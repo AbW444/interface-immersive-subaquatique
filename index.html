@@ -24,7 +24,7 @@
     /* Info overlay: curseur visible */
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
-      background: rgba(0,0,0,0.92);
+      background: rgba(0,0,0,0.94);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
@@ -35,23 +35,27 @@
     }
     #info-overlay * { cursor: default; }
     #info-overlay .info-content {
-      max-width: 520px; padding: 40px;
-      text-align: center; color: rgba(255,255,255,0.7);
-      font-family: 'Space Grotesk', sans-serif; font-size: 13px;
-      line-height: 1.8; letter-spacing: 0.3px;
+      max-width: 480px; padding: 48px 40px;
+      text-align: center; color: rgba(255,255,255,0.4);
+      font-family: 'Space Grotesk', sans-serif; font-size: 14px;
+      font-weight: 300; line-height: 1.6; letter-spacing: 0.01em;
     }
     #info-overlay .info-title {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 24px; font-weight: 400; letter-spacing: 0.06em;
-      color: rgba(255,255,255,0.9); margin-bottom: 24px;
+      font-size: 28px; font-weight: 400; letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.88); margin-bottom: 28px;
+    }
+    #info-overlay .info-title span {
+      font-style: italic;
+      text-shadow: 0 0 18px rgba(255,255,255,0.08);
     }
     #info-overlay .info-separator {
-      width: 40px; height: 1px; background: rgba(255,255,255,0.15);
-      margin: 20px auto;
+      width: 32px; height: 1px; background: rgba(255,255,255,0.08);
+      margin: 24px auto;
     }
     #info-overlay .info-hint {
-      margin-top: 32px; font-size: 11px; color: rgba(255,255,255,0.3);
-      letter-spacing: 0.5px;
+      margin-top: 36px; font-size: 10px; color: rgba(255,255,255,0.18);
+      letter-spacing: 0.15em; text-transform: uppercase;
     }
     canvas {
       display: block;
@@ -108,675 +112,388 @@
     }
 
     /* ===============================================
-       INTERFACE DE PARAMÉTRAGE
+       ADMIN PANELS — Shared base (DA landing page)
        =============================================== */
+    .admin-panel {
+      font-family: 'Space Grotesk', sans-serif;
+      color: rgba(255,255,255,0.6);
+      background: rgba(0, 0, 0, 0.94);
+      border: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .admin-panel .panel-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: 0.04em;
+    }
+    /* Shared scrollbar */
+    .admin-panel ::-webkit-scrollbar { width: 4px; }
+    .admin-panel ::-webkit-scrollbar-track { background: transparent; }
+    .admin-panel ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    /* Shared slider style */
+    .admin-panel input[type="range"] {
+      width: 100%; height: 1px; border-radius: 1px;
+      background: rgba(255,255,255,0.10); outline: none;
+      -webkit-appearance: none; cursor: pointer;
+    }
+    .admin-panel input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(255,255,255,0.7); cursor: pointer;
+      box-shadow: 0 0 6px rgba(255,255,255,0.15);
+    }
+    .admin-panel input[type="range"]::-moz-range-thumb {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: rgba(255,255,255,0.7); cursor: pointer;
+      border: none; box-shadow: 0 0 6px rgba(255,255,255,0.15);
+    }
 
+    /* ===============================================
+       SETTINGS PANEL (Touche I)
+       =============================================== */
     #settings-panel {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background-color: rgba(0, 0, 0, 0.9);
-      color: #ffffff;
-      padding: 0;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-      z-index: 1000;
-      display: none;
-      width: 290px;
-      font-family: 'Space Grotesk', Arial, sans-serif;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      position: fixed; top: 20px; right: 20px;
+      padding: 0; border-radius: 6px;
+      z-index: 1000; display: none; width: 280px;
     }
-
-    #settings-panel.visible {
-      display: block;
-    }
+    #settings-panel.visible { display: block; }
 
     .settings-content {
-      padding: 20px;
+      padding: 24px 20px;
       max-height: calc(100vh - 80px);
       overflow-y: auto;
     }
 
-    .settings-content::-webkit-scrollbar {
-      width: 6px;
+    .param-control { margin-bottom: 18px; }
+    .param-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 8px;
+    }
+    .param-label {
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.15em; font-weight: 400;
+      color: rgba(255,255,255,0.3);
+    }
+    .param-value-display { display: flex; align-items: center; gap: 4px; }
+    .param-value {
+      font-size: 11px; font-weight: 500;
+      color: rgba(255,255,255,0.7);
+      min-width: 35px; text-align: right;
+    }
+    .param-buttons { display: flex; gap: 2px; }
+    .param-btn {
+      width: 18px; height: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4); font-size: 8px;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: background 0.2s; border-radius: 2px;
+    }
+    .param-btn:hover { background: rgba(255,255,255,0.10); }
+    .param-slider-container { position: relative; }
+    .param-checkbox { display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+    .param-checkbox input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
+    .param-checkbox label {
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.15em; font-weight: 400;
+      color: rgba(255,255,255,0.3); cursor: pointer;
+    }
+    .settings-divider {
+      height: 1px; background: rgba(255,255,255,0.05); margin: 18px 0;
+    }
+    .settings-buttons { display: flex; flex-direction: column; gap: 6px; margin-top: 18px; }
+    .settings-btn {
+      width: 100%; padding: 9px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.5); font-size: 9px;
+      font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.15em; cursor: pointer;
+      transition: all 0.2s; border-radius: 3px;
+    }
+    .settings-btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
+    }
+    .settings-btn.primary {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.6);
     }
 
-    .settings-content::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .settings-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+    /* Shape & movement buttons */
+    .shape-buttons { display: flex; gap: 6px; margin-top: 8px; }
+    .shape-btn {
+      flex: 1; height: 36px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4); font-size: 16px;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
       border-radius: 3px;
     }
-
-    .param-control {
-      margin-bottom: 20px;
-    }
-
-    .param-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    .param-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 500;
-      color: #999;
-    }
-
-    .param-value-display {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .param-value {
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      min-width: 35px;
-      text-align: right;
-    }
-
-    .param-buttons {
-      display: flex;
-      gap: 2px;
-    }
-
-    .param-btn {
-      width: 18px;
-      height: 18px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-
-    .param-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .param-slider-container {
-      position: relative;
-    }
-
-    .param-control input[type="range"] {
-      width: 100%;
-      height: 2px;
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.2);
-      outline: none;
-      -webkit-appearance: none;
-      cursor: pointer;
-    }
-
-    .param-control input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-    }
-
-    .param-control input[type="range"]::-moz-range-thumb {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #fff;
-      cursor: pointer;
-      border: none;
-    }
-
-    .param-checkbox {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-
-    .param-checkbox input[type="checkbox"] {
-      width: 14px;
-      height: 14px;
-      cursor: pointer;
-    }
-
-    .param-checkbox label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 500;
-      color: #999;
-      cursor: pointer;
-    }
-
-    .settings-divider {
-      height: 1px;
-      background: rgba(255, 255, 255, 0.1);
-      margin: 20px 0;
-    }
-
-    .settings-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 20px;
-    }
-
-    .settings-btn {
-      width: 100%;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .settings-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
-    .settings-btn.primary {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Boutons de forme (rond/carré) */
-    .shape-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .shape-btn {
-      flex: 1;
-      height: 40px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .shape-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
+    .shape-btn:hover { background: rgba(255,255,255,0.08); }
     .shape-btn.active {
-      background: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.85);
     }
-
-    /* Boutons de mode de mouvement */
     .movement-mode-buttons {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 4px;
-      margin-top: 10px;
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 4px; margin-top: 8px;
     }
-
     .movement-mode-btn {
-      height: 30px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height: 28px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.35); font-size: 9px;
+      font-weight: 500; cursor: pointer;
+      transition: all 0.2s; display: flex;
+      align-items: center; justify-content: center;
+      border-radius: 2px;
     }
-
-    .movement-mode-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-
+    .movement-mode-btn:hover { background: rgba(255,255,255,0.08); }
     .movement-mode-btn.active {
-      background: rgba(255, 255, 255, 0.25);
-      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.85);
     }
-
-    /* FIN INTERFACE DE PARAMÉTRAGE */
 
     /* ===============================================
-       INTERFACE ÉTATS DE LECTURE (Touche M)
+       UX STATES PANEL (Touche M)
        =============================================== */
-
     #ux-states-panel {
-      position: fixed;
-      top: 50%;
-      left: 20px;
+      position: fixed; top: 50%; left: 20px;
       transform: translateY(-50%);
-      background-color: rgba(0, 0, 0, 0.95);
-      color: #ffffff;
-      padding: 0;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
-      z-index: 2000;
-      display: none;
-      width: 400px;
-      font-family: 'Space Grotesk', Arial, sans-serif;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+      padding: 0; border-radius: 6px;
+      z-index: 2000; display: none; width: 340px;
     }
-
-    #ux-states-panel.visible {
-      display: block;
-    }
-
+    #ux-states-panel.visible { display: block; }
     .ux-states-header {
-      padding: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
       text-align: center;
     }
-
     .ux-states-title {
-      font-size: 16px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin: 0;
+      font-size: 18px; margin: 0;
+      /* Uses .panel-title via HTML class */
     }
-
     .ux-states-content {
-      padding: 20px;
-      max-height: 60vh;
-      overflow-y: auto;
+      padding: 16px 20px; max-height: 60vh; overflow-y: auto;
     }
-
-    .ux-states-content::-webkit-scrollbar {
-      width: 6px;
+    .ux-states-list {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px;
     }
-
-    .ux-states-content::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .ux-states-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
+    .ux-state-btn {
+      flex: 1; min-width: 70px; padding: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4); font-size: 10px;
+      font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.1em; cursor: pointer;
+      transition: all 0.2s; text-align: center;
       border-radius: 3px;
     }
-
-    .ux-states-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-
-    .ux-state-btn {
-      flex: 1;
-      min-width: 80px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }
-
     .ux-state-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(255,255,255,0.15);
     }
-
     .ux-state-btn.active {
-      background: rgba(85, 255, 255, 0.2);
-      border-color: rgba(85, 255, 255, 0.6);
-      color: #55ffff;
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.9);
     }
-
     .ux-add-state-btn {
-      width: 100%;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px dashed rgba(255, 255, 255, 0.3);
-      color: #fff;
-      font-size: 20px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 20px;
+      width: 100%; padding: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.25); font-size: 18px;
+      font-weight: 300; cursor: pointer;
+      transition: all 0.2s; margin-bottom: 14px;
+      border-radius: 3px;
     }
-
     .ux-add-state-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.5);
     }
-
     .ux-apply-btn {
-      width: 100%;
-      padding: 15px;
-      background: rgba(85, 255, 255, 0.15);
-      border: 2px solid rgba(85, 255, 255, 0.4);
-      color: #55ffff;
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 20px;
+      width: 100%; padding: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.6);
+      font-size: 10px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      cursor: pointer; transition: all 0.2s;
+      margin-bottom: 14px; border-radius: 3px;
     }
-
     .ux-apply-btn:hover:not(:disabled) {
-      background: rgba(85, 255, 255, 0.25);
-      border-color: rgba(85, 255, 255, 0.6);
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.85);
     }
-
     .ux-apply-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.1);
-      color: #666;
+      opacity: 0.25; cursor: not-allowed;
+      background: rgba(255,255,255,0.02);
+      border-color: rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.2);
     }
-
-    .ux-curve-selector {
-      margin-bottom: 20px;
-    }
-
+    .ux-curve-selector { margin-bottom: 14px; }
     .ux-curve-label {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      font-weight: 500;
-      color: #999;
-      margin-bottom: 8px;
+      font-size: 9px; text-transform: uppercase;
+      letter-spacing: 0.15em; font-weight: 400;
+      color: rgba(255,255,255,0.3); margin-bottom: 6px;
     }
-
     .ux-curve-select {
-      width: 100%;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #fff;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border-radius: 4px;
+      width: 100%; padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.6); font-size: 11px;
+      font-weight: 400; cursor: pointer;
+      border-radius: 3px; font-family: 'Space Grotesk', sans-serif;
     }
-
-    .ux-curve-select option {
-      background: #000;
-      color: #fff;
-    }
-
+    .ux-curve-select option { background: #000; color: #fff; }
     .ux-toggle-btn {
-      width: 100%;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-radius: 4px;
+      width: 100%; padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.4);
+      font-size: 10px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.15em;
+      cursor: pointer; transition: all 0.2s; border-radius: 3px;
     }
-
     .ux-toggle-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.4);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.6);
     }
-
     .ux-toggle-btn.active {
-      background: rgba(85, 255, 255, 0.25);
-      border-color: rgba(85, 255, 255, 0.6);
-      color: #55ffff;
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.85);
     }
-
-    /* FIN INTERFACE ÉTATS DE LECTURE */
 
     /* ===============================================
        SCROLL CONFIG PANEL (Touche C)
        =============================================== */
     #scroll-config-panel {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
+      position: fixed; bottom: 20px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.95);
-      border: 2px solid #55ffff;
-      border-radius: 16px;
-      padding: 20px 30px;
-      color: #ffffff;
-      font-family: 'Space Grotesk', Arial, sans-serif;
-      z-index: 1000;
-      display: none;
-      min-width: 700px;
-      box-shadow: 0 0 30px rgba(85, 255, 255, 0.5);
+      border-radius: 8px; padding: 20px 24px;
+      z-index: 1000; display: none; min-width: 680px;
     }
-
-    #scroll-config-panel.visible {
-      display: block;
-    }
-
+    #scroll-config-panel.visible { display: block; }
     .scroll-config-header {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 18px;
-      font-weight: 700;
-      color: #55ffff;
-      text-transform: uppercase;
-      letter-spacing: 2px;
+      text-align: center; margin-bottom: 16px;
+      font-size: 10px; font-weight: 400;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase; letter-spacing: 0.2em;
     }
-
     .scroll-config-content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
     }
-
     .scroll-config-section {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid rgba(85, 255, 255, 0.2);
+      background: rgba(255,255,255,0.02); padding: 14px;
+      border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);
     }
-
     .scroll-config-section h3 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      color: #55ffff;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      margin: 0 0 10px 0; font-size: 10px;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      font-weight: 500;
     }
-
-    .scroll-param {
-      margin-bottom: 12px;
-    }
-
+    .scroll-param { margin-bottom: 10px; }
     .scroll-param label {
-      display: block;
-      font-size: 12px;
-      margin-bottom: 5px;
-      color: #aaaaaa;
+      display: block; font-size: 11px;
+      margin-bottom: 4px; color: rgba(255,255,255,0.35);
     }
-
-    .scroll-param input[type="range"] {
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    .scroll-param input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      background: #55ffff;
-      cursor: pointer;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
-    }
-
-    .scroll-param input[type="range"]::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      background: #55ffff;
-      cursor: pointer;
-      border-radius: 50%;
-      box-shadow: 0 0 8px rgba(85, 255, 255, 0.8);
-    }
-
     .scroll-param .value-display {
-      display: inline-block;
-      margin-left: 8px;
-      font-size: 12px;
-      color: #55ffff;
-      font-weight: 700;
-      min-width: 50px;
+      display: inline-block; margin-left: 6px;
+      font-size: 11px; color: rgba(255,255,255,0.6);
+      font-weight: 500; min-width: 50px;
     }
-
     .scroll-config-buttons {
-      grid-column: 1 / -1;
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 15px;
+      grid-column: 1 / -1; display: flex;
+      gap: 8px; justify-content: center; margin-top: 12px;
     }
-
     .scroll-config-btn {
-      padding: 10px 20px;
-      background: rgba(85, 255, 255, 0.1);
-      border: 1px solid #55ffff;
-      border-radius: 8px;
-      color: #55ffff;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      padding: 8px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 3px; color: rgba(255,255,255,0.45);
+      font-size: 10px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+      text-transform: uppercase; letter-spacing: 0.12em;
     }
-
     .scroll-config-btn:hover {
-      background: rgba(85, 255, 255, 0.2);
-      box-shadow: 0 0 15px rgba(85, 255, 255, 0.5);
-      transform: translateY(-2px);
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
     }
-
     .scroll-config-btn.primary {
-      background: #55ffff;
-      color: #000000;
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7);
     }
-
     .scroll-config-btn.primary:hover {
-      background: #77ffff;
-      box-shadow: 0 0 20px rgba(85, 255, 255, 0.8);
+      background: rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.9);
     }
 
     /* ===============================================
        DEBUG PANEL (Touche Z)
        =============================================== */
     #debug-panel {
-      position: fixed;
-      top: 20px;
-      left: 50%;
+      position: fixed; top: 20px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.9);
-      border: 2px solid #55ffff;
-      border-radius: 10px;
-      padding: 20px;
-      z-index: 10000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-      min-width: 400px;
-      font-family: 'Courier New', monospace;
-      color: #55ffff;
+      border-radius: 6px; padding: 20px;
+      z-index: 10000; opacity: 0;
+      pointer-events: none; transition: opacity 0.3s ease;
+      min-width: 380px;
     }
-
-    #debug-panel.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
+    #debug-panel.visible { opacity: 1; pointer-events: auto; }
     .debug-header {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 15px;
-      color: #ffffff;
+      text-align: center; font-size: 10px;
+      font-weight: 400; margin-bottom: 14px;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase; letter-spacing: 0.2em;
     }
-
     .debug-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 10px 0;
-      padding: 8px;
-      background: rgba(85, 255, 255, 0.1);
-      border-radius: 5px;
+      display: flex; justify-content: space-between;
+      align-items: center; margin: 6px 0; padding: 8px 10px;
+      background: rgba(255,255,255,0.02); border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.04);
     }
-
     .debug-label {
-      font-weight: bold;
-      color: #88ffff;
+      font-size: 11px; font-weight: 400;
+      color: rgba(255,255,255,0.35);
     }
-
     .debug-value {
-      font-family: 'Courier New', monospace;
-      color: #ffffff;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 4px 8px;
-      border-radius: 3px;
-      min-width: 150px;
-      text-align: right;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px; font-weight: 500;
+      color: rgba(255,255,255,0.65);
+      background: rgba(255,255,255,0.03); padding: 3px 8px;
+      border-radius: 2px; min-width: 140px; text-align: right;
     }
-
     .debug-copy-btn {
-      margin-left: 10px;
-      padding: 4px 12px;
-      background: #55ffff;
-      color: #000;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: bold;
+      margin-left: 8px; padding: 3px 10px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px; cursor: pointer;
+      font-size: 10px; font-weight: 500;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: all 0.2s;
     }
-
     .debug-copy-btn:hover {
-      background: #77ffff;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.8);
     }
-
     .debug-copy-btn:active {
-      background: #33dddd;
+      background: rgba(255,255,255,0.06);
     }
 
     /* ═══════════════════════════════════════════════
@@ -805,16 +522,20 @@
       }
       #scroll-config-panel {
         top: auto; bottom: 0; left: 0; right: 0;
-        width: 100%;
-        max-width: 100%;
+        width: 100%; min-width: auto;
+        max-width: 100%; transform: none;
         border-radius: 12px 12px 0 0;
         max-height: 60vh;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
       }
+      #scroll-config-panel .scroll-config-content {
+        grid-template-columns: 1fr;
+      }
       #debug-panel {
         top: auto; bottom: 0; left: 0;
-        width: 100%;
+        width: 100%; min-width: auto;
+        transform: none;
         border-radius: 12px 12px 0 0;
       }
       /* Scroll indicator plus grand sur mobile */
@@ -953,14 +674,12 @@
   <!-- Info overlay (Alt / clic droit / Esc) -->
   <div id="info-overlay">
     <div class="info-content">
-      <div class="info-title">PHOTOGRAPHIC VOLUME</div>
+      <div class="info-title">PHOTOGRAPHIC <span>VOLUME</span></div>
       <div class="info-separator"></div>
       <p>Traverser l'espace perceptif de la photographie.<br>
       Chaque niveau de zoom révèle une nouvelle dimension sonore et visuelle.</p>
       <div class="info-separator"></div>
-      <p style="font-size:10px; letter-spacing:0.12em; color:rgba(255,255,255,0.22); text-transform:uppercase;">S — son · I — paramètres · Esc — info</p>
-      <div class="info-separator"></div>
-      <p style="font-size:11px; color:rgba(255,255,255,0.3); letter-spacing:0.1em;">Holosene — 2025</p>
+      <p style="font-size:10px; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase;">Holosene — 2025</p>
       <div class="info-hint">Cliquez ou Esc pour revenir</div>
     </div>
   </div>
@@ -998,13 +717,13 @@
   <button id="mobile-audio-btn" style="display:none;position:fixed;bottom:16px;right:16px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.5);color:rgba(255,255,255,0.45);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">&#9835;</button>
 
   <!-- SCROLL CONFIG PANEL (Touche C) -->
-  <div id="scroll-config-panel">
-    <div class="scroll-config-header">⚙️ Scroll Configuration (Press C to toggle)</div>
+  <div id="scroll-config-panel" class="admin-panel">
+    <div class="scroll-config-header panel-title">Scroll Configuration</div>
     <div class="scroll-config-content">
 
       <!-- Trackpad Settings -->
       <div class="scroll-config-section">
-        <h3>📱 Trackpad</h3>
+        <h3>Trackpad</h3>
 
         <div class="scroll-param">
           <label>Sensitivity <span class="value-display" id="trackpad-sensitivity-val">0.000334</span></label>
@@ -1024,25 +743,25 @@
 
       <!-- Mouse Wheel Settings (PRO: Virtual Accumulator System) -->
       <div class="scroll-config-section">
-        <h3>🖱️ Mouse Wheel (PRO Smoothing)</h3>
-        <p style="font-size: 11px; opacity: 0.7; margin: 5px 0 10px;">Technique Lenis: accumulateur virtuel + lerp adaptatif</p>
+        <h3>Mouse Wheel</h3>
+        <p style="font-size: 10px; opacity: 0.3; margin: 5px 0 10px; letter-spacing: 0.02em;">Accumulateur virtuel · lerp adaptatif</p>
 
         <div class="scroll-param">
           <label>Wheel Multiplier <span class="value-display" id="wheel-multiplier-val">0.93</span></label>
           <input type="range" id="wheel-multiplier" min="0.5" max="5" step="0.1" value="0.93">
-          <p style="font-size: 10px; opacity: 0.6; margin: 2px 0 0;">Compensation pour synchroniser avec trackpad</p>
+          <p style="font-size: 10px; opacity: 0.25; margin: 2px 0 0;">Sync trackpad</p>
         </div>
 
         <div class="scroll-param">
           <label>Wheel Lerp <span class="value-display" id="wheel-lerp-val">0.22</span></label>
           <input type="range" id="wheel-lerp" min="0.05" max="0.5" step="0.01" value="0.22">
-          <p style="font-size: 10px; opacity: 0.6; margin: 2px 0 0;">Distribution fluide sur plusieurs frames (0.15-0.25 optimal)</p>
+          <p style="font-size: 10px; opacity: 0.25; margin: 2px 0 0;">0.15–0.25 optimal</p>
         </div>
       </div>
 
       <!-- Global Settings -->
       <div class="scroll-config-section">
-        <h3>🌍 Global</h3>
+        <h3>Global</h3>
 
         <div class="scroll-param">
           <label>Zoom Lerp Speed <span class="value-display" id="zoom-lerp-val">0.22</span></label>
@@ -1057,25 +776,25 @@
 
       <!-- Info Section -->
       <div class="scroll-config-section">
-        <h3>ℹ️ Info</h3>
-        <div style="font-size: 11px; color: #aaa; line-height: 1.6;">
+        <h3>Info</h3>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.6;">
           <p><strong>Current Mode:</strong> <span id="scroll-mode-indicator">Detecting...</span></p>
           <p><strong>Last DeltaY:</strong> <span id="scroll-delta-indicator">0</span></p>
           <p><strong>Last Frequency:</strong> <span id="scroll-freq-indicator">0ms</span></p>
-          <p style="margin-top: 10px; color: #55ffff;">Scroll to see live detection!</p>
+          <p style="margin-top: 10px; color: rgba(255,255,255,0.35);">Scroll to see live detection</p>
         </div>
       </div>
 
       <!-- Action Buttons -->
       <div class="scroll-config-buttons">
         <button class="scroll-config-btn" id="scroll-reset-btn">Reset to Default</button>
-        <button class="scroll-config-btn primary" id="scroll-copy-btn">📋 Copy Config to Clipboard</button>
+        <button class="scroll-config-btn primary" id="scroll-copy-btn">Copy Config</button>
       </div>
     </div>
   </div>
 
   <!-- INTERFACE DE PARAMÉTRAGE -->
-  <div id="settings-panel">
+  <div id="settings-panel" class="admin-panel">
     <div class="settings-content">
 
       <!-- Point Size -->
@@ -1235,9 +954,9 @@
   </div>
 
   <!-- INTERFACE ÉTATS DE LECTURE (Touche M) -->
-  <div id="ux-states-panel">
+  <div id="ux-states-panel" class="admin-panel">
     <div class="ux-states-header">
-      <h2 class="ux-states-title">États de Lecture</h2>
+      <h2 class="ux-states-title panel-title">États de Lecture</h2>
     </div>
     <div class="ux-states-content">
       <!-- Liste des états -->
@@ -1268,8 +987,8 @@
   </div>
 
   <!-- DEBUG PANEL (Touche Z) -->
-  <div id="debug-panel">
-    <div class="debug-header">🔍 Debug Zoom & Camera (Press Z to toggle)</div>
+  <div id="debug-panel" class="admin-panel">
+    <div class="debug-header panel-title">Debug Zoom & Camera</div>
 
     <div class="debug-row">
       <span class="debug-label">zoomLevel:</span>
@@ -3352,7 +3071,7 @@
         await navigator.clipboard.writeText(configJSON);
         scrollCopyBtn.textContent = 'Copied!';
         setTimeout(() => {
-          scrollCopyBtn.textContent = '📋 Copy Config to Clipboard';
+          scrollCopyBtn.textContent = 'Copy Config';
         }, 2000);
       } catch (err) {
         console.error('Failed to copy:', err);
@@ -3465,7 +3184,7 @@
       const isTrackpad = absDeltaY < scrollConfig.trackpad.threshold || deltaTime < scrollConfig.trackpad.frequency;
 
       if (scrollConfigPanel.classList.contains('visible')) {
-        scrollModeIndicator.textContent = isTrackpad ? '📱 Trackpad' : '🖱️ Mouse Wheel';
+        scrollModeIndicator.textContent = isTrackpad ? 'Trackpad' : 'Mouse Wheel';
         scrollDeltaIndicator.textContent = absDeltaY.toFixed(1);
         scrollFreqIndicator.textContent = deltaTime.toFixed(0) + 'ms';
       }
@@ -3615,6 +3334,7 @@
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
     function toggleInfoOverlay(show) {
+      if (landingActive) return; // Blocked during landing
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
       infoOverlay.classList.toggle('visible', visible);
     }
