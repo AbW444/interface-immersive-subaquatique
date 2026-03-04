@@ -24,39 +24,62 @@
     /* Info overlay: curseur visible */
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
-      background: rgba(0,0,0,0.94);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.96);
+      display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       cursor: default;
+      overflow-y: auto;
     }
     #info-overlay.visible {
       opacity: 1; pointer-events: auto;
     }
     #info-overlay * { cursor: default; }
     #info-overlay .info-content {
-      max-width: 480px; padding: 48px 40px;
-      text-align: center; color: rgba(255,255,255,0.4);
-      font-family: 'Space Grotesk', sans-serif; font-size: 14px;
-      font-weight: 300; line-height: 1.6; letter-spacing: 0.01em;
+      max-width: 620px; width: 100%;
+      padding: 60px 48px;
+      text-align: left; color: rgba(255,255,255,0.40);
+      font-family: 'Space Grotesk', sans-serif; font-size: 15px;
+      font-weight: 300; line-height: 1.65; letter-spacing: 0.01em;
     }
     #info-overlay .info-title {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 28px; font-weight: 400; letter-spacing: 0.06em;
-      color: rgba(255,255,255,0.88); margin-bottom: 28px;
+      font-size: clamp(32px, 5vw, 48px); font-weight: 400; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.88); margin-bottom: 12px;
+      line-height: 1.1;
     }
     #info-overlay .info-title span {
       font-style: italic;
       text-shadow: 0 0 18px rgba(255,255,255,0.08);
     }
+    #info-overlay .info-subtitle {
+      font-size: 11px; font-weight: 400;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.20); margin-bottom: 36px;
+    }
     #info-overlay .info-separator {
       width: 32px; height: 1px; background: rgba(255,255,255,0.08);
-      margin: 24px auto;
+      margin: 28px 0;
+    }
+    #info-overlay .info-section-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 18px; font-weight: 400; font-style: italic;
+      color: rgba(255,255,255,0.55); margin-bottom: 10px;
+    }
+    #info-overlay .info-text {
+      margin-bottom: 20px;
     }
     #info-overlay .info-hint {
-      margin-top: 36px; font-size: 10px; color: rgba(255,255,255,0.18);
+      margin-top: 40px; font-size: 10px; color: rgba(255,255,255,0.15);
       letter-spacing: 0.15em; text-transform: uppercase;
     }
+    /* Audio mute button */
+    #audio-mute-btn { cursor: pointer; }
+    #audio-mute-btn:hover svg { stroke: rgba(255,255,255,0.45); }
+    #audio-mute-btn.muted .audio-wave-1,
+    #audio-mute-btn.muted .audio-wave-2 { display: none; }
+    #audio-mute-btn.muted svg::after { content: ''; }
+
     canvas {
       display: block;
       position: fixed;
@@ -542,9 +565,10 @@
       #scroll-indicator {
         bottom: 40px;
       }
-      /* Audio: masquer icône musique sur mobile */
+      /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
-      #mobile-audio-btn { display: none !important; }
+      /* Info overlay: mobile padding */
+      #info-overlay .info-content { padding: 40px 28px; font-size: 14px; }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 30px 24px; }
       .landing-scroll-hint { bottom: 28px; }
@@ -577,16 +601,17 @@
     }
     .landing-title-line {
       font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(44px, 8vw, 86px);
+      font-size: clamp(36px, 6.5vw, 70px);
       font-weight: 400;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
       line-height: 1.08;
       color: rgba(255, 255, 255, 0.92);
       opacity: 0;
       transform: translateY(30px);
     }
     .landing-title-line:first-child {
-      letter-spacing: 0.14em;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.65);
       animation: landingFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
     }
     .landing-title-line:nth-child(2) {
@@ -675,11 +700,23 @@
   <div id="info-overlay">
     <div class="info-content">
       <div class="info-title">PHOTOGRAPHIC <span>VOLUME</span></div>
+      <div class="info-subtitle">Holosene — 2025</div>
+
       <div class="info-separator"></div>
-      <p>Traverser l'espace perceptif de la photographie.<br>
-      Chaque niveau de zoom révèle une nouvelle dimension sonore et visuelle.</p>
+
+      <div class="info-section-title">Concept</div>
+      <p class="info-text">Chaque photographie est décomposée en centaines de milliers de particules positionnées dans un espace tridimensionnel. Le scroll contrôle la profondeur de champ : à mesure que l'on avance dans le volume, les couches se séparent et révèlent la structure interne de l'image.</p>
+
+      <div class="info-section-title">Son génératif</div>
+      <p class="info-text">Le son est entièrement synthétisé en temps réel par un moteur audio génératif. Chaque niveau de zoom modifie les fréquences, les résonances et les textures sonores — le paysage audio évolue avec la profondeur visuelle.</p>
+
+      <div class="info-section-title">Interaction</div>
+      <p class="info-text">Scrollez ou glissez pour naviguer dans le volume. Le parcours est cyclique : zoom avant, transition vers l'image suivante, zoom arrière, puis reprise. Chaque cycle traverse sept états visuels distincts.</p>
+
       <div class="info-separator"></div>
-      <p style="font-size:10px; letter-spacing:0.18em; color:rgba(255,255,255,0.18); text-transform:uppercase;">Holosene — 2025</p>
+
+      <p class="info-text" style="color:rgba(255,255,255,0.22); font-size:13px;">Projet de recherche sur le volume photographique — décomposition spatiale et resynthèse perceptive de l'image fixe. Développé avec Three.js et Web Audio API.</p>
+
       <div class="info-hint">Cliquez ou Esc pour revenir</div>
     </div>
   </div>
@@ -707,14 +744,20 @@
     </svg>
   </div>
 
-  <!-- Audio theme indicator -->
+  <!-- Audio admin indicator (visible only via S key) -->
   <div id="audio-indicator" style="position:fixed;top:16px;right:16px;z-index:60;opacity:0;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:16px;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.45);font-family:'Space Grotesk',sans-serif;letter-spacing:0.5px;transition:opacity 0.6s ease;pointer-events:none;">
     <span id="audio-icon" style="font-size:13px;opacity:0.6;">&#9835;</span>
     <span id="audio-label">OFF</span>
   </div>
 
-  <!-- Mobile: bouton audio flottant (pas de clavier sur mobile) -->
-  <button id="mobile-audio-btn" style="display:none;position:fixed;bottom:16px;right:16px;z-index:60;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.5);color:rgba(255,255,255,0.45);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;">&#9835;</button>
+  <!-- Mute/unmute button — minimal icon, bottom-right -->
+  <button id="audio-mute-btn" style="display:none;position:fixed;bottom:20px;right:20px;z-index:60;width:36px;height:36px;border:none;background:transparent;cursor:pointer;padding:0;opacity:0;transition:opacity 0.8s ease;">
+    <svg id="audio-mute-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+      <path class="audio-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      <path class="audio-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+    </svg>
+  </button>
 
   <!-- SCROLL CONFIG PANEL (Touche C) -->
   <div id="scroll-config-panel" class="admin-panel">
@@ -2500,9 +2543,48 @@
         }
       }
 
+      // Start directly at a given theme (1-5)
+      function startAt(themeNum) {
+        if (!isInitialized) init();
+        if (ctx.state === 'suspended') ctx.resume();
+        currentTheme = Math.max(1, Math.min(5, themeNum));
+        const T = THEMES[currentTheme];
+        buildTheme(currentTheme);
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(0, now);
+        master.gain.linearRampToValueAtTime(0.48, now + 2.5);
+        isActive = true;
+        return { active: true, theme: currentTheme, name: T.name, color: T.color };
+      }
+
+      // Mute/unmute without changing theme
+      function mute() {
+        if (!isActive || !master || !ctx) return;
+        const now = ctx.currentTime;
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(master.gain.value, now);
+        master.gain.linearRampToValueAtTime(0, now + 0.6);
+        isActive = false;
+      }
+
+      function unmute() {
+        if (isActive || !master || !ctx || currentTheme === 0) return;
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        if (!layers.drone) buildTheme(currentTheme);
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(0, now);
+        master.gain.linearRampToValueAtTime(0.48, now + 1.2);
+        isActive = true;
+      }
+
       return {
         init,
         cycle,
+        startAt,
+        mute,
+        unmute,
         update,
         _onVisibilityChange,
         get isActive() { return isActive; },
@@ -3130,12 +3212,14 @@
       needsResizeRender = true;
       // Setup experience scroll indicator (deferred from onReady)
       setupExperienceScrollIndicator();
-      // Setup audio auto-start (deferred from landing)
+      // Start audio at theme 2 directly on first user gesture
       let audioAutoStarted = false;
       const autoStartAudio = () => {
         if (audioAutoStarted) return;
         audioAutoStarted = true;
-        cycleAudioTheme();
+        AudioEngine.startAt(2);
+        // Show mute button
+        showMuteButton(true);
       };
       window.addEventListener('wheel', autoStartAudio, { once: true });
       window.addEventListener('touchstart', autoStartAudio, { once: true });
@@ -3288,28 +3372,30 @@
       touchLastY = null;
     });
 
-    // Fonction partagée pour cycler le thème audio (clavier + bouton mobile)
+    // Fonction partagée pour cycler le thème audio (admin: touche S)
     function cycleAudioTheme() {
       const result = AudioEngine.cycle();
       const indicator = document.getElementById('audio-indicator');
       const label = document.getElementById('audio-label');
       const icon = document.getElementById('audio-icon');
-      const mobileBtn = document.getElementById('mobile-audio-btn');
       if (result.active) {
         label.textContent = result.theme + '/5 ' + result.name;
         icon.style.color = result.color || 'rgba(100,220,220,0.7)';
         label.style.color = 'rgba(255,255,255,0.55)';
-        if (mobileBtn) {
-          mobileBtn.style.color = result.color || 'rgba(100,220,220,0.7)';
-          mobileBtn.style.borderColor = result.color || 'rgba(100,220,220,0.3)';
+        // Update mute button state
+        if (muteBtn) {
+          audioMuted = false;
+          muteBtn.classList.remove('muted');
+          muteBtn.querySelector('svg').innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path class="audio-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path class="audio-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
         }
       } else {
         label.textContent = 'OFF';
         icon.style.color = 'rgba(255,255,255,0.35)';
         label.style.color = 'rgba(255,255,255,0.35)';
-        if (mobileBtn) {
-          mobileBtn.style.color = 'rgba(255,255,255,0.45)';
-          mobileBtn.style.borderColor = 'rgba(255,255,255,0.15)';
+        if (muteBtn) {
+          audioMuted = true;
+          muteBtn.classList.add('muted');
+          muteBtn.querySelector('svg').innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
         }
       }
       clearTimeout(indicator._hideTimeout);
@@ -3317,19 +3403,34 @@
       indicator._hideTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 3500);
     }
 
-    // Mobile: afficher le bouton audio et le connecter
-    if (isMobile) {
-      const mobileBtn = document.getElementById('mobile-audio-btn');
-      if (mobileBtn) {
-        mobileBtn.style.display = 'flex';
-        mobileBtn.style.alignItems = 'center';
-        mobileBtn.style.justifyContent = 'center';
-        mobileBtn.addEventListener('click', cycleAudioTheme);
-      }
+    // Mute button — minimal icon, works on desktop + mobile
+    const muteBtn = document.getElementById('audio-mute-btn');
+    let audioMuted = false;
+
+    function showMuteButton(active) {
+      if (!muteBtn) return;
+      muteBtn.style.display = 'block';
+      muteBtn.classList.toggle('muted', !active);
+      setTimeout(() => { muteBtn.style.opacity = '1'; }, 50);
     }
 
-    // Audio auto-start is deferred until landing page is dismissed
-    // (see dismissLanding() → autoStartAudio listeners)
+    if (muteBtn) {
+      muteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        audioMuted = !audioMuted;
+        if (audioMuted) {
+          AudioEngine.mute();
+          muteBtn.classList.add('muted');
+          // Show muted state: cross out speaker
+          muteBtn.querySelector('svg').innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+        } else {
+          AudioEngine.unmute();
+          muteBtn.classList.remove('muted');
+          // Restore speaker with waves
+          muteBtn.querySelector('svg').innerHTML = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path class="audio-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path class="audio-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
+        }
+      });
+    }
 
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
