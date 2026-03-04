@@ -50,23 +50,19 @@
     }
     #info-overlay * { cursor: default; }
 
-    /* CSS Grid — 3 columns × 3 rows, content hugs screen edges */
+    /* Absolute positioning — elements pinned to screen edges */
     #info-overlay .info-frame {
       position: absolute; inset: 0;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      grid-template-rows: auto 1fr auto auto;
       padding: 20px;
-      gap: 0;
     }
 
     /* Frame border — hidden */
     #info-overlay .info-frame-border { display: none; }
 
-    /* Title block — top-left, identical to landing */
+    /* Title block — top-left */
     #info-overlay .info-title-block {
-      grid-column: 1; grid-row: 1;
-      align-self: start; justify-self: start;
+      position: absolute;
+      top: 20px; left: 20px;
     }
     #info-overlay .info-title-top {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -110,28 +106,29 @@
 
     /* Concept — bottom-left */
     #info-overlay .info-section.left-top {
-      grid-column: 1; grid-row: 3;
-      align-self: end; justify-self: start;
+      position: absolute;
+      bottom: 20px; left: 20px;
     }
 
     /* Interaction — top-right */
     #info-overlay .info-section.right-top {
-      grid-column: 3; grid-row: 1;
-      align-self: start; justify-self: end;
+      position: absolute;
+      top: 20px; right: 20px;
       text-align: right;
     }
 
     /* Son génératif — bottom-right */
     #info-overlay .info-section.left-bottom {
-      grid-column: 3; grid-row: 3;
-      align-self: end; justify-self: end;
+      position: absolute;
+      bottom: 20px; right: 20px;
       text-align: right;
     }
 
-    /* Sound toggle — middle-right */
+    /* Sound toggle — vertically centered right */
     #info-overlay .info-sound-toggle {
-      grid-column: 3; grid-row: 2;
-      align-self: center; justify-self: end;
+      position: absolute;
+      top: 50%; right: 20px;
+      transform: translateY(-50%);
       width: 34px; height: 34px;
       border: none; background: transparent;
       cursor: pointer; padding: 0;
@@ -140,10 +137,11 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
 
-    /* Footer — bottom-center, spanning all columns */
+    /* Footer — bottom-center */
     #info-overlay .info-footer {
-      grid-column: 1 / -1; grid-row: 4;
-      align-self: end; justify-self: center;
+      position: absolute;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%);
       text-align: center;
     }
     #info-overlay .info-tech {
@@ -672,8 +670,8 @@
       #info-overlay .info-section,
       #info-overlay .info-footer,
       #info-overlay .info-sound-toggle {
-        grid-column: auto; grid-row: auto;
-        align-self: auto; justify-self: auto;
+        position: static;
+        transform: none;
       }
       #info-overlay .info-section { max-width: none; text-align: left !important; margin-top: 0; padding-top: 0; }
       #info-overlay .info-footer { text-align: left; margin-top: auto; padding-top: 20px; }
