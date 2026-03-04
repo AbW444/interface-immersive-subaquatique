@@ -25,7 +25,7 @@
     /* Info overlay */
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
-      background: rgba(0,0,0,0.82);
+      background: transparent;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       cursor: default;
@@ -128,6 +128,19 @@
     }
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 22px; height: 22px; }
+
+    /* Info overlay dismiss animation — same as landing */
+    #info-overlay.dismissing {
+      pointer-events: none;
+    }
+    #info-overlay.dismissing .info-frame {
+      animation: infoZoomOut 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes infoZoomOut {
+      0%   { transform: scale(1); opacity: 1; }
+      50%  { opacity: 0; }
+      100% { transform: scale(3.5); opacity: 0; }
+    }
 
     /* Footer — bottom-center, spanning all columns */
     #info-overlay .info-footer {
@@ -2495,13 +2508,13 @@
             const n = ctx.currentTime;
             master.gain.cancelScheduledValues(n);
             master.gain.setValueAtTime(0, n);
-            master.gain.linearRampToValueAtTime(0.48, n + 2.0);
+            master.gain.linearRampToValueAtTime(0.576, n + 2.0);
           }, 700);
         } else {
           buildTheme(currentTheme);
           master.gain.cancelScheduledValues(now);
           master.gain.setValueAtTime(0, now);
-          master.gain.linearRampToValueAtTime(0.48, now + 2.5);
+          master.gain.linearRampToValueAtTime(0.576, now + 2.5);
         }
 
         isActive = true;
@@ -2665,7 +2678,7 @@
         if (hidden) {
           master.gain.linearRampToValueAtTime(0, now + 0.8);
         } else {
-          master.gain.linearRampToValueAtTime(0.48, now + 1.2);
+          master.gain.linearRampToValueAtTime(0.576, now + 1.2);
         }
       }
 
@@ -2679,7 +2692,7 @@
         const now = ctx.currentTime;
         master.gain.cancelScheduledValues(now);
         master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.48, now + 2.5);
+        master.gain.linearRampToValueAtTime(0.576, now + 2.5);
         isActive = true;
         return { active: true, theme: currentTheme, name: T.name, color: T.color };
       }
@@ -3350,6 +3363,13 @@
         return;
       }
 
+      // Info overlay: scroll to dismiss (like landing), continue exploration
+      if (infoActive && !infoDismissing) {
+        dismissInfoOverlay();
+        return;
+      }
+      if (infoDismissing) return;
+
       // Scroll bidirectionnel : haut et bas produisent le même effet
       const absDeltaY = Math.abs(event.deltaY);
 
@@ -3420,6 +3440,13 @@
         }
         return;
       }
+
+      // Info overlay: touch to dismiss (like landing), continue exploration
+      if (infoActive && !infoDismissing) {
+        dismissInfoOverlay();
+        return;
+      }
+      if (infoDismissing) return;
       if (!touchActive || e.touches.length !== 1 || touchLastY === null) return;
 
       const currentY = e.touches[0].clientY;
@@ -3514,22 +3541,59 @@
 
     // === INFO OVERLAY (Alt / clic droit / Esc) ===
     const infoOverlay = document.getElementById('info-overlay');
+    let infoActive = false;
+    let infoDismissing = false;
+
+    function showInfoOverlay() {
+      if (landingActive || infoActive || infoDismissing) return;
+      // Animate experience back to state 0 (zoom out to start)
+      targetZoomLevel = 0;
+      scrollPhase = 'zoomIn';
+      hasTriggeredTransition = false;
+      wheelScrollAccumulator = 0;
+      isInDeadZone = false;
+      scrollDeadZoneAccumulator = 0;
+      // Show overlay after a short delay to let zoom-out begin
+      setTimeout(() => {
+        infoOverlay.classList.add('visible');
+        infoActive = true;
+        const scrollInd = document.getElementById('scroll-indicator');
+        if (scrollInd) scrollInd.style.display = 'none';
+      }, 400);
+    }
+
+    function dismissInfoOverlay() {
+      if (!infoActive || infoDismissing) return;
+      infoDismissing = true;
+      infoActive = false;
+      // Zoom-out animation like landing page
+      infoOverlay.classList.add('dismissing');
+      setTimeout(() => {
+        infoOverlay.classList.remove('visible', 'dismissing');
+        // Reset frame transform for next show
+        const frame = infoOverlay.querySelector('.info-frame');
+        if (frame) frame.style.transform = '';
+        infoDismissing = false;
+        const scrollInd = document.getElementById('scroll-indicator');
+        if (scrollInd) scrollInd.style.display = '';
+      }, 1500);
+    }
+
     function toggleInfoOverlay(show) {
-      if (landingActive) return; // Blocked during landing
-      const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
-      infoOverlay.classList.toggle('visible', visible);
-      // Hide scroll indicator when info is shown
-      const scrollInd = document.getElementById('scroll-indicator');
-      if (scrollInd) {
-        scrollInd.style.display = visible ? 'none' : '';
+      if (landingActive) return;
+      const visible = show !== undefined ? show : !infoActive;
+      if (visible) {
+        showInfoOverlay();
+      } else {
+        dismissInfoOverlay();
       }
     }
     // Fermer l'overlay en cliquant dessus
-    infoOverlay.addEventListener('click', () => toggleInfoOverlay(false));
+    infoOverlay.addEventListener('click', () => dismissInfoOverlay());
     // Bloquer le menu contextuel natif, ouvrir l'info overlay à la place
     window.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      toggleInfoOverlay(true);
+      showInfoOverlay();
     });
 
     // === SCREENSHOT UTILITY ===
@@ -3556,13 +3620,13 @@
         return;
       }
       // Alt ou Esc → toggle info overlay
-      if (event.key === 'Alt' || (event.key === 'Escape' && !infoOverlay.classList.contains('visible'))) {
+      if (event.key === 'Alt' || (event.key === 'Escape' && !infoActive)) {
         event.preventDefault();
         toggleInfoOverlay(true);
         return;
       }
-      if (event.key === 'Escape' && infoOverlay.classList.contains('visible')) {
-        toggleInfoOverlay(false);
+      if (event.key === 'Escape' && infoActive) {
+        dismissInfoOverlay();
         return;
       }
 
