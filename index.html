@@ -778,8 +778,8 @@
       transform: translateX(-50%);
       opacity: 0;
     }
-    #landing-page.ready .landing-scroll-hint {
-      animation: landingFadeIn 0.6s ease 2.2s forwards;
+    #landing-page .landing-scroll-hint.show-hint {
+      animation: landingFadeIn 0.6s ease forwards;
     }
     .landing-scroll-hint svg {
       filter: drop-shadow(0 0 6px rgba(255,255,255,0.25)) drop-shadow(0 0 14px rgba(255,255,255,0.1));
@@ -892,8 +892,8 @@
     #intro-page.active .intro-text-secondary {
       animation: introFadeUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
     }
-    #intro-page.active .intro-scroll-hint {
-      animation: introHintIn 0.6s ease 2.0s forwards;
+    #intro-page .intro-scroll-hint.show-hint {
+      animation: introHintIn 0.6s ease forwards;
     }
     .intro-scroll-hint svg {
       filter: drop-shadow(0 0 6px rgba(255,255,255,0.25)) drop-shadow(0 0 14px rgba(255,255,255,0.1));
@@ -1912,7 +1912,13 @@
         loadingScreen.classList.add('hidden'); // Fondu 1.2s
         // Déclencher les animations du landing après le fondu du loading screen
         const landingPage = document.getElementById('landing-page');
-        if (landingPage) landingPage.classList.add('ready');
+        if (landingPage) {
+          landingPage.classList.add('ready');
+          // Unlock landing scroll after all content animations finish (2.5s)
+          setTimeout(() => { landingScrollLocked = false; }, 2600);
+          // Start chevron hint timer
+          startLandingHintTimer();
+        }
         setTimeout(() => loadingScreen.remove(), 1300);
       }
       // Scroll indicator setup is deferred until landing page is dismissed
@@ -3487,29 +3493,87 @@
     const landingPage = document.getElementById('landing-page');
     const introPage = document.getElementById('intro-page');
 
+    // Scroll lock: prevent skipping pages until all elements are displayed
+    let landingScrollLocked = true;  // unlocked after all landing animations finish
+    let introScrollLocked = true;    // unlocked after all intro animations finish
+
+    // Chevron hint timers
+    let landingHintTimer = null;
+    let introHintTimer = null;
+    const LANDING_HINT_DELAY = 3000;  // 3s si pas de scroll
+    const INTRO_HINT_DELAY = 6000;    // 6s si pas de scroll (user a déjà scrollé une fois)
+
+    // Start landing chevron timer (called when landing .ready is set)
+    function startLandingHintTimer() {
+      clearTimeout(landingHintTimer);
+      const hint = landingPage && landingPage.querySelector('.landing-scroll-hint');
+      if (hint) hint.classList.remove('show-hint');
+      landingHintTimer = setTimeout(() => {
+        if (landingActive && hint) hint.classList.add('show-hint');
+      }, LANDING_HINT_DELAY);
+    }
+
+    // Start intro chevron timer
+    function startIntroHintTimer() {
+      clearTimeout(introHintTimer);
+      const hint = introPage && introPage.querySelector('.intro-scroll-hint');
+      if (hint) hint.classList.remove('show-hint');
+      introHintTimer = setTimeout(() => {
+        if (introActive && hint) hint.classList.add('show-hint');
+      }, INTRO_HINT_DELAY);
+    }
+
     function handleLandingScroll(rawDelta) {
       if (!landingActive || !landingPage) return;
+      // Reset chevron timer on any scroll attempt
+      if (landingHintTimer) {
+        clearTimeout(landingHintTimer);
+        const hint = landingPage.querySelector('.landing-scroll-hint');
+        if (hint) hint.classList.remove('show-hint');
+        // Restart timer — 6s after user has tried scrolling
+        landingHintTimer = setTimeout(() => {
+          if (landingActive && hint) hint.classList.add('show-hint');
+        }, 6000);
+      }
+      if (landingScrollLocked) return;
       dismissLanding();
     }
 
     function handleIntroScroll(rawDelta) {
       if (!introActive || !introPage) return;
+      // Reset chevron timer on any scroll attempt
+      if (introHintTimer) {
+        clearTimeout(introHintTimer);
+        const hint = introPage.querySelector('.intro-scroll-hint');
+        if (hint) hint.classList.remove('show-hint');
+        introHintTimer = setTimeout(() => {
+          if (introActive && hint) hint.classList.add('show-hint');
+        }, INTRO_HINT_DELAY);
+      }
+      if (introScrollLocked) return;
       dismissIntro();
     }
 
     function dismissLanding() {
       if (!landingActive) return;
       landingActive = false;
+      clearTimeout(landingHintTimer);
       landingPage.classList.add('dismissing');
       // Activate intro immediately (it's already visible behind landing)
       introPage.classList.add('active');
       introActive = true;
+      introScrollLocked = true;
+      // Unlock intro scroll after all intro animations finish (2.4s)
+      setTimeout(() => { introScrollLocked = false; }, 2500);
+      // Start intro chevron timer
+      startIntroHintTimer();
       setTimeout(() => landingPage.remove(), 2000);
     }
 
     function dismissIntro() {
       if (!introActive) return;
       introActive = false;
+      clearTimeout(introHintTimer);
       introPage.classList.add('dismissing');
       setTimeout(() => introPage.remove(), 2000);
       // Volume zoom-in: particles emerge from small scale
