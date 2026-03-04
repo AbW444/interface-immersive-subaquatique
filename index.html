@@ -16,13 +16,14 @@
     /* Custom cursor — image-based */
     #custom-cursor {
       position: fixed; top: 0; left: 0;
-      width: 6px; height: 6px;
+      width: 7px; height: 7px;
       pointer-events: none;
       z-index: 99999;
       opacity: 0;
-      transition: opacity 0.35s ease;
+      transition: opacity 0.15s ease;
       transform: translate(-50%, -50%);
       will-change: transform, left, top;
+      filter: drop-shadow(0 0 3px rgba(255,255,255,0.35)) drop-shadow(0 0 7px rgba(255,255,255,0.15));
     }
     #custom-cursor img {
       display: block;
@@ -3748,10 +3749,24 @@
       customCursor.classList.remove('visible');
       clearTimeout(cursorTimeout);
     }
+    const EDGE_MARGIN = 60;
     window.addEventListener('mousemove', (e) => {
       customCursor.style.left = e.clientX + 'px';
       customCursor.style.top = e.clientY + 'px';
-      showCursor();
+      // Fade near edges
+      const dx = Math.min(e.clientX, window.innerWidth - e.clientX);
+      const dy = Math.min(e.clientY, window.innerHeight - e.clientY);
+      const edgeDist = Math.min(dx, dy);
+      if (edgeDist < EDGE_MARGIN) {
+        customCursor.style.opacity = (edgeDist / EDGE_MARGIN).toFixed(3);
+        cursorVisible = true;
+        customCursor.classList.add('visible');
+        clearTimeout(cursorTimeout);
+        cursorTimeout = setTimeout(hideCursor, 2500);
+      } else {
+        customCursor.style.opacity = '';
+        showCursor();
+      }
     }, { passive: true });
     window.addEventListener('mouseleave', hideCursor);
     window.addEventListener('blur', hideCursor);
