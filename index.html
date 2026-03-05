@@ -1772,23 +1772,56 @@
     let depthMacroWeight = 0.7;  // Poids de la depth map (séparation des grands plans)
     let depthMicroWeight = 0.3;  // Poids de la luminance photo (micro-relief sculptural)
 
-    // Pré-charger une depth map (silencieux si 404)
+    // Pré-charger une depth map avec le MÊME crop que la photo (silencieux si 404)
     function preloadDepthMap(imageIndex) {
       return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
+          // Appliquer EXACTEMENT le même crop que processTexture()
+          const srcWidth = img.width;
+          const srcHeight = img.height;
+          const targetRatio = TARGET_WIDTH / TARGET_HEIGHT;
+          const srcRatio = srcWidth / srcHeight;
+
+          let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+          let drawX = 0, drawY = 0, drawW = TARGET_WIDTH, drawH = TARGET_HEIGHT;
+
+          if (isMobile && isPortrait) {
+            if (srcRatio > targetRatio) {
+              drawW = TARGET_WIDTH;
+              drawH = TARGET_WIDTH / srcRatio;
+              drawY = (TARGET_HEIGHT - drawH) / 2;
+            } else {
+              drawH = TARGET_HEIGHT;
+              drawW = TARGET_HEIGHT * srcRatio;
+              drawX = (TARGET_WIDTH - drawW) / 2;
+            }
+          } else {
+            if (srcRatio > targetRatio) {
+              cropWidth = srcHeight * targetRatio;
+              cropX = (srcWidth - cropWidth) / 2;
+            } else {
+              cropHeight = srcWidth / targetRatio;
+              cropY = (srcHeight - cropHeight) / 2;
+            }
+          }
+
           const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.width = TARGET_WIDTH;
+          canvas.height = TARGET_HEIGHT;
           const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          const imgData = ctx.getImageData(0, 0, img.width, img.height);
+          if (isMobile && isPortrait) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+          }
+          ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, drawX, drawY, drawW, drawH);
+          const imgData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
           depthMapCache.set(imageIndex, imgData);
-          console.log(`[Depth Map] IMG_${String(imageIndex).padStart(3, '0')} chargée (${img.width}×${img.height})`);
+          console.log(`[Depth Map] IMG_${String(imageIndex).padStart(3, '0')} chargée (${srcWidth}×${srcHeight} → ${TARGET_WIDTH}×${TARGET_HEIGHT})`);
           resolve(true);
         };
         img.onerror = () => {
-          resolve(false); // Silencieux — fallback luminance pure
+          resolve(false);
         };
         const padded = String(imageIndex).padStart(3, '0');
         img.src = `./Ressources/photographies/IMG_${padded}_depth.png?v=${IMAGE_VERSION}`;
