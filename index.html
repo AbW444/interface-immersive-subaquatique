@@ -2986,6 +2986,10 @@
         if (hidden) {
           master.gain.linearRampToValueAtTime(0, now + 0.8);
         } else {
+          // Reconstruire les layers si elles ont disparu pendant la suspension
+          if (!layers.drone && currentTheme > 0) {
+            buildTheme(currentTheme);
+          }
           master.gain.linearRampToValueAtTime(0.634, now + 1.2);
         }
       }
@@ -3031,18 +3035,28 @@
         if (!ctx) return;
         if (ctx.state === 'suspended') {
           ctx.resume().then(() => {
-            // Si le contexte était suspendu mais l'audio toujours "actif",
-            // le gain peut être resté à 0 (visibility fade-out antérieur).
-            // Relancer le gain pour que le son revienne.
+            // Contexte relancé: restaurer le gain si l'audio devrait jouer
             if (isActive && master) {
               const now = ctx.currentTime;
-              if (master.gain.value < 0.01) {
-                master.gain.cancelScheduledValues(now);
-                master.gain.setValueAtTime(0, now);
-                master.gain.linearRampToValueAtTime(0.634, now + 1.0);
-              }
+              // Toujours restaurer le gain après suspension, peu importe sa valeur
+              // (le gain peut être à une valeur intermédiaire si suspendu pendant un ramp)
+              master.gain.cancelScheduledValues(now);
+              master.gain.setValueAtTime(0, now);
+              master.gain.linearRampToValueAtTime(0.634, now + 1.0);
             }
           });
+        } else if (ctx.state === 'running' && isActive && master) {
+          // Contexte actif mais gain coincé à 0 (ex: après visibilityChange mal récupéré)
+          if (master.gain.value < 0.01) {
+            const now = ctx.currentTime;
+            master.gain.cancelScheduledValues(now);
+            master.gain.setValueAtTime(0, now);
+            master.gain.linearRampToValueAtTime(0.634, now + 1.0);
+          }
+          // Vérifier que les layers existent encore
+          if (!layers.drone) {
+            buildTheme(currentTheme);
+          }
         }
       }
 
@@ -3064,12 +3078,15 @@
 
     // === FONDU AUDIO QUAND ON QUITTE / REVIENT SUR LA PAGE ===
     document.addEventListener('visibilitychange', () => {
-      if (!AudioEngine.isActive) return;
       if (!document.hidden) {
-        // Page redevient visible: d'abord relancer le contexte s'il a été suspendu
+        // Page redevient visible: toujours relancer le contexte, même si isActive est false
+        // (le contexte peut avoir été suspendu par le navigateur)
         AudioEngine.ensureContextRunning();
       }
-      AudioEngine._onVisibilityChange(document.hidden);
+      // Fondu in/out seulement si l'audio est actif
+      if (AudioEngine.isActive) {
+        AudioEngine._onVisibilityChange(document.hidden);
+      }
     });
 
     // Suivi vélocité scroll pour audio
@@ -3524,10 +3541,11 @@
       // scrollDirection: 1 = avance (zoom in), -1 = recule (zoom out)
       const audioScrollDirection = zoomDelta >= 0 ? 1 : -1;
       lastZoomForAudio = zoomLevel;
-      // Vérification périodique (~toutes les 2s): relancer le contexte audio si suspendu
-      // (les navigateurs peuvent suspendre après ~30s sans interaction)
+      // Vérification périodique (~toutes les 5s): vérifier l'état audio
+      // Note: ctx.resume() depuis rAF ne fonctionne PAS (pas un user gesture),
+      // donc on vérifie seulement l'état du gain quand le contexte est déjà running
       const _now = Date.now();
-      if (!window._lastAudioCheck || _now - window._lastAudioCheck > 2000) {
+      if (!window._lastAudioCheck || _now - window._lastAudioCheck > 5000) {
         window._lastAudioCheck = _now;
         AudioEngine.ensureContextRunning();
       }
@@ -3845,7 +3863,18 @@
 
     // Garder l'AudioContext vivant sur toute interaction utilisateur
     // (les navigateurs suspendent après inactivité prolongée)
+    // click et pointerdown sont des "user gestures" qui autorisent ctx.resume()
     window.addEventListener('click', () => AudioEngine.ensureContextRunning());
+    window.addEventListener('pointerdown', () => AudioEngine.ensureContextRunning());
+    // mousemove: throttled pour ne pas surcharger (vérif toutes les 5s)
+    let _lastMouseAudioCheck = 0;
+    window.addEventListener('mousemove', () => {
+      const now = Date.now();
+      if (now - _lastMouseAudioCheck > 5000) {
+        _lastMouseAudioCheck = now;
+        AudioEngine.ensureContextRunning();
+      }
+    });
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
