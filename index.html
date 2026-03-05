@@ -1502,7 +1502,7 @@
     let maxImageIndex = 0; // Détecté dynamiquement
     let availableImages = []; // Images qui ont chargé avec succès (détection auto)
     let officialImages = []; // Images officielles (IMG_001 à IMG_007)
-    let testImages = []; // Images test (IMG_test*.jpg, IMG_Test*.jpg)
+    let testImages = []; // Non utilisé (conservé pour compatibilité)
     // Réglages couleur par image officielle (index 1-7)
     // Les images test héritent des réglages de IMG_001
     const perImageSettings = {};
@@ -1666,17 +1666,18 @@
     let imagesPreloaded = false;
 
     // Gradient "La couleur de l'eau" — Nicolas Floc'h
-    // 7 gammes chromatiques: du vert #36844A (proche) au bleu foncé #002445 (loin)
-    // NOIR/FROID dans depth map = PROCHE (vert) | BLANC/CHAUD = LOIN (bleu foncé)
+    // 7 gammes chromatiques correspondant aux 7 photos (IMG_001 → IMG_007)
+    // Gamme 1 (IMG_001, surface) = vert #36844A → Gamme 7 (IMG_007, profond) = bleu foncé #002445
+    // Dans le gradient depth: depth +0.50 (proche) = vert | depth -0.50 (loin) = bleu foncé
     const DEPTH_COLOR_GRADIENTS = {
       'mediterranee': [
-        { depth: -0.50, color: [0.000, 0.141, 0.271] },   // Gamme 7 — #002445 bleu foncé (loin)
-        { depth: -0.33, color: [0.020, 0.180, 0.290] },   // Gamme 6 — bleu profond
-        { depth: -0.17, color: [0.050, 0.235, 0.310] },   // Gamme 5 — bleu-pétrole
-        { depth:  0.00, color: [0.090, 0.310, 0.320] },   // Gamme 4 — bleu-vert sombre
-        { depth:  0.17, color: [0.130, 0.390, 0.310] },   // Gamme 3 — vert-bleu
-        { depth:  0.33, color: [0.170, 0.455, 0.300] },   // Gamme 2 — vert profond
-        { depth:  0.50, color: [0.212, 0.518, 0.290] },   // Gamme 1 — #36844A vert (proche)
+        { depth: -0.50, color: [0.000, 0.141, 0.271] },   // Gamme 7 — IMG_007 — #002445 bleu foncé (profond)
+        { depth: -0.33, color: [0.020, 0.180, 0.290] },   // Gamme 6 — IMG_006 — bleu profond
+        { depth: -0.17, color: [0.050, 0.235, 0.310] },   // Gamme 5 — IMG_005 — bleu-pétrole
+        { depth:  0.00, color: [0.090, 0.310, 0.320] },   // Gamme 4 — IMG_004 — bleu-vert sombre
+        { depth:  0.17, color: [0.130, 0.390, 0.310] },   // Gamme 3 — IMG_003 — vert-bleu
+        { depth:  0.33, color: [0.170, 0.455, 0.300] },   // Gamme 2 — IMG_002 — vert profond
+        { depth:  0.50, color: [0.212, 0.518, 0.290] },   // Gamme 1 — IMG_001 — #36844A vert (surface)
       ],
       'atlantique': [
         { depth: -0.50, color: [0.000, 0.141, 0.271] },
@@ -1688,7 +1689,7 @@
     };
 
     let currentGradientName = 'mediterranee';
-    let useDepthGradientColors = true; // false = couleurs image, true = gradient Floc'h
+    let useDepthGradientColors = false; // false = couleurs image, true = gradient Floc'h
 
     function colorFromDepth(normalizedDepth, gradientName) {
       const gradient = DEPTH_COLOR_GRADIENTS[gradientName || currentGradientName];
@@ -1735,17 +1736,8 @@
           depthMapCache.set(imageIndex, imgData);
           resolve(true);
         };
-        img.onerror = () => resolve(false); // Silencieux si 404
-        // Construire le bon chemin selon le type d'image
-        let depthPath;
-        if (imageIndex >= 200) {
-          depthPath = `./Ressources/photographies/IMG_Test${String(imageIndex - 200).padStart(3, '0')}_depth.png`;
-        } else if (imageIndex >= 100) {
-          depthPath = `./Ressources/photographies/IMG_test${String(imageIndex - 100).padStart(3, '0')}_depth.png`;
-        } else {
-          depthPath = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}_depth.png`;
-        }
-        img.src = depthPath;
+        img.onerror = () => resolve(false);
+        img.src = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}_depth.png`;
       });
     }
 
@@ -1816,15 +1808,10 @@
       }
 
       return new Promise(async (resolveAll) => {
-        // Charger les depth maps en parallèle (non bloquant) - images officielles
+        // Charger les depth maps en parallèle (non bloquant)
         const depthMapPromises = [];
         for (let idx = 1; idx <= 7; idx++) {
           depthMapPromises.push(preloadDepthMap(idx));
-        }
-        // Charger aussi les depth maps test (les deux variantes de casse)
-        for (let idx = 1; idx <= 7; idx++) {
-          depthMapPromises.push(preloadDepthMap(100 + idx)); // IMG_test*
-          depthMapPromises.push(preloadDepthMap(200 + idx)); // IMG_Test*
         }
 
         // Phase 1: Charger les images officielles IMG_001 à IMG_007
@@ -1835,23 +1822,6 @@
           if (loaded) {
             availableImages.push(idx);
             officialImages.push(idx);
-          }
-        }
-
-        // Phase 2: Charger les images test (IMG_test*.jpg / IMG_Test*.jpg)
-        // On probe les variantes test001-test007 en minuscule et majuscule
-        const testVariants = [];
-        for (let idx = 1; idx <= 7; idx++) {
-          const padded = String(idx).padStart(3, '0');
-          testVariants.push({ path: `./Ressources/photographies/IMG_test${padded}.jpg?v=${IMAGE_VERSION}`, idx: 100 + idx });
-          testVariants.push({ path: `./Ressources/photographies/IMG_Test${padded}.jpg?v=${IMAGE_VERSION}`, idx: 200 + idx });
-        }
-
-        for (const variant of testVariants) {
-          const loaded = await tryLoadImage(variant.path, variant.idx);
-          if (loaded) {
-            availableImages.push(variant.idx);
-            testImages.push(variant.idx);
           }
         }
 
@@ -2034,18 +2004,7 @@
       }
 
       // Fallback: charger l'image si pas en cache
-      // Déterminer le bon chemin selon le type d'image (officielle ou test)
-      let imagePath;
-      if (imageIndex >= 200) {
-        // Test image majuscule (IMG_Test*)
-        imagePath = `./Ressources/photographies/IMG_Test${String(imageIndex - 200).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
-      } else if (imageIndex >= 100) {
-        // Test image minuscule (IMG_test*)
-        imagePath = `./Ressources/photographies/IMG_test${String(imageIndex - 100).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
-      } else {
-        // Image officielle
-        imagePath = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
-      }
+      const imagePath = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
       textureLoader.load(imagePath, function (texture) {
         offscreenCanvas.width = targetWidth;
         offscreenCanvas.height = targetHeight;
@@ -3418,23 +3377,7 @@
 
       // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
       // Au lieu de les calculer dans wheel event avec targetZoomLevel (qui saute)
-      // Pour les images test: forcer les réglages de l'État 1 (comme IMG_001)
-      const isTestImage = testImages.indexOf(currentImageIndex) !== -1;
-      if (isTestImage && uxJourneyMode && uxStates.length >= 1) {
-        const state1 = uxStates[0];
-        particleParams.size = state1.size;
-        particleParams.density = state1.density;
-        particleParams.disparity = state1.disparity;
-        particleParams.movement = state1.movement;
-        particleParams.randomness = state1.randomness;
-        particleParams.saturation = state1.saturation;
-        particleParams.hideBlack = state1.hideBlack;
-        particleParams.shape = state1.shape;
-        particleParams.movementMode = state1.movementMode;
-        if (particles) {
-          particles.material.size = particleParams.size;
-        }
-      } else if (uxJourneyMode && uxStates.length >= 2) {
+      if (uxJourneyMode && uxStates.length >= 2) {
         // Clamper aux bornes extrêmes (sans forcer de reload)
         if (zoomLevel < 0.001) {
           // Laisser l'interpolation normale gérer le retour fluide vers l'État 1
