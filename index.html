@@ -1208,6 +1208,21 @@
         </div>
       </div>
 
+      <!-- Color Mode -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Color Mode</span>
+        </div>
+        <div class="shape-buttons">
+          <button class="shape-btn" id="color-mode-image" data-colormode="image">Image</button>
+          <button class="shape-btn active" id="color-mode-depth" data-colormode="depth">Floc'h</button>
+        </div>
+        <div class="shape-buttons" style="margin-top:6px">
+          <button class="shape-btn active" id="gradient-med" data-gradient="mediterranee">Méditerranée</button>
+          <button class="shape-btn" id="gradient-atl" data-gradient="atlantique">Atlantique</button>
+        </div>
+      </div>
+
       <!-- Particle Density -->
       <div class="param-control">
         <div class="param-header">
@@ -1476,6 +1491,8 @@
     let isTransitioning = false;
     let oldColors = null;
     let newColors = null;
+    let oldDepths = null;
+    let newDepths = null;
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
 
     const textureLoader = new THREE.TextureLoader();
@@ -1598,11 +1615,58 @@
     // Cache pour les images pré-chargées
     const imageCache = new Map(); // imageIndex -> ImageData
     const colorCache = new Map(); // imageIndex -> Array of colors
+    const depthCache = new Map(); // imageIndex -> Array of normalizedDepths (luminance)
     const textureCache = {
       circle: null,
       square: null
     };
     let imagesPreloaded = false;
+
+    // Gradient "La couleur de l'eau" — Nicolas Floc'h
+    // Inspiré des colonnes d'eau du Parc national des Calanques
+    const DEPTH_COLOR_GRADIENTS = {
+      'mediterranee': [
+        { depth: -0.50, color: [0.01, 0.05, 0.15] },   // Abyssal — noir bleuté
+        { depth: -0.35, color: [0.02, 0.10, 0.30] },   // Profond — bleu sombre
+        { depth: -0.20, color: [0.04, 0.22, 0.50] },   // -25m — bleu franc
+        { depth: -0.05, color: [0.08, 0.40, 0.55] },   // -15m — bleu-cyan
+        { depth:  0.10, color: [0.15, 0.55, 0.55] },   // -8m — cyan-turquoise
+        { depth:  0.25, color: [0.25, 0.65, 0.50] },   // -3m — turquoise-vert (phytoplancton)
+        { depth:  0.40, color: [0.45, 0.75, 0.65] },   // Surface — vert-turquoise clair
+        { depth:  0.50, color: [0.60, 0.85, 0.80] },   // Très surface — quasi blanc-turquoise
+      ],
+      'atlantique': [
+        { depth: -0.50, color: [0.01, 0.04, 0.08] },
+        { depth: -0.25, color: [0.03, 0.12, 0.20] },
+        { depth:  0.00, color: [0.08, 0.28, 0.25] },
+        { depth:  0.25, color: [0.18, 0.42, 0.30] },
+        { depth:  0.50, color: [0.35, 0.55, 0.40] },
+      ]
+    };
+
+    let currentGradientName = 'mediterranee';
+    let useDepthGradientColors = true; // false = couleurs image, true = gradient Floc'h
+
+    function colorFromDepth(normalizedDepth, gradientName) {
+      const gradient = DEPTH_COLOR_GRADIENTS[gradientName || currentGradientName];
+      if (!gradient || gradient.length === 0) return [0.5, 0.5, 0.5];
+      const d = Math.max(gradient[0].depth, Math.min(gradient[gradient.length - 1].depth, normalizedDepth));
+      let lower = gradient[0], upper = gradient[gradient.length - 1];
+      for (let i = 0; i < gradient.length - 1; i++) {
+        if (d >= gradient[i].depth && d <= gradient[i + 1].depth) {
+          lower = gradient[i];
+          upper = gradient[i + 1];
+          break;
+        }
+      }
+      const range = upper.depth - lower.depth;
+      const t = range > 0 ? (d - lower.depth) / range : 0;
+      return [
+        lower.color[0] + (upper.color[0] - lower.color[0]) * t,
+        lower.color[1] + (upper.color[1] - lower.color[1]) * t,
+        lower.color[2] + (upper.color[2] - lower.color[2]) * t,
+      ];
+    }
 
     // Résolution adaptée: mobile portrait = format vertical, desktop = paysage large
     // Mobile: résolution augmentée pour qualité (plus de particules = meilleur rendu)
@@ -1663,8 +1727,9 @@
         const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
         imageCache.set(idx, imgData);
 
-        const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight);
         colorCache.set(idx, colors);
+        depthCache.set(idx, depths);
       }
 
       // Probe images sequentially: load IMG_001, IMG_002, ... until one fails
@@ -1764,25 +1829,27 @@
             const a = imgData.data[i + 3] / 255;
 
             if (a > 0.5) {
+              // Luminance Rec.601 depuis les RGB bruts (avant saturation)
+              const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+              // Clair = devant (+0.5), sombre = derrière (-0.5)
+              // Micro-bruit seedé pour éviter les plans plats par iso-luminance
+              const normalizedDepth = (luminance - 0.5) + (seededRandom(x, y, 3) - 0.5) * 0.12;
+
               const saturated = saturateColor(r, g, b, particleParams.saturation);
               r = saturated.r;
               g = saturated.g;
               b = saturated.b;
 
-              // Calculer la luminosité du pixel (0 = noir, 1 = blanc)
+              // Calculer la luminosité du pixel saturé (0 = noir, 1 = blanc)
               const brightness = (r + g + b) / 3;
 
               // Filtrer les pixels noirs selon le seuil hideBlack
-              // Si hideBlack = 0.3, on cache tous les pixels avec brightness < 0.3
               if (brightness >= particleParams.hideBlack) {
                 // Position de base sur la grille
                 let posX = (x - targetWidth / 2) / scaleFactor;
                 let posY = (y - targetHeight / 2) / scaleFactor;
-                // Stocker depth normalisée - disparity appliqué dynamiquement
-                const normalizedDepth = seededRandom(x, y, 3) - 0.5;
 
                 // Ajouter un offset aléatoire basé sur le paramètre randomness
-                // Utilise randomness déterministe pour éviter les saccades lors des reloads
                 if (particleParams.randomness > 0) {
                   const randomOffsetX = (seededRandom(x, y, 1) - 0.5) * particleParams.randomness * (step / scaleFactor);
                   const randomOffsetY = (seededRandom(x, y, 2) - 0.5) * particleParams.randomness * (step / scaleFactor);
@@ -1791,7 +1858,12 @@
                 }
 
                 particleVertices.push(posX, posY, 0); // Z=0 au départ
-                particleColors.push(r, g, b);
+                if (useDepthGradientColors) {
+                  const [gr, gg, gb] = colorFromDepth(normalizedDepth);
+                  particleColors.push(gr, gg, gb);
+                } else {
+                  particleColors.push(r, g, b);
+                }
                 normalizedDepths.push(normalizedDepth);
               }
             }
@@ -1865,11 +1937,11 @@
       });
     }
 
-    // Fonction pour extraire les couleurs d'une image sans recréer les particules
-    function extractImageColors(imageIndex, callback) {
-      // Utiliser le cache de couleurs pré-calculé (évite freeze)
-      if (colorCache.has(imageIndex)) {
-        callback(colorCache.get(imageIndex));
+    // Fonction pour extraire les couleurs et depths d'une image sans recréer les particules
+    function extractImageColorsAndDepths(imageIndex, callback) {
+      // Utiliser le cache pré-calculé (évite freeze)
+      if (colorCache.has(imageIndex) && depthCache.has(imageIndex)) {
+        callback(colorCache.get(imageIndex), depthCache.get(imageIndex));
         return;
       }
 
@@ -1879,17 +1951,19 @@
 
       if (imageCache.has(imageIndex)) {
         const imgData = imageCache.get(imageIndex);
-        const colors = extractColorsFromImageData(imgData, targetWidth, targetHeight);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight);
         colorCache.set(imageIndex, colors);
-        callback(colors);
+        depthCache.set(imageIndex, depths);
+        callback(colors, depths);
       } else {
         console.error(`Image ${imageIndex} non trouvée dans le cache`);
       }
     }
 
-    // Extraire les couleurs d'ImageData selon la densité actuelle
-    function extractColorsFromImageData(imgData, targetWidth, targetHeight) {
+    // Extraire les couleurs ET les profondeurs d'ImageData selon la densité actuelle
+    function extractColorsAndDepths(imgData, targetWidth, targetHeight) {
       const colors = [];
+      const depths = [];
       const step = Math.max(1, Math.floor(1 / particleParams.density));
 
       for (let y = 0; y < targetHeight; y += step) {
@@ -1901,6 +1975,10 @@
           const a = imgData.data[i + 3] / 255;
 
           if (a > 0.5) {
+            // Depth depuis luminance brute (avant saturation)
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            const normalizedDepth = (luminance - 0.5) + (seededRandom(x, y, 3) - 0.5) * 0.12;
+
             const saturated = saturateColor(r, g, b, particleParams.saturation);
             r = saturated.r;
             g = saturated.g;
@@ -1909,13 +1987,19 @@
             const brightness = (r + g + b) / 3;
 
             if (brightness >= particleParams.hideBlack) {
-              colors.push(r, g, b);
+              depths.push(normalizedDepth);
+              if (useDepthGradientColors) {
+                const [gr, gg, gb] = colorFromDepth(normalizedDepth);
+                colors.push(gr, gg, gb);
+              } else {
+                colors.push(r, g, b);
+              }
             }
           }
         }
       }
 
-      return colors;
+      return { colors, depths };
     }
 
     // Fonction pour transition fluide vers l'image suivante
@@ -1939,9 +2023,13 @@
       if (particles && particles.geometry.attributes.color) {
         oldColors = particles.geometry.attributes.color.array.slice();
       }
+      if (particles && particles.geometry.attributes.normalizedDepth) {
+        oldDepths = particles.geometry.attributes.normalizedDepth.array.slice();
+      }
 
-      extractImageColors(nextImageIndex, (colors) => {
+      extractImageColorsAndDepths(nextImageIndex, (colors, depths) => {
         newColors = colors;
+        newDepths = depths || null;
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
@@ -3099,10 +3187,22 @@
         colorAttr.needsUpdate = true;
         needsRender = true;
 
+        // Interpoler les depths en parallèle des couleurs
+        if (oldDepths && newDepths) {
+          const depthArray = particles.geometry.attributes.normalizedDepth.array;
+          const numDepths = Math.min(oldDepths.length, newDepths.length, depthArray.length);
+          for (let i = 0; i < numDepths; i++) {
+            depthArray[i] = oldDepths[i] + (newDepths[i] - oldDepths[i]) * transitionProgress;
+          }
+          particles.geometry.attributes.normalizedDepth.needsUpdate = true;
+        }
+
         if (!isTransitioning) {
           // Transition terminée, libérer mémoire
           oldColors = null;
           newColors = null;
+          oldDepths = null;
+          newDepths = null;
           window.lastTransitionProgress = 0;
           // RÉINITIALISER hasTriggeredTransition ici aussi pour éviter blocage
           // Cela permet à la prochaine transition de se déclencher même si
@@ -4150,7 +4250,7 @@
         particleParams.movementMode = uxStates[index].movementMode;
 
         // Mettre à jour les boutons de forme
-        document.querySelectorAll('.shape-btn').forEach(btn => {
+        document.querySelectorAll('.shape-btn[data-shape]').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.shape === particleParams.shape);
         });
 
@@ -4366,16 +4466,37 @@
     });
 
     // Boutons de forme (rond/carré)
-    document.querySelectorAll('.shape-btn').forEach(btn => {
+    document.querySelectorAll('.shape-btn[data-shape]').forEach(btn => {
       btn.addEventListener('click', () => {
-        // Retirer active de tous les boutons
-        document.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
-        // Ajouter active au bouton cliqué
+        document.querySelectorAll('.shape-btn[data-shape]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        // Mettre à jour le paramètre
         particleParams.shape = btn.dataset.shape;
-        // Recharger l'image avec la nouvelle forme
         loadImage(currentImageIndex);
+      });
+    });
+
+    // Boutons mode couleur (Image / Floc'h)
+    document.querySelectorAll('.shape-btn[data-colormode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.shape-btn[data-colormode]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        useDepthGradientColors = btn.dataset.colormode === 'depth';
+        // Invalider les caches couleur (les depths restent valides)
+        colorCache.clear();
+        loadImage(currentImageIndex);
+      });
+    });
+
+    // Boutons gradient (Méditerranée / Atlantique)
+    document.querySelectorAll('.shape-btn[data-gradient]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.shape-btn[data-gradient]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentGradientName = btn.dataset.gradient;
+        if (useDepthGradientColors) {
+          colorCache.clear();
+          loadImage(currentImageIndex);
+        }
       });
     });
 
@@ -4402,7 +4523,7 @@
       Object.keys(defaultParams).forEach(param => {
         if (param === 'shape') {
           particleParams.shape = defaultParams[param];
-          document.querySelectorAll('.shape-btn').forEach(btn => {
+          document.querySelectorAll('.shape-btn[data-shape]').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.shape === defaultParams[param]);
           });
         } else if (param === 'movementMode') {
