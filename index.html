@@ -1501,6 +1501,11 @@
     let currentImageIndex = 1; // Sera mis à jour après détection
     let maxImageIndex = 0; // Détecté dynamiquement
     let availableImages = []; // Images qui ont chargé avec succès (détection auto)
+    let officialImages = []; // Images officielles (IMG_001 à IMG_007)
+    let testImages = []; // Images test (IMG_test*.jpg, IMG_Test*.jpg)
+    // Réglages couleur par image officielle (index 1-7)
+    // Les images test héritent des réglages de IMG_001
+    const perImageSettings = {};
     let referenceHeight = null;
 
     // Variables pour le zoom progressif avec scroll
@@ -1647,7 +1652,7 @@
     }
 
     // Version des images (incrémenter ce nombre quand vous changez les images)
-    const IMAGE_VERSION = 2;
+    const IMAGE_VERSION = 3;
 
     // Cache pour les images pré-chargées
     const imageCache = new Map(); // imageIndex -> ImageData
@@ -1714,8 +1719,8 @@
       ? (isPortrait ? 1280 : 960)
       : 880;
 
-    // Pré-charger toutes les images au démarrage (détection dynamique)
-    // Probe séquentiellement IMG_001, IMG_002, ... jusqu'à ce qu'une image échoue
+    // Pré-charger toutes les images au démarrage depuis Ressources/photographies/
+    // Charge les images officielles (IMG_001 à IMG_007) puis les images test
     function preloadAllImages() {
       const targetWidth = TARGET_WIDTH;
       const targetHeight = TARGET_HEIGHT;
@@ -1769,29 +1774,56 @@
         depthCache.set(idx, depths);
       }
 
-      // Probe images sequentially: load IMG_001, IMG_002, ... until one fails
-      return new Promise((resolveAll) => {
-        function probeNext(idx) {
-          const imagePath = `./Ressources/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      // Charger une image avec promesse (résout true si chargée, false sinon)
+      function tryLoadImage(imagePath, idx) {
+        return new Promise((resolve) => {
           textureLoader.load(imagePath, (texture) => {
             processTexture(idx, texture);
-            availableImages.push(idx);
-            probeNext(idx + 1);
+            resolve(true);
           }, undefined, () => {
-            // This index failed — we've found all images
-            maxImageIndex = availableImages.length;
-            if (maxImageIndex === 0) {
-              console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/');
-              resolveAll();
-              return;
-            }
-            // Start on last available image
-            currentImageIndex = availableImages[0];
-            imagesPreloaded = true;
-            resolveAll();
+            resolve(false);
           });
+        });
+      }
+
+      return new Promise(async (resolveAll) => {
+        // Phase 1: Charger les images officielles IMG_001 à IMG_007
+        // (on n'arrête pas au premier échec, on gère les trous comme IMG_006 manquant)
+        for (let idx = 1; idx <= 7; idx++) {
+          const imagePath = `./Ressources/photographies/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+          const loaded = await tryLoadImage(imagePath, idx);
+          if (loaded) {
+            availableImages.push(idx);
+            officialImages.push(idx);
+          }
         }
-        probeNext(1);
+
+        // Phase 2: Charger les images test (IMG_test*.jpg / IMG_Test*.jpg)
+        // On probe les variantes test001-test007 en minuscule et majuscule
+        const testVariants = [];
+        for (let idx = 1; idx <= 7; idx++) {
+          const padded = String(idx).padStart(3, '0');
+          testVariants.push({ path: `./Ressources/photographies/IMG_test${padded}.jpg?v=${IMAGE_VERSION}`, idx: 100 + idx });
+          testVariants.push({ path: `./Ressources/photographies/IMG_Test${padded}.jpg?v=${IMAGE_VERSION}`, idx: 200 + idx });
+        }
+
+        for (const variant of testVariants) {
+          const loaded = await tryLoadImage(variant.path, variant.idx);
+          if (loaded) {
+            availableImages.push(variant.idx);
+            testImages.push(variant.idx);
+          }
+        }
+
+        maxImageIndex = availableImages.length;
+        if (maxImageIndex === 0) {
+          console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/photographies/');
+          resolveAll();
+          return;
+        }
+        currentImageIndex = availableImages[0];
+        imagesPreloaded = true;
+        resolveAll();
       });
     }
 
@@ -1939,7 +1971,18 @@
       }
 
       // Fallback: charger l'image si pas en cache
-      const imagePath = `./Ressources/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      // Déterminer le bon chemin selon le type d'image (officielle ou test)
+      let imagePath;
+      if (imageIndex >= 200) {
+        // Test image majuscule (IMG_Test*)
+        imagePath = `./Ressources/photographies/IMG_Test${String(imageIndex - 200).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      } else if (imageIndex >= 100) {
+        // Test image minuscule (IMG_test*)
+        imagePath = `./Ressources/photographies/IMG_test${String(imageIndex - 100).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      } else {
+        // Image officielle
+        imagePath = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
+      }
       textureLoader.load(imagePath, function (texture) {
         offscreenCanvas.width = targetWidth;
         offscreenCanvas.height = targetHeight;
@@ -3303,7 +3346,23 @@
 
       // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
       // Au lieu de les calculer dans wheel event avec targetZoomLevel (qui saute)
-      if (uxJourneyMode && uxStates.length >= 2) {
+      // Pour les images test: forcer les réglages de l'État 1 (comme IMG_001)
+      const isTestImage = testImages.indexOf(currentImageIndex) !== -1;
+      if (isTestImage && uxJourneyMode && uxStates.length >= 1) {
+        const state1 = uxStates[0];
+        particleParams.size = state1.size;
+        particleParams.density = state1.density;
+        particleParams.disparity = state1.disparity;
+        particleParams.movement = state1.movement;
+        particleParams.randomness = state1.randomness;
+        particleParams.saturation = state1.saturation;
+        particleParams.hideBlack = state1.hideBlack;
+        particleParams.shape = state1.shape;
+        particleParams.movementMode = state1.movementMode;
+        if (particles) {
+          particles.material.size = particleParams.size;
+        }
+      } else if (uxJourneyMode && uxStates.length >= 2) {
         // FIX: Forcer retour exact à l'État 1 quand zoomLevel proche de 0
         if (zoomLevel < 0.001) {
           const state1 = uxStates[0];
@@ -4205,15 +4264,19 @@
         return;
       }
 
-      // Flèche gauche - Image précédente
+      // Flèche gauche - Image précédente (cycle dans availableImages)
       if (event.key === 'ArrowLeft') {
-        currentImageIndex = currentImageIndex === 1 ? maxImageIndex : currentImageIndex - 1;
+        const curIdx = availableImages.indexOf(currentImageIndex);
+        const prevIdx = curIdx <= 0 ? availableImages.length - 1 : curIdx - 1;
+        currentImageIndex = availableImages[prevIdx];
         loadImage(currentImageIndex);
       }
 
-      // Flèche droite - Image suivante
+      // Flèche droite - Image suivante (cycle dans availableImages)
       if (event.key === 'ArrowRight') {
-        currentImageIndex = currentImageIndex === maxImageIndex ? 1 : currentImageIndex + 1;
+        const curIdx = availableImages.indexOf(currentImageIndex);
+        const nextIdx = curIdx >= availableImages.length - 1 ? 0 : curIdx + 1;
+        currentImageIndex = availableImages[nextIdx];
         loadImage(currentImageIndex);
       }
 
