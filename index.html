@@ -3539,6 +3539,22 @@
       isTransitioning: document.getElementById('debug-is-transitioning')
     };
 
+    // Drag-orbit variables (doivent être déclarées avant animate())
+    let dragActive = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragTargetRotX = 0;
+    let dragTargetRotY = 0;
+    let dragCurrentRotX = 0;
+    let dragCurrentRotY = 0;
+    const DRAG_SENSITIVITY = 0.003;
+    const DRAG_MAX_ANGLE = 0.25;
+    const DRAG_LERP = 0.08;
+    const DRAG_RETURN_LERP = 0.04;
+
+    // Cursor color tracking (doit être déclaré avant animate/loadImage)
+    let _lastCursorImageIndex = -1;
+
     // Animation
     function animate() {
       requestAnimationFrame(animate);
@@ -4402,18 +4418,6 @@
     // ═══════════════════════════════════════════════
     // DRAG-ORBIT — Clic maintenu + mouvement = rotation caméra légère
     // ═══════════════════════════════════════════════
-    let dragActive = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let dragTargetRotX = 0; // Target rotation (radians)
-    let dragTargetRotY = 0;
-    let dragCurrentRotX = 0; // Current smoothed rotation
-    let dragCurrentRotY = 0;
-    const DRAG_SENSITIVITY = 0.003;  // Sensibilité de rotation
-    const DRAG_MAX_ANGLE = 0.25;     // Max ~14° de rotation
-    const DRAG_LERP = 0.08;          // Fluidité du mouvement
-    const DRAG_RETURN_LERP = 0.04;   // Vitesse de retour au centre
-
     window.addEventListener('mousedown', (e) => {
       if (clickGateActive || landingActive || introActive) return;
       if (e.button !== 0) return; // Clic gauche uniquement
@@ -4692,7 +4696,6 @@
     }
 
     // Couleur du curseur basée sur la couleur dominante (surface) du gradient Floc'h de l'image
-    let _lastCursorImageIndex = -1;
     function updateCursorColor(imageIndex) {
       if (imageIndex === _lastCursorImageIndex) return;
       _lastCursorImageIndex = imageIndex;
