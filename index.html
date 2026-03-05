@@ -3120,14 +3120,23 @@
       // Start directly at a given theme (1-5)
       function startAt(themeNum) {
         if (!isInitialized) init();
-        if (ctx.state === 'suspended') ctx.resume();
         currentTheme = Math.max(1, Math.min(5, themeNum));
         const T = THEMES[currentTheme];
         buildTheme(currentTheme);
-        const now = ctx.currentTime;
-        master.gain.cancelScheduledValues(now);
-        master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.634, now + 2.5);
+
+        function applyGainRamp() {
+          const now = ctx.currentTime;
+          master.gain.cancelScheduledValues(now);
+          master.gain.setValueAtTime(0, now);
+          master.gain.linearRampToValueAtTime(0.634, now + 2.5);
+          isActive = true;
+        }
+
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(applyGainRamp);
+        } else {
+          applyGainRamp();
+        }
         isActive = true;
         return { active: true, theme: currentTheme, name: T.name, color: T.color };
       }
@@ -3155,6 +3164,7 @@
 
       // Resume AudioContext on user interaction (browsers suspend after inactivity)
       function ensureContextRunning() {
+        if (!isInitialized) init();
         if (!ctx) return;
         if (ctx.state === 'suspended') {
           ctx.resume().then(() => {
@@ -3910,6 +3920,9 @@
       if (!landingActive) return;
       landingActive = false;
       clearTimeout(landingHintTimer);
+      // Pré-initialiser l'AudioContext dès ce user gesture (click/scroll landing)
+      // pour qu'il soit 'running' quand dismissIntro appellera startAt()
+      AudioEngine.ensureContextRunning();
       landingPage.classList.add('dismissing');
       // Activate intro immediately (it's already visible behind landing)
       introPage.classList.add('active');
