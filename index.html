@@ -1436,6 +1436,41 @@
 
       <div class="settings-divider"></div>
 
+      <!-- Depth Weights (v4 hybrid) -->
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Macro (plans)</span>
+          <div class="param-value-display">
+            <span class="param-value" id="macroWeight-value">0.70</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="macroWeight" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="macroWeight" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="macroWeight-slider" min="0" max="1.5" step="0.05" value="0.70">
+        </div>
+      </div>
+
+      <div class="param-control">
+        <div class="param-header">
+          <span class="param-label">Micro (relief)</span>
+          <div class="param-value-display">
+            <span class="param-value" id="microWeight-value">0.30</span>
+            <div class="param-buttons">
+              <button class="param-btn" data-param="microWeight" data-action="decrease">▼</button>
+              <button class="param-btn" data-param="microWeight" data-action="increase">▲</button>
+            </div>
+          </div>
+        </div>
+        <div class="param-slider-container">
+          <input type="range" id="microWeight-slider" min="0" max="1.5" step="0.05" value="0.30">
+        </div>
+      </div>
+
+      <div class="settings-divider"></div>
+
       <!-- Buttons -->
       <div class="settings-buttons">
         <button class="settings-btn primary" id="apply-btn">Apply</button>
@@ -1717,11 +1752,39 @@
     const imageCache = new Map(); // imageIndex -> ImageData
     const colorCache = new Map(); // imageIndex -> Array of colors
     const depthCache = new Map(); // imageIndex -> Array of normalizedDepths (luminance)
+    const depthMapCache = new Map(); // imageIndex -> ImageData de la depth map (Depth Anything V2)
     const textureCache = {
       circle: null,
       square: null
     };
     let imagesPreloaded = false;
+
+    // Poids du moteur hybride depth map + luminance (v4)
+    let depthMacroWeight = 0.7;  // Poids de la depth map (séparation des grands plans)
+    let depthMicroWeight = 0.3;  // Poids de la luminance photo (micro-relief sculptural)
+
+    // Pré-charger une depth map (silencieux si 404)
+    function preloadDepthMap(imageIndex) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          const imgData = ctx.getImageData(0, 0, img.width, img.height);
+          depthMapCache.set(imageIndex, imgData);
+          console.log(`[Depth Map] IMG_${String(imageIndex).padStart(3, '0')} chargée (${img.width}×${img.height})`);
+          resolve(true);
+        };
+        img.onerror = () => {
+          resolve(false); // Silencieux — fallback luminance pure
+        };
+        const padded = String(imageIndex).padStart(3, '0');
+        img.src = `./Ressources/photographies/IMG_${padded}_depth.png?v=${IMAGE_VERSION}`;
+      });
+    }
 
     // ═══════════════════════════════════════════════════════
     // Nicolas Floc'h — "La couleur de l'eau" × "Invisible"
@@ -1910,11 +1973,13 @@
       }
 
       return new Promise(async (resolveAll) => {
-        // Phase 1: Charger toutes les images en PARALLÈLE
+        // Phase 1: Charger toutes les images + depth maps en PARALLÈLE
         const loadPromises = [];
         for (let idx = 1; idx <= 7; idx++) {
           const imagePath = `./Ressources/photographies/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
           loadPromises.push(tryLoadImage(imagePath, idx).then(loaded => ({ idx, loaded })));
+          // Depth maps en parallèle (fire and forget, silencieux si 404)
+          preloadDepthMap(idx);
         }
         const results = await Promise.all(loadPromises);
         // Trier par index pour garder l'ordre
@@ -1925,6 +1990,7 @@
             officialImages.push(idx);
           }
         }
+        console.log(`[Depth Map] ${depthMapCache.size}/7 depth maps chargées`);
 
         maxImageIndex = availableImages.length;
         if (maxImageIndex === 0) {
@@ -2012,9 +2078,31 @@
             const a = imgData.data[i + 3] / 255;
 
             if (a > 0.5) {
+              // Luminance photo (micro-volumétrie)
               const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-              let normalizedDepth = (luminance - 0.5);
-              normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.05;
+              const microDepth = luminance - 0.5;
+
+              // Depth map (macro-profondeur) — si disponible
+              let macroDepth = 0;
+              const currentDepthMap = depthMapCache.get(currentImageIndex);
+              if (currentDepthMap) {
+                const dmW = currentDepthMap.width;
+                const dmH = currentDepthMap.height;
+                const dx = Math.floor(x * (dmW / targetWidth));
+                const dy = Math.floor(y * (dmH / targetHeight));
+                const depthIdx = (dy * dmW + dx) * 4;
+                const depthValue = currentDepthMap.data[depthIdx] / 255; // 0-1, 1=proche
+                macroDepth = depthValue - 0.5;
+              }
+
+              // Combinaison hybride v4
+              let normalizedDepth;
+              if (currentDepthMap) {
+                normalizedDepth = macroDepth * depthMacroWeight + microDepth * depthMicroWeight;
+              } else {
+                normalizedDepth = microDepth; // Fallback v3 : luminance seule
+              }
+              normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.02;
 
               const saturated = saturateColor(r, g, b, particleParams.saturation);
               r = saturated.r;
@@ -2149,6 +2237,7 @@
       const colors = [];
       const depths = [];
       const step = Math.max(1, Math.floor(1 / particleParams.density));
+      const currentDepthMap = depthMapCache.get(imageIndex) || null;
 
       for (let y = 0; y < targetHeight; y += step) {
         for (let x = 0; x < targetWidth; x += step) {
@@ -2160,8 +2249,27 @@
 
           if (a > 0.5) {
             const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-            let normalizedDepth = (luminance - 0.5);
-            normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.05;
+            const microDepth = luminance - 0.5;
+
+            // Depth map (macro-profondeur) — si disponible
+            let macroDepth = 0;
+            if (currentDepthMap) {
+              const dmW = currentDepthMap.width;
+              const dmH = currentDepthMap.height;
+              const dx = Math.floor(x * (dmW / targetWidth));
+              const dy = Math.floor(y * (dmH / targetHeight));
+              const depthIdx = (dy * dmW + dx) * 4;
+              const depthValue = currentDepthMap.data[depthIdx] / 255;
+              macroDepth = depthValue - 0.5;
+            }
+
+            let normalizedDepth;
+            if (currentDepthMap) {
+              normalizedDepth = macroDepth * depthMacroWeight + microDepth * depthMicroWeight;
+            } else {
+              normalizedDepth = microDepth;
+            }
+            normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.02;
 
             const saturated = saturateColor(r, g, b, particleParams.saturation);
             r = saturated.r;
@@ -2198,6 +2306,7 @@
       const len = sourcePixels.length;
       const colors = new Float32Array(len * 3);
       const depths = new Float32Array(len);
+      const currentDepthMap = depthMapCache.get(imageIndex) || null;
 
       for (let p = 0; p < len; p++) {
         const i = sourcePixels[p];
@@ -2206,11 +2315,30 @@
         const b = imgData.data[i + 2] / 255;
 
         const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+        const microDepth = luminance - 0.5;
 
         // Même bruit déterministe que buildGeometry (seededRandom avec x, y, seed=3)
         const px = (i >> 2) % targetWidth;
         const py = (i >> 2) / targetWidth | 0;
-        depths[p] = (luminance - 0.5) + (seededRandom(px, py, 3) - 0.5) * 0.05;
+
+        // Depth map (macro-profondeur) — si disponible pour cette image cible
+        let macroDepth = 0;
+        if (currentDepthMap) {
+          const dmW = currentDepthMap.width;
+          const dmH = currentDepthMap.height;
+          const targetHeight = imgData.height;
+          const dx = Math.floor(px * (dmW / targetWidth));
+          const dy = Math.floor(py * (dmH / targetHeight));
+          const depthIdx = (dy * dmW + dx) * 4;
+          const depthValue = currentDepthMap.data[depthIdx] / 255;
+          macroDepth = depthValue - 0.5;
+        }
+
+        if (currentDepthMap) {
+          depths[p] = macroDepth * depthMacroWeight + microDepth * depthMicroWeight + (seededRandom(px, py, 3) - 0.5) * 0.02;
+        } else {
+          depths[p] = microDepth + (seededRandom(px, py, 3) - 0.5) * 0.02;
+        }
 
         const ci = p * 3;
         if (useDepthGradientColors) {
@@ -4894,6 +5022,8 @@
       saturation: 1.0,
       hideBlack: 0.0,
       randomness: 0.0,
+      macroWeight: 0.7,
+      microWeight: 0.3,
       shape: 'circle',
       movementMode: 1
     };
@@ -4954,6 +5084,17 @@
         particleParams.randomness = value;
         valueDisplay.textContent = value.toFixed(2);
         loadImage(currentImageIndex);
+      } else if (param === 'macroWeight') {
+        depthMacroWeight = value;
+        valueDisplay.textContent = value.toFixed(2);
+        // Invalider les caches depth car les poids ont changé
+        depthCache.clear();
+        loadImage(currentImageIndex);
+      } else if (param === 'microWeight') {
+        depthMicroWeight = value;
+        valueDisplay.textContent = value.toFixed(2);
+        depthCache.clear();
+        loadImage(currentImageIndex);
       }
 
       if (updateSlider) {
@@ -4962,7 +5103,7 @@
     }
 
     // Sliders
-    ['size', 'density', 'disparity', 'movement', 'saturation', 'hideBlack', 'randomness'].forEach(param => {
+    ['size', 'density', 'disparity', 'movement', 'saturation', 'hideBlack', 'randomness', 'macroWeight', 'microWeight'].forEach(param => {
       const slider = document.getElementById(`${param}-slider`);
       slider.addEventListener('input', (e) => {
         updateParam(param, parseFloat(e.target.value), false);
