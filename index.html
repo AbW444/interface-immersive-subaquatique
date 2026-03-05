@@ -2992,8 +2992,21 @@
 
       // Resume AudioContext on user interaction (browsers suspend after inactivity)
       function ensureContextRunning() {
-        if (ctx && ctx.state === 'suspended') {
-          ctx.resume();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(() => {
+            // Si le contexte était suspendu mais l'audio toujours "actif",
+            // le gain peut être resté à 0 (visibility fade-out antérieur).
+            // Relancer le gain pour que le son revienne.
+            if (isActive && master) {
+              const now = ctx.currentTime;
+              if (master.gain.value < 0.01) {
+                master.gain.cancelScheduledValues(now);
+                master.gain.setValueAtTime(0, now);
+                master.gain.linearRampToValueAtTime(0.634, now + 1.0);
+              }
+            }
+          });
         }
       }
 
@@ -3016,6 +3029,10 @@
     // === FONDU AUDIO QUAND ON QUITTE / REVIENT SUR LA PAGE ===
     document.addEventListener('visibilitychange', () => {
       if (!AudioEngine.isActive) return;
+      if (!document.hidden) {
+        // Page redevient visible: d'abord relancer le contexte s'il a été suspendu
+        AudioEngine.ensureContextRunning();
+      }
       AudioEngine._onVisibilityChange(document.hidden);
     });
 
@@ -3471,6 +3488,14 @@
       // scrollDirection: 1 = avance (zoom in), -1 = recule (zoom out)
       const audioScrollDirection = zoomDelta >= 0 ? 1 : -1;
       lastZoomForAudio = zoomLevel;
+      // Vérification périodique (~toutes les 2s): relancer le contexte audio si suspendu
+      // (les navigateurs peuvent suspendre après ~30s sans interaction)
+      const _now = Date.now();
+      if (!window._lastAudioCheck || _now - window._lastAudioCheck > 2000) {
+        window._lastAudioCheck = _now;
+        AudioEngine.ensureContextRunning();
+      }
+
       AudioEngine.update({
         zoomLevel,
         movement: particleParams.movement,
@@ -3781,6 +3806,10 @@
       window.addEventListener('wheel', dismissIndicator, { once: true });
       window.addEventListener('touchmove', dismissIndicator, { once: true });
     }
+
+    // Garder l'AudioContext vivant sur toute interaction utilisateur
+    // (les navigateurs suspendent après inactivité prolongée)
+    window.addEventListener('click', () => AudioEngine.ensureContextRunning());
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
