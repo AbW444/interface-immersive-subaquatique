@@ -2450,25 +2450,32 @@
     scene.add(ambientLight);
 
     // Pré-charger toutes les images en arrière-plan, puis charger la première
+    let preloadDone = false;
     function onReady() {
+      preloadDone = true;
       // Charger la première image, puis fondu du noir
       loadImage(currentImageIndex);
       const loadingScreen = document.getElementById('loading-screen');
       if (loadingScreen) {
         loadingScreen.classList.add('hidden'); // Fondu 1.2s
-        // Si le click-gate est actif, NE PAS déclencher les animations du landing
-        // (elles seront déclenchées par dismissClickGate())
-        const landingPage = document.getElementById('landing-page');
-        const clickGatePresent = document.getElementById('click-gate');
-        if (landingPage && !clickGatePresent) {
-          landingPage.classList.add('ready');
-          setTimeout(() => { landingScrollLocked = false; }, 2600);
-          startLandingHintTimer();
-        }
         setTimeout(() => loadingScreen.remove(), 1300);
+      }
+      // Si le click-gate a déjà été supprimé, lancer le landing immédiatement
+      // Sinon, dismissClickGate() appellera showLanding() après son animation
+      if (!document.getElementById('click-gate')) {
+        showLanding();
       }
       // Scroll indicator setup is deferred until landing page is dismissed
       // (see dismissLanding → setupExperienceScrollIndicator)
+    }
+
+    function showLanding() {
+      const landingPage = document.getElementById('landing-page');
+      if (landingPage && !landingPage.classList.contains('ready')) {
+        landingPage.classList.add('ready');
+        setTimeout(() => { landingScrollLocked = false; }, 2600);
+        startLandingHintTimer();
+      }
     }
 
     // Le preload est déclenché APRÈS le clic sur le click-gate (voir dismissClickGate)
@@ -4247,7 +4254,11 @@
       // Son de dismiss whoosh
       AudioEngine.playDismissWhoosh();
       clickGate.classList.add('dismissing');
-      setTimeout(() => clickGate.remove(), 1000);
+      setTimeout(() => {
+        clickGate.remove();
+        // Si le preload est déjà terminé, lancer le landing maintenant
+        if (preloadDone) showLanding();
+      }, 1000);
       // LANCER LE CHARGEMENT DES IMAGES maintenant (après le clic, pas avant)
       startPreload();
     }
