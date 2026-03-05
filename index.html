@@ -3967,6 +3967,18 @@
         transitionProgress: window.lastTransitionProgress || 0
       });
 
+      // Drag-orbit: interpolation fluide de la rotation
+      const lerpRate = dragActive ? DRAG_LERP : DRAG_RETURN_LERP;
+      const dRX = dragTargetRotX - dragCurrentRotX;
+      const dRY = dragTargetRotY - dragCurrentRotY;
+      if (Math.abs(dRX) > 0.0001 || Math.abs(dRY) > 0.0001) {
+        dragCurrentRotX += dRX * lerpRate;
+        dragCurrentRotY += dRY * lerpRate;
+        sceneGroup.rotation.x = dragCurrentRotX;
+        sceneGroup.rotation.y = dragCurrentRotY;
+        needsRender = true;
+      }
+
       // (Opt #5 - Early exit) Ne render que si nécessaire
       if (needsRender) {
         renderer.render(scene, camera);
@@ -4378,6 +4390,48 @@
       if (now - _lastMouseAudioCheck > 5000) {
         _lastMouseAudioCheck = now;
         AudioEngine.ensureContextRunning();
+      }
+    });
+
+    // ═══════════════════════════════════════════════
+    // DRAG-ORBIT — Clic maintenu + mouvement = rotation caméra légère
+    // ═══════════════════════════════════════════════
+    let dragActive = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragTargetRotX = 0; // Target rotation (radians)
+    let dragTargetRotY = 0;
+    let dragCurrentRotX = 0; // Current smoothed rotation
+    let dragCurrentRotY = 0;
+    const DRAG_SENSITIVITY = 0.003;  // Sensibilité de rotation
+    const DRAG_MAX_ANGLE = 0.25;     // Max ~14° de rotation
+    const DRAG_LERP = 0.08;          // Fluidité du mouvement
+    const DRAG_RETURN_LERP = 0.04;   // Vitesse de retour au centre
+
+    window.addEventListener('mousedown', (e) => {
+      if (clickGateActive || landingActive || introActive) return;
+      if (e.button !== 0) return; // Clic gauche uniquement
+      // Ignorer si on clique sur un élément UI
+      if (e.target.closest('#settings-panel, #ux-states-panel, #scroll-config-panel, #debug-panel, #info-overlay, .admin-panel')) return;
+      dragActive = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!dragActive) return;
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      dragTargetRotY = Math.max(-DRAG_MAX_ANGLE, Math.min(DRAG_MAX_ANGLE, dx * DRAG_SENSITIVITY));
+      dragTargetRotX = Math.max(-DRAG_MAX_ANGLE, Math.min(DRAG_MAX_ANGLE, -dy * DRAG_SENSITIVITY));
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (dragActive) {
+        dragActive = false;
+        // Retour progressif au centre (targets → 0)
+        dragTargetRotX = 0;
+        dragTargetRotY = 0;
       }
     });
 
@@ -5198,8 +5252,11 @@
     // Reset Camera
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
       targetZoomLevel = 0.5;
+      dragTargetRotX = 0;
+      dragTargetRotY = 0;
+      dragCurrentRotX = 0;
+      dragCurrentRotY = 0;
       sceneGroup.rotation.set(0, 0, 0);
-      // La position de la caméra sera automatiquement interpolée par animate()
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
