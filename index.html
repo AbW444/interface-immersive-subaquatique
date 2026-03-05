@@ -159,6 +159,11 @@
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
     }
+    #info-overlay .hint-mobile { display: none; }
+    @media (max-width: 768px), (pointer: coarse) {
+      #info-overlay .hint-desktop { display: none; }
+      #info-overlay .hint-mobile { display: inline; }
+    }
     canvas {
       display: block;
       position: fixed;
@@ -662,12 +667,13 @@
       }
       /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
-      /* Info overlay: mobile — stack vertically */
-      #info-overlay { overflow-y: auto; }
+      /* Info overlay: mobile portrait — stack vertically, bien centré */
+      #info-overlay { overflow-y: auto; -webkit-overflow-scrolling: touch; }
       #info-overlay .info-frame {
         display: flex; flex-direction: column;
-        gap: 20px; padding: 40px 24px;
+        gap: 24px; padding: 48px 28px 32px;
         min-height: 100vh;
+        box-sizing: border-box;
       }
       #info-overlay .info-title-block,
       #info-overlay .info-section,
@@ -676,12 +682,55 @@
         position: static;
         transform: none;
       }
-      #info-overlay .info-section { max-width: none; text-align: left !important; margin-top: 0; padding-top: 0; }
-      #info-overlay .info-footer { text-align: left; margin-top: auto; padding-top: 20px; }
-      #info-overlay .info-sound-toggle { margin-top: 10px; }
+      #info-overlay .info-title-block {
+        text-align: center;
+        margin-bottom: 8px;
+      }
+      #info-overlay .info-section {
+        max-width: none;
+        text-align: center !important;
+        margin-top: 0; padding-top: 0;
+      }
+      #info-overlay .info-section-title {
+        font-size: 20px;
+      }
+      #info-overlay .info-section p {
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      #info-overlay .info-sound-toggle {
+        margin: 8px auto 0;
+        display: block;
+      }
+      #info-overlay .info-footer {
+        text-align: center;
+        margin-top: auto;
+        padding-top: 20px;
+      }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 30px 24px; }
       .landing-scroll-hint { bottom: 28px; }
+    }
+    /* Info overlay: mobile paysage — 2 colonnes côte à côte */
+    @media (max-height: 500px) and (pointer: coarse), (max-height: 500px) and (max-width: 960px) {
+      #info-overlay .info-frame {
+        flex-direction: row; flex-wrap: wrap;
+        gap: 16px; padding: 24px 28px;
+        align-items: flex-start;
+        min-height: 100vh;
+      }
+      #info-overlay .info-title-block {
+        width: 100%; text-align: center;
+        margin-bottom: 0;
+      }
+      #info-overlay .info-section {
+        width: calc(50% - 12px);
+        text-align: left !important;
+      }
+      #info-overlay .info-section-title { font-size: 17px; }
+      #info-overlay .info-section p { font-size: 12px; line-height: 1.45; }
+      #info-overlay .info-sound-toggle { margin: 0 auto; }
+      #info-overlay .info-footer { width: 100%; text-align: center; padding-top: 8px; }
     }
 
     /* ═══════════════════════════════════════════════
@@ -1012,7 +1061,7 @@
       <!-- Footer — below frame -->
       <div class="info-footer">
         <div class="info-tech">Three.js · Web Audio API</div>
-        <div class="info-hint">Cliquez ou Alt pour revenir</div>
+        <div class="info-hint"><span class="hint-desktop">Cliquez ou Alt pour revenir</span><span class="hint-mobile">Double-tap pour revenir</span></div>
       </div>
 
     </div>
@@ -1378,13 +1427,13 @@
     let renderer;
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: !isMobile, // Désactiver AA sur mobile pour perf
+        antialias: true,
         alpha: false,
         preserveDrawingBuffer: true,
         powerPreference: "high-performance"
       });
-      // Mobile: limiter pixelRatio à 2 (au-delà = gaspillage GPU)
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 2 : 2));
+      // Mobile: utiliser le pixelRatio natif (cap à 3 pour éviter excès sur certains écrans)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
     } catch (error) {
@@ -1556,12 +1605,12 @@
     let imagesPreloaded = false;
 
     // Résolution adaptée: mobile portrait = format vertical, desktop = paysage large
-    // Mobile: résolution réduite pour performance (moins de particules = plus fluide)
+    // Mobile: résolution augmentée pour qualité (plus de particules = meilleur rendu)
     const TARGET_WIDTH = isMobile
-      ? (isPortrait ? 640 : 960)
+      ? (isPortrait ? 960 : 1280)
       : 1720;
     const TARGET_HEIGHT = isMobile
-      ? (isPortrait ? 960 : 640)
+      ? (isPortrait ? 1280 : 960)
       : 880;
 
     // Pré-charger toutes les images au démarrage (détection dynamique)
@@ -1682,7 +1731,7 @@
       function buildGeometry(imgData) {
 
         // ScaleFactor adapté: mobile portrait = plus petit pour remplir l'écran
-        const scaleFactor = isMobile ? (isPortrait ? 38 : 45) : 50;
+        const scaleFactor = isMobile ? (isPortrait ? 55 : 58) : 50;
         const particleGeometry = new THREE.BufferGeometry();
 
         // Utiliser la texture cachée au lieu de la recréer
@@ -2090,17 +2139,17 @@
           droneFreqs: [73.42, 110], // D2, A2
           droneDetune: [-8, 0, 8],
           droneType: 'sine',
-          droneVol: 0.112,
+          droneVol: 0.123,
           resoFreqs: [146.83, 220, 293.66, 440], // D3, A3, D4, A4
           resoQ: 35,
-          resoVol: 0.035,
+          resoVol: 0.039,
           subFreq: 46.25, // Bb1
-          subVol: 0.2,
+          subVol: 0.22,
           grainBand: [180, 500],
-          grainVol: 0.07,
+          grainVol: 0.077,
           breathRate: 0.06,
           scrollBand: [350, 1400], // Sonar-style: bande large
-          scrollVol: 0.12,
+          scrollVol: 0.132,
           warmDrive: 1.8,
           reverbDecay: 2.0,
           reverbDuration: 7,
@@ -2115,17 +2164,17 @@
           droneFreqs: [73.42, 110], // D2, A2 — même base que 01
           droneDetune: [-8, 0, 8],
           droneType: 'sine',
-          droneVol: 0.09,
+          droneVol: 0.099,
           resoFreqs: [146.83, 220, 293.66, 440], // D3, A3, D4, A4
           resoQ: 35,
-          resoVol: 0.025,
+          resoVol: 0.028,
           subFreq: 46.25, // Bb1
-          subVol: 0.14,
+          subVol: 0.154,
           grainBand: [200, 600],
-          grainVol: 0.05,
+          grainVol: 0.055,
           breathRate: 0.06,
           scrollBand: [350, 1400],
-          scrollVol: 0.1,
+          scrollVol: 0.11,
           warmDrive: 1.5,
           reverbDecay: 2.0,
           reverbDuration: 6,
@@ -2133,7 +2182,7 @@
           // Couche krill: friction haute fréquence — rappelle micro-organismes
           krillFreqs: [3200, 4100, 5300, 6800, 7900], // Bandes très aiguës
           krillQ: 30, // Filtres étroits = son tonal/grésillant
-          krillVol: 0.035,
+          krillVol: 0.039,
           krillThreshold: 0.4, // Émerge à partir de 40% du zoom
           color: 'rgba(120,190,160,0.7)'
         },
@@ -2144,17 +2193,17 @@
           droneFreqs: [110, 164.81], // A2, E3
           droneDetune: [-6, 0, 6],
           droneType: 'sine',
-          droneVol: 0.096,
+          droneVol: 0.106,
           resoFreqs: [220, 329.63, 440, 659.25], // A3, E4, A4, E5
           resoQ: 40, // Encore plus chantant
-          resoVol: 0.04,
+          resoVol: 0.044,
           subFreq: 55, // A1
-          subVol: 0.16,
+          subVol: 0.176,
           grainBand: [250, 800],
-          grainVol: 0.06,
+          grainVol: 0.066,
           breathRate: 0.08,
           scrollBand: [400, 1800],
-          scrollVol: 0.14,
+          scrollVol: 0.154,
           warmDrive: 1.5,
           reverbDecay: 2.2,
           reverbDuration: 6,
@@ -2168,17 +2217,17 @@
           droneFreqs: [164.81, 246.94], // E3, B3
           droneDetune: [-5, 0, 5],
           droneType: 'sine',
-          droneVol: 0.08,
+          droneVol: 0.088,
           resoFreqs: [329.63, 493.88, 659.25, 987.77], // E4, B4, E5, B5
           resoQ: 45, // Très haut: chante et scintille
-          resoVol: 0.035,
+          resoVol: 0.039,
           subFreq: 82.41, // E2
-          subVol: 0.12,
+          subVol: 0.132,
           grainBand: [400, 1400],
-          grainVol: 0.05,
+          grainVol: 0.055,
           breathRate: 0.1,
           scrollBand: [500, 2500],
-          scrollVol: 0.15,
+          scrollVol: 0.165,
           warmDrive: 1.3,
           reverbDecay: 2.5,
           reverbDuration: 6.5,
@@ -2192,17 +2241,17 @@
           droneFreqs: [246.94, 369.99], // B3, F#4
           droneDetune: [-4, 0, 4],
           droneType: 'triangle',
-          droneVol: 0.064,
+          droneVol: 0.07,
           resoFreqs: [493.88, 739.99, 987.77, 1479.98], // B4, F#5, B5, F#6
           resoQ: 50, // Maximum: scintillement spectral
-          resoVol: 0.03,
+          resoVol: 0.033,
           subFreq: 61.74, // B1 — contraste grave/aigu
-          subVol: 0.14,
+          subVol: 0.154,
           grainBand: [600, 2400],
-          grainVol: 0.04,
+          grainVol: 0.044,
           breathRate: 0.12,
           scrollBand: [700, 3500],
-          scrollVol: 0.16,
+          scrollVol: 0.176,
           warmDrive: 1.2,
           reverbDecay: 2.8,
           reverbDuration: 5.5,
@@ -2642,13 +2691,13 @@
             const n = ctx.currentTime;
             master.gain.cancelScheduledValues(n);
             master.gain.setValueAtTime(0, n);
-            master.gain.linearRampToValueAtTime(0.576, n + 2.0);
+            master.gain.linearRampToValueAtTime(0.634, n + 2.0);
           }, 700);
         } else {
           buildTheme(currentTheme);
           master.gain.cancelScheduledValues(now);
           master.gain.setValueAtTime(0, now);
-          master.gain.linearRampToValueAtTime(0.576, now + 2.5);
+          master.gain.linearRampToValueAtTime(0.634, now + 2.5);
         }
 
         isActive = true;
@@ -2812,7 +2861,7 @@
         if (hidden) {
           master.gain.linearRampToValueAtTime(0, now + 0.8);
         } else {
-          master.gain.linearRampToValueAtTime(0.576, now + 1.2);
+          master.gain.linearRampToValueAtTime(0.634, now + 1.2);
         }
       }
 
@@ -2826,7 +2875,7 @@
         const now = ctx.currentTime;
         master.gain.cancelScheduledValues(now);
         master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.576, now + 2.5);
+        master.gain.linearRampToValueAtTime(0.634, now + 2.5);
         isActive = true;
         return { active: true, theme: currentTheme, name: T.name, color: T.color };
       }
@@ -2848,7 +2897,7 @@
         if (!layers.drone) buildTheme(currentTheme);
         master.gain.cancelScheduledValues(now);
         master.gain.setValueAtTime(0, now);
-        master.gain.linearRampToValueAtTime(0.576, now + 1.2);
+        master.gain.linearRampToValueAtTime(0.634, now + 1.2);
         isActive = true;
       }
 
@@ -3329,7 +3378,7 @@
         camera.fov = window.innerHeight > window.innerWidth ? 65 : 75;
       }
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 2 : 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
       renderer.setSize(window.innerWidth, window.innerHeight);
       needsResizeRender = true;
     });
@@ -3581,6 +3630,8 @@
       needsResizeRender = true;
       // Setup experience scroll indicator (deferred from onReady)
       setupExperienceScrollIndicator();
+      // Afficher la page info par défaut à l'entrée dans l'expérience
+      setTimeout(() => toggleInfoOverlay(true), 2100);
       // Start audio at theme 2 directly on first user gesture
       let audioAutoStarted = false;
       const autoStartAudio = () => {
@@ -3747,6 +3798,22 @@
       touchActive = false;
       touchLastY = null;
     });
+
+    // DOUBLE-TAP mobile → toggle info overlay (remplace alt/clic droit)
+    if (isMobile) {
+      let lastTapTime = 0;
+      window.addEventListener('touchend', (e) => {
+        if (landingActive || introActive) return;
+        const now = performance.now();
+        if (now - lastTapTime < 350) {
+          e.preventDefault();
+          toggleInfoOverlay();
+          lastTapTime = 0;
+        } else {
+          lastTapTime = now;
+        }
+      });
+    }
 
     // Fonction partagée pour cycler le thème audio (admin: touche S)
     function cycleAudioTheme() {
