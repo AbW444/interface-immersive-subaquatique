@@ -1002,6 +1002,9 @@
     }
 
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -1847,10 +1850,16 @@
       }
 
       return new Promise(async (resolveAll) => {
-        // Phase 1: Charger les images officielles IMG_001 à IMG_007
+        // Phase 1: Charger toutes les images en PARALLÈLE
+        const loadPromises = [];
         for (let idx = 1; idx <= 7; idx++) {
           const imagePath = `./Ressources/photographies/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
-          const loaded = await tryLoadImage(imagePath, idx);
+          loadPromises.push(tryLoadImage(imagePath, idx).then(loaded => ({ idx, loaded })));
+        }
+        const results = await Promise.all(loadPromises);
+        // Trier par index pour garder l'ordre
+        results.sort((a, b) => a.idx - b.idx);
+        for (const { idx, loaded } of results) {
           if (loaded) {
             availableImages.push(idx);
             officialImages.push(idx);
