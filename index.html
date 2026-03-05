@@ -2206,7 +2206,7 @@
     const TOUCH_VELOCITY_SMOOTHING = 0.4; // Lissage vélocité (0=brut, 1=très lissé)
 
     function processTouchMomentum() {
-      if (touchActive || Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) return;
+      if (experienceScrollLocked || touchActive || Math.abs(touchMomentum) < TOUCH_MOMENTUM_MIN) return;
 
       const scrollDelta = Math.abs(touchMomentum) * TOUCH_SENSITIVITY;
 
@@ -3209,13 +3209,13 @@
       }
 
       // TOUCH MOMENTUM: inertie naturelle après le lâcher du doigt
-      // Bloquer pendant landing/intro pour ne pas affecter l'expérience
-      if (!landingActive && !introActive) {
+      // Bloquer pendant landing/intro et pendant la transition intro→expérience
+      if (!landingActive && !introActive && !experienceScrollLocked) {
         processTouchMomentum();
       }
 
       // TRACKPAD INERTIA: Accumulateur avec lerp doux pour effet de glissement
-      if (!landingActive && !introActive && Math.abs(trackpadScrollAccumulator) > 0.0001 && !isInDeadZone) {
+      if (!landingActive && !introActive && !experienceScrollLocked && Math.abs(trackpadScrollAccumulator) > 0.0001 && !isInDeadZone) {
         const tpContribution = trackpadScrollAccumulator * scrollConfig.trackpad.inertiaLerp;
         if (scrollPhase === 'zoomIn') {
           targetZoomLevel += tpContribution;
@@ -3228,7 +3228,7 @@
 
       // PRO WHEEL SMOOTHING: Accumulateur virtuel avec lerp adaptatif (technique Lenis)
       // Convertit les clics discrets de molette en mouvement fluide continu
-      if (!landingActive && !introActive && Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
+      if (!landingActive && !introActive && !experienceScrollLocked && Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
         const wheelContribution = wheelScrollAccumulator * scrollConfig.wheel.lerp;
 
         // CYCLE DE SCROLL: Inverser selon la phase
@@ -3793,6 +3793,7 @@
     // Scroll lock: prevent skipping pages until all elements are displayed
     let landingScrollLocked = true;  // unlocked after all landing animations finish
     let introScrollLocked = true;    // unlocked after all intro animations finish
+    let experienceScrollLocked = false; // unlocked after intro→experience transition finishes
 
     // Chevron hint timers
     let landingHintTimer = null;
@@ -3871,13 +3872,26 @@
       if (!introActive) return;
       introActive = false;
       clearTimeout(introHintTimer);
+      // Verrouiller le scroll de l'expérience pendant la transition
+      experienceScrollLocked = true;
       // Réinitialiser tous les accumulateurs de scroll pour partir de zéro
       wheelScrollAccumulator = 0;
       trackpadScrollAccumulator = 0;
       touchMomentum = 0;
       targetZoomLevel = 0;
       zoomLevel = 0;
+      currentAppliedDisparity = 0;
       introPage.classList.add('dismissing');
+      // Déverrouiller le scroll après la fin de la transition intro→expérience
+      setTimeout(() => {
+        experienceScrollLocked = false;
+        // Re-reset pour être sûr qu'aucun event n'a fui pendant la transition
+        wheelScrollAccumulator = 0;
+        trackpadScrollAccumulator = 0;
+        touchMomentum = 0;
+        targetZoomLevel = 0;
+        zoomLevel = 0;
+      }, 2200);
       setTimeout(() => introPage.remove(), 2000);
       // Volume zoom-in: particles emerge from small scale
       sceneGroup.scale.set(0.55, 0.55, 0.55);
@@ -3937,6 +3951,10 @@
       }
       if (introActive) {
         handleIntroScroll(Math.abs(event.deltaY));
+        return;
+      }
+      // Bloquer le scroll pendant la transition intro→expérience
+      if (experienceScrollLocked) {
         return;
       }
 
@@ -4016,6 +4034,7 @@
         }
         return;
       }
+      if (experienceScrollLocked) return;
 
       if (!touchActive || e.touches.length !== 1 || touchLastY === null) return;
 
