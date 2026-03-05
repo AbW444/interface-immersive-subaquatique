@@ -3295,10 +3295,13 @@
       }
 
       // TOUCH MOMENTUM: inertie naturelle après le lâcher du doigt
-      processTouchMomentum();
+      // Bloquer pendant landing/intro pour ne pas affecter l'expérience
+      if (!landingActive && !introActive) {
+        processTouchMomentum();
+      }
 
       // TRACKPAD INERTIA: Accumulateur avec lerp doux pour effet de glissement
-      if (Math.abs(trackpadScrollAccumulator) > 0.0001 && !isInDeadZone) {
+      if (!landingActive && !introActive && Math.abs(trackpadScrollAccumulator) > 0.0001 && !isInDeadZone) {
         const tpContribution = trackpadScrollAccumulator * scrollConfig.trackpad.inertiaLerp;
         if (scrollPhase === 'zoomIn') {
           targetZoomLevel += tpContribution;
@@ -3311,7 +3314,7 @@
 
       // PRO WHEEL SMOOTHING: Accumulateur virtuel avec lerp adaptatif (technique Lenis)
       // Convertit les clics discrets de molette en mouvement fluide continu
-      if (Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
+      if (!landingActive && !introActive && Math.abs(wheelScrollAccumulator) > 0.0001 && !isInDeadZone) {
         const wheelContribution = wheelScrollAccumulator * scrollConfig.wheel.lerp;
 
         // CYCLE DE SCROLL: Inverser selon la phase
@@ -3954,6 +3957,12 @@
       if (!introActive) return;
       introActive = false;
       clearTimeout(introHintTimer);
+      // Réinitialiser tous les accumulateurs de scroll pour partir de zéro
+      wheelScrollAccumulator = 0;
+      trackpadScrollAccumulator = 0;
+      touchMomentum = 0;
+      targetZoomLevel = 0;
+      zoomLevel = 0;
       introPage.classList.add('dismissing');
       setTimeout(() => introPage.remove(), 2000);
       // Volume zoom-in: particles emerge from small scale
