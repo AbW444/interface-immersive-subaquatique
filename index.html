@@ -3211,6 +3211,7 @@
         update,
         ensureContextRunning,
         _onVisibilityChange,
+        _getCtxState() { return ctx ? ctx.state : 'closed'; },
         get isActive() { return isActive; },
         get currentTheme() { return currentTheme; },
         get themeName() { return currentTheme > 0 ? THEMES[currentTheme].name : 'OFF'; },
@@ -3858,10 +3859,24 @@
     });
 
     // ═══════════════════════════════════════════════
-    // LANDING PAGE — Scroll-to-dismiss avec parallax
+    // LANDING PAGE — Scroll/click/tap-to-dismiss avec parallax
     // ═══════════════════════════════════════════════
     const landingPage = document.getElementById('landing-page');
     const introPage = document.getElementById('intro-page');
+
+    // Click/tap to dismiss landing & intro (user gesture valide pour AudioContext)
+    if (landingPage) {
+      landingPage.addEventListener('click', () => {
+        if (landingScrollLocked) return;
+        dismissLanding();
+      });
+    }
+    if (introPage) {
+      introPage.addEventListener('click', () => {
+        if (introScrollLocked) return;
+        dismissIntro();
+      });
+    }
 
     // Scroll lock: prevent skipping pages until all elements are displayed
     let landingScrollLocked = true;  // unlocked after all landing animations finish
@@ -3976,10 +3991,35 @@
       setupExperienceScrollIndicator();
       // Afficher la page info par défaut à l'entrée dans l'expérience
       setTimeout(() => toggleInfoOverlay(true), 2100);
-      // Démarrer l'audio immédiatement à l'entrée dans l'expérience
-      // (le dismiss intro est déclenché par un user gesture, donc AudioContext est autorisé)
+      // Tenter de démarrer l'audio (peut échouer si déclenché par wheel — pas un user gesture)
       AudioEngine.startAt(2);
       updateSoundToggleIcon();
+      // FALLBACK ROBUSTE: si l'AudioContext est resté suspended (wheel n'est pas un user gesture),
+      // le premier vrai geste utilisateur (click/touch/key) forcera le démarrage
+      _installAudioStartFallback();
+    }
+
+    // Installe des listeners one-shot sur les vrais user gestures pour forcer le démarrage audio
+    let _audioFallbackInstalled = false;
+    function _installAudioStartFallback() {
+      if (_audioFallbackInstalled) return;
+      _audioFallbackInstalled = true;
+      function _tryForceAudioStart() {
+        if (!AudioEngine.isActive || (AudioEngine.isActive && AudioEngine._getCtxState() === 'suspended')) {
+          AudioEngine.startAt(AudioEngine.currentTheme || 2);
+          updateSoundToggleIcon();
+        }
+        // Nettoyer tous les listeners
+        window.removeEventListener('click', _tryForceAudioStart, true);
+        window.removeEventListener('pointerdown', _tryForceAudioStart, true);
+        window.removeEventListener('touchend', _tryForceAudioStart, true);
+        window.removeEventListener('keydown', _tryForceAudioStart, true);
+      }
+      // Utiliser capture phase pour intercepter AVANT tout autre handler
+      window.addEventListener('click', _tryForceAudioStart, true);
+      window.addEventListener('pointerdown', _tryForceAudioStart, true);
+      window.addEventListener('touchend', _tryForceAudioStart, true);
+      window.addEventListener('keydown', _tryForceAudioStart, true);
     }
 
     function setupExperienceScrollIndicator() {
