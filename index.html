@@ -1927,6 +1927,7 @@
         const particleVertices = [];
         const particleColors = [];
         const normalizedDepths = []; // Profondeurs normalisées pour disparity dynamique
+        const sourcePixelIndices = []; // Indices dans ImageData pour recalcul lors des transitions
 
         // Appliquer la densité pour échantillonner les pixels
         const step = Math.max(1, Math.floor(1 / particleParams.density));
@@ -1974,6 +1975,7 @@
                   particleColors.push(r, g, b);
                 }
                 normalizedDepths.push(normalizedDepth);
+                sourcePixelIndices.push(i); // Stocker l'index pixel pour les transitions
               }
             }
           }
@@ -1995,6 +1997,8 @@
 
         particles = new THREE.Points(particleGeometry, particleMaterial);
         particles.rotation.x = Math.PI;
+        // Stocker les indices source pour recalcul aligné lors des transitions
+        particles.userData.sourcePixels = new Uint32Array(sourcePixelIndices);
         // Initialiser le temps pour l'animation
         particles.userData.time = 0;
         sceneGroup.add(particles);
@@ -2111,6 +2115,48 @@
       return { colors, depths };
     }
 
+    // Calcule depths et colors pour une image cible aux MÊMES positions pixels
+    // que la géométrie actuelle (alignement parfait pour interpolation fluide)
+    function computeTransitionData(imageIndex) {
+      if (!particles || !particles.userData.sourcePixels) return null;
+      const imgData = imageCache.get(imageIndex);
+      if (!imgData) return null;
+
+      const sourcePixels = particles.userData.sourcePixels;
+      const len = sourcePixels.length;
+      const colors = new Float32Array(len * 3);
+      const depths = new Float32Array(len);
+
+      for (let p = 0; p < len; p++) {
+        const i = sourcePixels[p];
+        const r = imgData.data[i] / 255;
+        const g = imgData.data[i + 1] / 255;
+        const b = imgData.data[i + 2] / 255;
+
+        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        // Même bruit déterministe que buildGeometry (seededRandom avec x, y, seed=3)
+        const px = (i >> 2) % targetWidth;
+        const py = (i >> 2) / targetWidth | 0;
+        depths[p] = (luminance - 0.5) + (seededRandom(px, py, 3) - 0.5) * 0.05;
+
+        const ci = p * 3;
+        if (useDepthGradientColors) {
+          const [gr, gg, gb] = colorFromLuminance(luminance, imageIndex);
+          colors[ci] = gr;
+          colors[ci + 1] = gg;
+          colors[ci + 2] = gb;
+        } else {
+          const saturated = saturateColor(r, g, b, particleParams.saturation);
+          colors[ci] = saturated.r;
+          colors[ci + 1] = saturated.g;
+          colors[ci + 2] = saturated.b;
+        }
+      }
+
+      return { colors, depths };
+    }
+
     // Fonction pour transition fluide vers l'image suivante
     function transitionToNextImage() {
       if (isTransitioning) return;
@@ -2129,6 +2175,7 @@
         nextImageIndex = availableImages[nextIndex];
       }
 
+      // Capturer l'état actuel (aligné avec la géométrie)
       if (particles && particles.geometry.attributes.color) {
         oldColors = particles.geometry.attributes.color.array.slice();
       }
@@ -2136,13 +2183,16 @@
         oldDepths = particles.geometry.attributes.normalizedDepth.array.slice();
       }
 
-      extractImageColorsAndDepths(nextImageIndex, (colors, depths) => {
-        newColors = colors;
-        newDepths = depths || null;
+      // Calculer les données cibles aux MÊMES positions pixels que la géométrie
+      // (pas depuis le cache qui peut avoir un sampling différent)
+      const result = computeTransitionData(nextImageIndex);
+      if (result) {
+        newColors = result.colors;
+        newDepths = result.depths;
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
-      });
+      }
     }
 
     // Lumière ambiante
@@ -3489,12 +3539,15 @@
       if (particles && particles.geometry.attributes.normalizedDepth) {
         const targetDisparity = particleParams.disparity;
 
+        // Forcer le recalcul si les depths viennent de changer (transition en cours)
+        const depthsJustChanged = isTransitioning && oldDepths && newDepths;
+
         // Lerp smooth vers la valeur cible (transition ultra-fluide - configurable)
-        if (Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
+        if (depthsJustChanged || Math.abs(targetDisparity - currentAppliedDisparity) > 0.001) {
           currentAppliedDisparity += (targetDisparity - currentAppliedDisparity) * scrollConfig.global.disparityLerp;
 
-          // Seulement mettre à jour GPU si changement visible (>0.001)
-          if (lastAppliedDisparity === null || Math.abs(currentAppliedDisparity - lastAppliedDisparity) > 0.001) {
+          // Seulement mettre à jour GPU si changement visible (>0.001) ou si depths changent
+          if (depthsJustChanged || lastAppliedDisparity === null || Math.abs(currentAppliedDisparity - lastAppliedDisparity) > 0.001) {
             const positions = particles.geometry.attributes.position.array;
             const initialPositions = particles.geometry.attributes.initialPosition.array;
             const normalizedDepths = particles.geometry.attributes.normalizedDepth.array;
