@@ -16,7 +16,7 @@
     /* Custom cursor — image-based */
     #custom-cursor {
       position: fixed; top: 0; left: 0;
-      width: 6.6px; height: 6.6px;
+      width: 14px; height: 14px;
       pointer-events: none;
       z-index: 99999;
       opacity: 0;
@@ -741,6 +741,9 @@
     /* ═══════════════════════════════════════════════
        CLICK-GATE — Première page (user gesture pour AudioContext)
        ═══════════════════════════════════════════════ */
+    #click-gate, #click-gate * {
+      cursor: default !important;
+    }
     #click-gate {
       position: fixed;
       inset: 0;
@@ -749,10 +752,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: default !important;
     }
-    #click-gate * {
-      cursor: default !important;
+    #click-gate .click-gate-text {
+      cursor: pointer !important;
     }
     .click-gate-text {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -1070,7 +1072,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="custom-cursor"><img src="Ressources/curseur_blue.png" alt="" draggable="false"></div>
+  <div id="custom-cursor"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
   <!-- SVG grain filters for glow effect -->
   <svg style="position:absolute;width:0;height:0" aria-hidden="true">
     <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
@@ -1096,7 +1098,7 @@
         <div class="landing-title-line">VOLUME</div>
         <div class="landing-title-line">PHOTOGRAPHIQUE</div>
       </div>
-      <div class="landing-rule"><img src="Ressources/curseur_blue.png" alt="" draggable="false"></div>
+      <div class="landing-rule"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
       <div class="landing-bottom">
         <p class="landing-desc">Traverser l'espace perceptif<br>de la photographie.</p>
       </div>
@@ -1114,7 +1116,7 @@
       <div class="intro-top">
         <p class="intro-text">Ces photographies sont issues<br>d'archives personnelles,<br>collectées entre 2018 et 2024.</p>
       </div>
-      <div class="intro-rule"><img src="Ressources/curseur_blue.png" alt="" draggable="false"></div>
+      <div class="intro-rule"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
       <div class="intro-bottom">
         <p class="intro-text-secondary">Elles n'illustrent rien.<br>Elles ne documentent rien.<br>Elles existent comme des volumes —<br>des densités de lumière<br>suspendues dans le temps.</p>
       </div>
@@ -2415,13 +2417,13 @@
       const loadingScreen = document.getElementById('loading-screen');
       if (loadingScreen) {
         loadingScreen.classList.add('hidden'); // Fondu 1.2s
-        // Déclencher les animations du landing après le fondu du loading screen
+        // Si le click-gate est actif, NE PAS déclencher les animations du landing
+        // (elles seront déclenchées par dismissClickGate())
         const landingPage = document.getElementById('landing-page');
-        if (landingPage) {
+        const clickGatePresent = document.getElementById('click-gate');
+        if (landingPage && !clickGatePresent) {
           landingPage.classList.add('ready');
-          // Unlock landing scroll after all content animations finish (2.5s)
           setTimeout(() => { landingScrollLocked = false; }, 2600);
-          // Start chevron hint timer
           startLandingHintTimer();
         }
         setTimeout(() => loadingScreen.remove(), 1300);
