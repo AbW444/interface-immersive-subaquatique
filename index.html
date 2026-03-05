@@ -738,6 +738,61 @@
     /* ═══════════════════════════════════════════════
        LANDING PAGE — Page d'accueil / présentation
        ═══════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════
+       CLICK-GATE — Première page (user gesture pour AudioContext)
+       ═══════════════════════════════════════════════ */
+    #click-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 16000;
+      background: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer !important;
+    }
+    .click-gate-text {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(16px, 3vw, 28px);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.92);
+      line-height: 1.08;
+      padding: 80px 120px;
+      /* Hitbox très large — tout le centre de l'écran est cliquable */
+      opacity: 0;
+      transform: translateY(12px);
+      animation: clickGateFadeIn 1.0s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      transition: text-shadow 0.4s ease, color 0.4s ease;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .click-gate-text:hover {
+      color: rgba(255, 255, 255, 1);
+      text-shadow:
+        0 0 20px rgba(255, 255, 255, 0.35),
+        0 0 60px rgba(255, 255, 255, 0.12);
+    }
+    @keyframes clickGateFadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #click-gate.dismissing {
+      pointer-events: none;
+      animation: clickGateFadeOut 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    }
+    #click-gate.dismissing .click-gate-text {
+      animation: clickGateTextOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes clickGateFadeOut {
+      0%   { background: rgba(0,0,0,1); }
+      60%  { background: rgba(0,0,0,1); }
+      100% { background: rgba(0,0,0,0); }
+    }
+    @keyframes clickGateTextOut {
+      to { opacity: 0; transform: scale(1.15); }
+    }
+
     #landing-page {
       position: fixed;
       inset: 0;
@@ -1023,6 +1078,11 @@
     </filter>
   </svg>
   <!-- Page d'accueil -->
+  <!-- Page d'entrée click-gate (user gesture pour AudioContext) -->
+  <div id="click-gate">
+    <div class="click-gate-text">CLIQUER</div>
+  </div>
+
   <div id="landing-page">
     <div class="landing-content">
       <div class="landing-top">
@@ -3944,6 +4004,44 @@
     });
 
     // ═══════════════════════════════════════════════
+    // CLICK-GATE — Page d'entrée (user gesture pour AudioContext)
+    // ═══════════════════════════════════════════════
+    const clickGate = document.getElementById('click-gate');
+    let clickGateActive = true;
+
+    function dismissClickGate() {
+      if (!clickGateActive || !clickGate) return;
+      clickGateActive = false;
+      // CE CLIC EST UN USER GESTURE VALIDE → initialiser l'AudioContext immédiatement
+      AudioEngine.ensureContextRunning();
+      // Son de dismiss whoosh
+      AudioEngine.playDismissWhoosh();
+      clickGate.classList.add('dismissing');
+      setTimeout(() => clickGate.remove(), 1000);
+      // S'assurer que le landing est prêt (animations + scroll unlock)
+      const lp = document.getElementById('landing-page');
+      if (lp && !lp.classList.contains('ready')) {
+        lp.classList.add('ready');
+        landingScrollLocked = true;
+        setTimeout(() => { landingScrollLocked = false; }, 2600);
+        startLandingHintTimer();
+      }
+    }
+
+    if (clickGate) {
+      clickGate.addEventListener('click', dismissClickGate);
+      // Toute touche clavier déclenche aussi le gate
+      window.addEventListener('keydown', function _clickGateKey(e) {
+        if (!clickGateActive) {
+          window.removeEventListener('keydown', _clickGateKey);
+          return;
+        }
+        dismissClickGate();
+        window.removeEventListener('keydown', _clickGateKey);
+      });
+    }
+
+    // ═══════════════════════════════════════════════
     // LANDING PAGE — Scroll/click/tap-to-dismiss avec parallax
     // ═══════════════════════════════════════════════
     const landingPage = document.getElementById('landing-page');
@@ -3952,6 +4050,7 @@
     // Click/tap to dismiss landing & intro (user gesture valide pour AudioContext)
     if (landingPage) {
       landingPage.addEventListener('click', () => {
+        if (clickGateActive) return; // Ne pas dismiss le landing tant que le gate est actif
         if (landingScrollLocked) return;
         dismissLanding();
       });
@@ -4147,6 +4246,8 @@
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
+      // Bloquer tout scroll tant que le click-gate est actif
+      if (clickGateActive) return;
       AudioEngine.ensureContextRunning();
 
       // Landing / intro pages: scroll to dismiss
@@ -4211,6 +4312,7 @@
 
     // TOUCH SCROLL — Event listeners (variables et processTouchMomentum déclarés plus haut)
     window.addEventListener('touchstart', (e) => {
+      if (clickGateActive) return;
       if (e.touches.length !== 1) return;
       touchLastY = e.touches[0].clientY;
       touchLastTime = performance.now();
@@ -4221,6 +4323,7 @@
 
     window.addEventListener('touchmove', (e) => {
       e.preventDefault();
+      if (clickGateActive) return;
       AudioEngine.ensureContextRunning();
       // Landing / intro page: touch to dismiss
       if (landingActive) {
@@ -4359,7 +4462,7 @@
     let cursorAllowed = false; // gated by info overlay visibility
 
     function toggleInfoOverlay(show) {
-      if (landingActive) return;
+      if (clickGateActive || landingActive) return;
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
       infoOverlay.classList.toggle('visible', visible);
       // Cursor perfectly synced with info overlay
