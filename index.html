@@ -2122,6 +2122,7 @@
       const imgData = imageCache.get(imageIndex);
       if (!imgData) return null;
 
+      const targetWidth = TARGET_WIDTH;
       const sourcePixels = particles.userData.sourcePixels;
       const len = sourcePixels.length;
       const colors = new Float32Array(len * 3);
