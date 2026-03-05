@@ -20,7 +20,7 @@
       pointer-events: none;
       z-index: 99999;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.5s ease, filter 1.2s ease;
       transform: translate3d(-50%, -50%, 0);
       will-change: transform, opacity;
       filter: drop-shadow(0 0 1px rgba(30,100,255,0.6)) drop-shadow(0 0 2.5px rgba(30,100,255,0.25));
@@ -1909,6 +1909,8 @@
 
     // Fonction de chargement d'image optimisée avec cache
     function loadImage(imageIndex) {
+      // Mettre à jour la couleur du curseur pour cette image
+      if (typeof updateCursorColor === 'function') updateCursorColor(imageIndex);
       const targetWidth = TARGET_WIDTH;
       const targetHeight = TARGET_HEIGHT;
 
@@ -2202,6 +2204,8 @@
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
+        // Mettre à jour la couleur du curseur pour la nouvelle image
+        if (typeof updateCursorColor === 'function') updateCursorColor(nextImageIndex);
       }
     }
 
@@ -3202,6 +3206,86 @@
         }
       }
 
+      // Son de transition "whoosh" pour le dismiss des pages d'accueil
+      // Bruit rose filtré avec sweep de fréquence descendant — même esthétique que le scroll whoosh
+      function playDismissWhoosh() {
+        if (!isInitialized) init();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(() => _fireDismissWhoosh());
+        } else {
+          _fireDismissWhoosh();
+        }
+      }
+
+      function _fireDismissWhoosh() {
+        const now = ctx.currentTime;
+        const duration = 1.8; // Durée de l'animation CSS de dismiss
+
+        // Bruit rose one-shot
+        const length = ctx.sampleRate * 3;
+        const buf = ctx.createBuffer(2, length, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const d = buf.getChannelData(ch);
+          let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+          for (let i = 0; i < length; i++) {
+            const w = Math.random() * 2 - 1;
+            b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+            b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+            b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+            d[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11;
+            b6 = w*0.115926;
+          }
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = false;
+
+        // Filtre passe-bande: sweep descendant (expansion → disparition)
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1200, now);
+        filter.frequency.exponentialRampToValueAtTime(180, now + duration * 0.85);
+        filter.Q.setValueAtTime(0.6, now);
+        filter.Q.linearRampToValueAtTime(0.3, now + duration);
+
+        // Enveloppe: attaque rapide, decay long (suit le scale/opacity de l'animation)
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.09, now + 0.06);  // Attaque ~60ms
+        gain.gain.setValueAtTime(0.09, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration); // Decay naturel
+
+        // Sub-thump très léger (sensation de poids)
+        const sub = ctx.createOscillator();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(55, now);
+        sub.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+        const subGain = ctx.createGain();
+        subGain.gain.setValueAtTime(0, now);
+        subGain.gain.linearRampToValueAtTime(0.06, now + 0.03);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+        // Routing: src → filter → gain → master chain (via muffle si disponible)
+        src.connect(filter);
+        filter.connect(gain);
+        sub.connect(subGain);
+        const target = muffle || (master || ctx.destination);
+        gain.connect(target);
+        subGain.connect(target);
+
+        src.start(now);
+        sub.start(now);
+        src.stop(now + duration + 0.1);
+        sub.stop(now + 1.0);
+
+        // Nettoyage
+        setTimeout(() => {
+          try { src.disconnect(); filter.disconnect(); gain.disconnect();
+                sub.disconnect(); subGain.disconnect(); } catch(e) {}
+        }, (duration + 0.5) * 1000);
+      }
+
       return {
         init,
         cycle,
@@ -3210,6 +3294,7 @@
         unmute,
         update,
         ensureContextRunning,
+        playDismissWhoosh,
         _onVisibilityChange,
         _getCtxState() { return ctx ? ctx.state : 'closed'; },
         get isActive() { return isActive; },
@@ -3947,6 +4032,8 @@
       // Pré-initialiser l'AudioContext dès ce user gesture (click/scroll landing)
       // pour qu'il soit 'running' quand dismissIntro appellera startAt()
       AudioEngine.ensureContextRunning();
+      // Son de transition whoosh (accompagne l'animation de zoom-out)
+      AudioEngine.playDismissWhoosh();
       landingPage.classList.add('dismissing');
       // Activate intro immediately (it's already visible behind landing)
       introPage.classList.add('active');
@@ -3984,6 +4071,8 @@
         zoomLevel = 0;
       }, 2200);
       setTimeout(() => introPage.remove(), 2000);
+      // Son de transition whoosh (accompagne l'animation de zoom-out)
+      AudioEngine.playDismissWhoosh();
       // Volume zoom-in: particles emerge from small scale
       sceneGroup.scale.set(0.55, 0.55, 0.55);
       needsResizeRender = true;
@@ -4300,6 +4389,32 @@
     function setCursorVisible(on) {
       customCursor.classList.toggle('visible', on);
       if (!on) customCursor.style.opacity = '';
+    }
+
+    // Couleur du curseur basée sur la couleur dominante (surface) du gradient Floc'h de l'image
+    let _lastCursorImageIndex = -1;
+    function updateCursorColor(imageIndex) {
+      if (imageIndex === _lastCursorImageIndex) return;
+      _lastCursorImageIndex = imageIndex;
+      const gradientIdx = Math.max(0, Math.min(FLOCH_GRADIENTS.length - 1, imageIndex - 1));
+      const gradient = FLOCH_GRADIENTS[gradientIdx];
+      // Couleur de surface (depth +0.50) = couleur la plus vive/représentative
+      const surface = gradient[gradient.length - 1].color;
+      const r = Math.round(surface[0] * 255);
+      const g = Math.round(surface[1] * 255);
+      const b = Math.round(surface[2] * 255);
+      // Glow principal + halo
+      customCursor.style.filter =
+        'drop-shadow(0 0 1px rgba(' + r + ',' + g + ',' + b + ',0.7)) ' +
+        'drop-shadow(0 0 2.5px rgba(' + r + ',' + g + ',' + b + ',0.3))';
+      // Teinter l'image curseur elle-même via le SVG inline ou un canvas
+      // On utilise un data-URI SVG circle coloré au lieu de l'image PNG
+      const cursorImg = customCursor.querySelector('img');
+      if (cursorImg) {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">' +
+          '<circle cx="10" cy="10" r="5" fill="rgb(' + r + ',' + g + ',' + b + ')"/></svg>';
+        cursorImg.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+      }
     }
 
     window.addEventListener('mousemove', (e) => {
