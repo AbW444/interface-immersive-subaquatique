@@ -1253,10 +1253,6 @@
           <button class="shape-btn" id="color-mode-image" data-colormode="image">Image</button>
           <button class="shape-btn active" id="color-mode-depth" data-colormode="depth">Floc'h</button>
         </div>
-        <div class="shape-buttons" style="margin-top:6px">
-          <button class="shape-btn active" id="gradient-med" data-gradient="mediterranee">Méditerranée</button>
-          <button class="shape-btn" id="gradient-atl" data-gradient="atlantique">Atlantique</button>
-        </div>
       </div>
 
       <!-- Particle Density -->
@@ -1665,37 +1661,84 @@
     };
     let imagesPreloaded = false;
 
-    // Gradient "La couleur de l'eau" — Nicolas Floc'h
-    // 7 gammes chromatiques correspondant aux 7 photos (IMG_001 → IMG_007)
-    // Gamme 1 (IMG_001, surface) = vert #36844A → Gamme 7 (IMG_007, profond) = bleu foncé #002445
-    // Dans le gradient depth: depth +0.50 (proche) = vert | depth -0.50 (loin) = bleu foncé
-    const DEPTH_COLOR_GRADIENTS = {
-      'mediterranee': [
-        { depth: -0.50, color: [0.000, 0.141, 0.271] },   // Gamme 7 — IMG_007 — #002445 bleu foncé (profond)
-        { depth: -0.33, color: [0.020, 0.180, 0.290] },   // Gamme 6 — IMG_006 — bleu profond
-        { depth: -0.17, color: [0.050, 0.235, 0.310] },   // Gamme 5 — IMG_005 — bleu-pétrole
-        { depth:  0.00, color: [0.090, 0.310, 0.320] },   // Gamme 4 — IMG_004 — bleu-vert sombre
-        { depth:  0.17, color: [0.130, 0.390, 0.310] },   // Gamme 3 — IMG_003 — vert-bleu
-        { depth:  0.33, color: [0.170, 0.455, 0.300] },   // Gamme 2 — IMG_002 — vert profond
-        { depth:  0.50, color: [0.212, 0.518, 0.290] },   // Gamme 1 — IMG_001 — #36844A vert (surface)
+    // ═══════════════════════════════════════════════════════
+    // Nicolas Floc'h — "La couleur de l'eau" × "Invisible"
+    // 7 gradients = 7 colonnes d'eau des Calanques
+    // Index 0 = IMG_001 (côte/vert) → Index 6 = IMG_007 (large/bleu)
+    // Chaque gradient: 5 stops, depth -0.50 (fond) → +0.50 (surface)
+    // ═══════════════════════════════════════════════════════
+    const FLOCH_GRADIENTS = [
+      // ── Index 0 → IMG_001 — CÔTE (vert dominant) ──
+      [
+        { depth: -0.50, color: [0.059, 0.137, 0.102] },  // -30m #0F231A
+        { depth: -0.25, color: [0.067, 0.200, 0.125] },  // -20m #113320
+        { depth:  0.00, color: [0.075, 0.373, 0.184] },  // -10m #135F2F
+        { depth:  0.25, color: [0.153, 0.498, 0.267] },  //  -5m #277F44
+        { depth:  0.50, color: [0.212, 0.518, 0.290] },  //  srf #36844A
       ],
-      'atlantique': [
-        { depth: -0.50, color: [0.000, 0.141, 0.271] },
-        { depth: -0.25, color: [0.040, 0.220, 0.300] },
-        { depth:  0.00, color: [0.090, 0.310, 0.310] },
-        { depth:  0.25, color: [0.150, 0.420, 0.300] },
-        { depth:  0.50, color: [0.212, 0.518, 0.290] },
-      ]
-    };
+      // ── Index 1 → IMG_002 — CÔTE-INTERMÉDIAIRE (turquoise-vert) ──
+      [
+        { depth: -0.50, color: [0.047, 0.192, 0.149] },  // -30m #0C3126
+        { depth: -0.25, color: [0.043, 0.329, 0.235] },  // -20m #0B543C
+        { depth:  0.00, color: [0.086, 0.482, 0.353] },  // -10m #167B5A
+        { depth:  0.25, color: [0.224, 0.624, 0.506] },  //  -5m #399F81
+        { depth:  0.50, color: [0.325, 0.651, 0.549] },  //  srf #53A68C
+      ],
+      // ── Index 2 → IMG_003 — INTERMÉDIAIRE (cyan-teal) ──
+      [
+        { depth: -0.50, color: [0.008, 0.227, 0.267] },  // -30m #023A44
+        { depth: -0.25, color: [0.004, 0.212, 0.216] },  // -20m #013637
+        { depth:  0.00, color: [0.004, 0.475, 0.475] },  // -10m #017979
+        { depth:  0.25, color: [0.055, 0.580, 0.553] },  //  -5m #0E948D
+        { depth:  0.50, color: [0.161, 0.675, 0.612] },  //  srf #29AC9C
+      ],
+      // ── Index 3 → IMG_004 — INTER-LARGE (cyan-bleu) ──
+      [
+        { depth: -0.50, color: [0.016, 0.173, 0.227] },  // -30m #042C3A
+        { depth: -0.25, color: [0.016, 0.267, 0.333] },  // -20m #044455
+        { depth:  0.00, color: [0.004, 0.420, 0.486] },  // -10m #016B7C
+        { depth:  0.25, color: [0.039, 0.553, 0.592] },  //  -5m #0A8D97
+        { depth:  0.50, color: [0.090, 0.651, 0.702] },  //  srf #17A6B3
+      ],
+      // ── Index 4 → IMG_005 — LARGE (bleu-cyan) ──
+      [
+        { depth: -0.50, color: [0.008, 0.176, 0.310] },  // -30m #022D4F
+        { depth: -0.25, color: [0.004, 0.255, 0.424] },  // -20m #01416C
+        { depth:  0.00, color: [0.004, 0.373, 0.537] },  // -10m #015F89
+        { depth:  0.25, color: [0.004, 0.506, 0.663] },  //  -5m #0181A9
+        { depth:  0.50, color: [0.004, 0.588, 0.702] },  //  srf #0196B3
+      ],
+      // ── Index 5 → IMG_006 — GRAND LARGE (bleu franc) ──
+      [
+        { depth: -0.50, color: [0.004, 0.169, 0.310] },  // -30m #012B4F
+        { depth: -0.25, color: [0.004, 0.251, 0.447] },  // -20m #014072
+        { depth:  0.00, color: [0.004, 0.396, 0.620] },  // -10m #01659E
+        { depth:  0.25, color: [0.004, 0.525, 0.714] },  //  -5m #0186B6
+        { depth:  0.50, color: [0.004, 0.596, 0.749] },  //  srf #0198BF
+      ],
+      // ── Index 6 → IMG_007 — PLEINE MER (bleu profond) ──
+      [
+        { depth: -0.50, color: [0.000, 0.141, 0.271] },  // -30m #002445
+        { depth: -0.25, color: [0.004, 0.204, 0.388] },  // -20m #013463
+        { depth:  0.00, color: [0.004, 0.286, 0.525] },  // -10m #014986
+        { depth:  0.25, color: [0.004, 0.357, 0.616] },  //  -5m #015B9D
+        { depth:  0.50, color: [0.004, 0.400, 0.675] },  //  srf #0166AC
+      ],
+    ];
 
-    let currentGradientName = 'mediterranee';
     let useDepthGradientColors = false; // false = couleurs image, true = gradient Floc'h
 
-    function colorFromDepth(normalizedDepth, gradientName) {
-      const gradient = DEPTH_COLOR_GRADIENTS[gradientName || currentGradientName];
-      if (!gradient || gradient.length === 0) return [0.5, 0.5, 0.5];
+    function colorFromDepth(normalizedDepth, imageIndex) {
+      // imageIndex est 1-based (1 à 7), FLOCH_GRADIENTS est 0-based
+      const gradientIdx = Math.max(0, Math.min(FLOCH_GRADIENTS.length - 1, imageIndex - 1));
+      const gradient = FLOCH_GRADIENTS[gradientIdx];
+
+      // Clamp la depth
       const d = Math.max(gradient[0].depth, Math.min(gradient[gradient.length - 1].depth, normalizedDepth));
-      let lower = gradient[0], upper = gradient[gradient.length - 1];
+
+      // Trouver les deux stops encadrants
+      let lower = gradient[0];
+      let upper = gradient[gradient.length - 1];
       for (let i = 0; i < gradient.length - 1; i++) {
         if (d >= gradient[i].depth && d <= gradient[i + 1].depth) {
           lower = gradient[i];
@@ -1703,8 +1746,11 @@
           break;
         }
       }
+
+      // Interpolation linéaire
       const range = upper.depth - lower.depth;
       const t = range > 0 ? (d - lower.depth) / range : 0;
+
       return [
         lower.color[0] + (upper.color[0] - lower.color[0]) * t,
         lower.color[1] + (upper.color[1] - lower.color[1]) * t,
@@ -1728,11 +1774,49 @@
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          const imgData = ctx.getImageData(0, 0, img.width, img.height);
+          const targetWidth = TARGET_WIDTH;
+          const targetHeight = TARGET_HEIGHT;
+
+          // Appliquer le MÊME crop que processTexture pour aligner depth map et image
+          const srcWidth = img.width;
+          const srcHeight = img.height;
+          const targetRatio = targetWidth / targetHeight;
+          const srcRatio = srcWidth / srcHeight;
+
+          let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
+          let drawX = 0, drawY = 0, drawW = targetWidth, drawH = targetHeight;
+
+          if (isMobile && isPortrait) {
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, targetWidth, targetHeight);
+            if (srcRatio > targetRatio) {
+              drawW = targetWidth;
+              drawH = targetWidth / srcRatio;
+              drawY = (targetHeight - drawH) / 2;
+            } else {
+              drawH = targetHeight;
+              drawW = targetHeight * srcRatio;
+              drawX = (targetWidth - drawW) / 2;
+            }
+            ctx.drawImage(img, 0, 0, srcWidth, srcHeight, drawX, drawY, drawW, drawH);
+          } else {
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            if (srcRatio > targetRatio) {
+              cropWidth = srcHeight * targetRatio;
+              cropX = (srcWidth - cropWidth) / 2;
+            } else {
+              cropHeight = srcWidth / targetRatio;
+              cropY = (srcHeight - cropHeight) / 2;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
+          }
+
+          const imgData = canvas.getContext('2d').getImageData(0, 0, targetWidth, targetHeight);
           depthMapCache.set(imageIndex, imgData);
           resolve(true);
         };
@@ -1790,7 +1874,7 @@
         imageCache.set(idx, imgData);
 
         const depthMapData = depthMapCache.get(idx) || null;
-        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, idx);
         colorCache.set(idx, colors);
         depthCache.set(idx, depths);
       }
@@ -1833,7 +1917,7 @@
           if (depthMapCache.has(idx) && imageCache.has(idx)) {
             const imgData = imageCache.get(idx);
             const depthMapData = depthMapCache.get(idx);
-            const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData);
+            const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, idx);
             colorCache.set(idx, colors);
             depthCache.set(idx, depths);
           }
@@ -1930,7 +2014,7 @@
                 const dy = Math.floor(y * (currentDepthMap.height / targetHeight));
                 const depthIdx = (dy * currentDepthMap.width + dx) * 4;
                 const depthValue = currentDepthMap.data[depthIdx] / 255;
-                normalizedDepth = 0.5 - depthValue;
+                normalizedDepth = depthValue - 0.5;
               } else {
                 const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
                 normalizedDepth = (luminance - 0.5);
@@ -1961,7 +2045,7 @@
 
                 particleVertices.push(posX, posY, 0); // Z=0 au départ
                 if (useDepthGradientColors) {
-                  const [gr, gg, gb] = colorFromDepth(normalizedDepth);
+                  const [gr, gg, gb] = colorFromDepth(normalizedDepth, currentImageIndex);
                   particleColors.push(gr, gg, gb);
                 } else {
                   particleColors.push(r, g, b);
@@ -2054,7 +2138,7 @@
       if (imageCache.has(imageIndex)) {
         const imgData = imageCache.get(imageIndex);
         const depthMapData = depthMapCache.get(imageIndex) || null;
-        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, imageIndex);
         colorCache.set(imageIndex, colors);
         depthCache.set(imageIndex, depths);
         callback(colors, depths);
@@ -2064,7 +2148,7 @@
     }
 
     // Extraire les couleurs ET les profondeurs d'ImageData selon la densité actuelle
-    function extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData) {
+    function extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, imageIndex) {
       const colors = [];
       const depths = [];
       const step = Math.max(1, Math.floor(1 / particleParams.density));
@@ -2083,7 +2167,7 @@
               const dx = Math.floor(x * (depthMapData.width / targetWidth));
               const dy = Math.floor(y * (depthMapData.height / targetHeight));
               const depthIdx = (dy * depthMapData.width + dx) * 4;
-              normalizedDepth = 0.5 - (depthMapData.data[depthIdx] / 255);
+              normalizedDepth = (depthMapData.data[depthIdx] / 255) - 0.5;
             } else {
               const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
               normalizedDepth = (luminance - 0.5);
@@ -2100,7 +2184,7 @@
             if (brightness >= particleParams.hideBlack) {
               depths.push(normalizedDepth);
               if (useDepthGradientColors) {
-                const [gr, gg, gb] = colorFromDepth(normalizedDepth);
+                const [gr, gg, gb] = colorFromDepth(normalizedDepth, imageIndex || 1);
                 colors.push(gr, gg, gb);
               } else {
                 colors.push(r, g, b);
@@ -3332,9 +3416,8 @@
         colorAttr.needsUpdate = true;
         needsRender = true;
 
-        // Interpoler les depths en parallèle des couleurs
-        // Seulement si disparity est actif (sinon pas besoin d'upload GPU)
-        if (oldDepths && newDepths && Math.abs(currentAppliedDisparity) > 0.001) {
+        // Interpoler les depths en parallèle des couleurs (toujours, pas seulement si disparity actif)
+        if (oldDepths && newDepths) {
           const depthArray = particles.geometry.attributes.normalizedDepth.array;
           const numDepths = Math.min(oldDepths.length, newDepths.length, depthArray.length);
           for (let i = 0; i < numDepths; i++) {
@@ -4647,18 +4730,6 @@
       });
     });
 
-    // Boutons gradient (Méditerranée / Atlantique)
-    document.querySelectorAll('.shape-btn[data-gradient]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.shape-btn[data-gradient]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentGradientName = btn.dataset.gradient;
-        if (useDepthGradientColors) {
-          colorCache.clear();
-          loadImage(currentImageIndex);
-        }
-      });
-    });
 
     // Boutons de mode de mouvement
     document.querySelectorAll('.movement-mode-btn').forEach(btn => {
