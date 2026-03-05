@@ -1493,6 +1493,7 @@
     let newColors = null;
     let oldDepths = null;
     let newDepths = null;
+    let transitionCooldown = 0; // Frames de cooldown post-transition avant reload autorisé
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
 
     const textureLoader = new THREE.TextureLoader();
@@ -3188,7 +3189,8 @@
         needsRender = true;
 
         // Interpoler les depths en parallèle des couleurs
-        if (oldDepths && newDepths) {
+        // Seulement si disparity est actif (sinon pas besoin d'upload GPU)
+        if (oldDepths && newDepths && Math.abs(currentAppliedDisparity) > 0.001) {
           const depthArray = particles.geometry.attributes.normalizedDepth.array;
           const numDepths = Math.min(oldDepths.length, newDepths.length, depthArray.length);
           for (let i = 0; i < numDepths; i++) {
@@ -3198,7 +3200,17 @@
         }
 
         if (!isTransitioning) {
-          // Transition terminée, libérer mémoire
+          // Transition terminée: écrire les depths finales dans le buffer
+          // même si disparity=0 (pour cohérence future)
+          if (oldDepths && newDepths) {
+            const depthArray = particles.geometry.attributes.normalizedDepth.array;
+            const numDepths = Math.min(newDepths.length, depthArray.length);
+            for (let i = 0; i < numDepths; i++) {
+              depthArray[i] = newDepths[i];
+            }
+            particles.geometry.attributes.normalizedDepth.needsUpdate = true;
+          }
+          // Libérer mémoire
           oldColors = null;
           newColors = null;
           oldDepths = null;
@@ -3210,8 +3222,14 @@
           if (scrollPhase === 'zoomOut') {
             hasTriggeredTransition = false;
           }
+          // Cooldown: bloquer le reload pendant quelques frames après transition
+          // pour éviter le sursaut causé par un loadImage() immédiat
+          transitionCooldown = 10;
         }
       }
+
+      // Décrémenter le cooldown post-transition
+      if (transitionCooldown > 0) transitionCooldown--;
 
       // FIX MOLETTE: Calculer les paramètres dans animate() avec zoomLevel LISSÉ
       // Au lieu de les calculer dans wheel event avec targetZoomLevel (qui saute)
@@ -3328,7 +3346,7 @@
 
         // Throttle du reload: utiliser requestAnimationFrame pour éviter les reloads multiples
         // BLOQUER RELOAD pendant les transitions (évite freeze/saccades)
-        if (needsReload && !reloadScheduled && !isTransitioning) {
+        if (needsReload && !reloadScheduled && !isTransitioning && transitionCooldown === 0) {
           reloadScheduled = true;
           requestAnimationFrame(() => {
             loadImage(currentImageIndex);
