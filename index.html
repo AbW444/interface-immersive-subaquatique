@@ -1666,24 +1666,24 @@
     let imagesPreloaded = false;
 
     // Gradient "La couleur de l'eau" — Nicolas Floc'h
-    // Inspiré des colonnes d'eau du Parc national des Calanques
+    // 7 gammes chromatiques: du vert #36844A (proche) au bleu foncé #002445 (loin)
+    // NOIR/FROID dans depth map = PROCHE (vert) | BLANC/CHAUD = LOIN (bleu foncé)
     const DEPTH_COLOR_GRADIENTS = {
       'mediterranee': [
-        { depth: -0.50, color: [0.01, 0.05, 0.15] },   // Abyssal — noir bleuté
-        { depth: -0.35, color: [0.02, 0.10, 0.30] },   // Profond — bleu sombre
-        { depth: -0.20, color: [0.04, 0.22, 0.50] },   // -25m — bleu franc
-        { depth: -0.05, color: [0.08, 0.40, 0.55] },   // -15m — bleu-cyan
-        { depth:  0.10, color: [0.15, 0.55, 0.55] },   // -8m — cyan-turquoise
-        { depth:  0.25, color: [0.25, 0.65, 0.50] },   // -3m — turquoise-vert (phytoplancton)
-        { depth:  0.40, color: [0.45, 0.75, 0.65] },   // Surface — vert-turquoise clair
-        { depth:  0.50, color: [0.60, 0.85, 0.80] },   // Très surface — quasi blanc-turquoise
+        { depth: -0.50, color: [0.000, 0.141, 0.271] },   // Gamme 7 — #002445 bleu foncé (loin)
+        { depth: -0.33, color: [0.020, 0.180, 0.290] },   // Gamme 6 — bleu profond
+        { depth: -0.17, color: [0.050, 0.235, 0.310] },   // Gamme 5 — bleu-pétrole
+        { depth:  0.00, color: [0.090, 0.310, 0.320] },   // Gamme 4 — bleu-vert sombre
+        { depth:  0.17, color: [0.130, 0.390, 0.310] },   // Gamme 3 — vert-bleu
+        { depth:  0.33, color: [0.170, 0.455, 0.300] },   // Gamme 2 — vert profond
+        { depth:  0.50, color: [0.212, 0.518, 0.290] },   // Gamme 1 — #36844A vert (proche)
       ],
       'atlantique': [
-        { depth: -0.50, color: [0.01, 0.04, 0.08] },
-        { depth: -0.25, color: [0.03, 0.12, 0.20] },
-        { depth:  0.00, color: [0.08, 0.28, 0.25] },
-        { depth:  0.25, color: [0.18, 0.42, 0.30] },
-        { depth:  0.50, color: [0.35, 0.55, 0.40] },
+        { depth: -0.50, color: [0.000, 0.141, 0.271] },
+        { depth: -0.25, color: [0.040, 0.220, 0.300] },
+        { depth:  0.00, color: [0.090, 0.310, 0.310] },
+        { depth:  0.25, color: [0.150, 0.420, 0.300] },
+        { depth:  0.50, color: [0.212, 0.518, 0.290] },
       ]
     };
 
@@ -1736,7 +1736,16 @@
           resolve(true);
         };
         img.onerror = () => resolve(false); // Silencieux si 404
-        img.src = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}_depth.png`;
+        // Construire le bon chemin selon le type d'image
+        let depthPath;
+        if (imageIndex >= 200) {
+          depthPath = `./Ressources/photographies/IMG_Test${String(imageIndex - 200).padStart(3, '0')}_depth.png`;
+        } else if (imageIndex >= 100) {
+          depthPath = `./Ressources/photographies/IMG_test${String(imageIndex - 100).padStart(3, '0')}_depth.png`;
+        } else {
+          depthPath = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}_depth.png`;
+        }
+        img.src = depthPath;
       });
     }
 
@@ -1807,10 +1816,15 @@
       }
 
       return new Promise(async (resolveAll) => {
-        // Charger les depth maps en parallèle (non bloquant)
+        // Charger les depth maps en parallèle (non bloquant) - images officielles
         const depthMapPromises = [];
         for (let idx = 1; idx <= 7; idx++) {
           depthMapPromises.push(preloadDepthMap(idx));
+        }
+        // Charger aussi les depth maps test (les deux variantes de casse)
+        for (let idx = 1; idx <= 7; idx++) {
+          depthMapPromises.push(preloadDepthMap(100 + idx)); // IMG_test*
+          depthMapPromises.push(preloadDepthMap(200 + idx)); // IMG_Test*
         }
 
         // Phase 1: Charger les images officielles IMG_001 à IMG_007
@@ -1946,7 +1960,7 @@
                 const dy = Math.floor(y * (currentDepthMap.height / targetHeight));
                 const depthIdx = (dy * currentDepthMap.width + dx) * 4;
                 const depthValue = currentDepthMap.data[depthIdx] / 255;
-                normalizedDepth = depthValue - 0.5;
+                normalizedDepth = 0.5 - depthValue;
               } else {
                 const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
                 normalizedDepth = (luminance - 0.5);
@@ -2110,7 +2124,7 @@
               const dx = Math.floor(x * (depthMapData.width / targetWidth));
               const dy = Math.floor(y * (depthMapData.height / targetHeight));
               const depthIdx = (dy * depthMapData.width + dx) * 4;
-              normalizedDepth = (depthMapData.data[depthIdx] / 255) - 0.5;
+              normalizedDepth = 0.5 - (depthMapData.data[depthIdx] / 255);
             } else {
               const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
               normalizedDepth = (luminance - 0.5);
@@ -3421,46 +3435,23 @@
           particles.material.size = particleParams.size;
         }
       } else if (uxJourneyMode && uxStates.length >= 2) {
-        // FIX: Forcer retour exact à l'État 1 quand zoomLevel proche de 0
+        // Clamper aux bornes extrêmes (sans forcer de reload)
         if (zoomLevel < 0.001) {
+          // Laisser l'interpolation normale gérer le retour fluide vers l'État 1
+          // On ne force PAS disparity/params brutalement pour éviter le saut de profondeur
           const state1 = uxStates[0];
           particleParams.size = state1.size;
           particleParams.density = state1.density;
-          particleParams.disparity = state1.disparity;
           particleParams.movement = state1.movement;
           particleParams.randomness = state1.randomness;
           particleParams.saturation = state1.saturation;
           particleParams.hideBlack = state1.hideBlack;
           particleParams.shape = state1.shape;
           particleParams.movementMode = state1.movementMode;
-
-          // CRITICAL FIX: Forcer reload IMMÉDIAT avec valeurs EXACTES de l'État 1
-          // Pour éliminer tout "bruit" résiduel de l'interpolation
-          const needsState1Reload =
-            Math.abs(particleParams.density - lastReloadParams.density) > 0.001 ||
-            Math.abs(particleParams.randomness - lastReloadParams.randomness) > 0.001 ||
-            Math.abs(particleParams.saturation - lastReloadParams.saturation) > 0.001 ||
-            Math.abs(particleParams.hideBlack - lastReloadParams.hideBlack) > 0.001 ||
-            particleParams.shape !== lastReloadParams.shape;
-
-          // BLOQUER RELOAD pendant les transitions (évite freeze/saccades)
-          if (needsState1Reload && !reloadScheduled && !isTransitioning) {
-            reloadScheduled = true;
-            requestAnimationFrame(() => {
-              loadImage(currentImageIndex);
-              lastReloadParams = {
-                density: state1.density,
-                disparity: state1.disparity,
-                saturation: state1.saturation,
-                hideBlack: state1.hideBlack,
-                randomness: state1.randomness,
-                shape: state1.shape
-              };
-              reloadScheduled = false;
-            });
-          }
+          // disparity interpolé naturellement (pas de forçage brutal)
+          particleParams.disparity = state1.disparity;
         }
-        // FIX: Forcer retour exact au dernier État quand zoomLevel proche de 1
+        // Clamper au dernier État quand zoomLevel proche de 1
         else if (zoomLevel > 0.999) {
           const lastState = uxStates[uxStates.length - 1];
           particleParams.size = lastState.size;
