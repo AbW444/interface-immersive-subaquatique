@@ -1654,7 +1654,6 @@
     const imageCache = new Map(); // imageIndex -> ImageData
     const colorCache = new Map(); // imageIndex -> Array of colors
     const depthCache = new Map(); // imageIndex -> Array of normalizedDepths (luminance)
-    const depthMapCache = new Map(); // imageIndex → ImageData de la depth map PNG (Depth Anything V2)
     const textureCache = {
       circle: null,
       square: null
@@ -1728,33 +1727,45 @@
 
     let useDepthGradientColors = true; // false = couleurs image, true = gradient Floc'h
 
-    function colorFromDepth(normalizedDepth, imageIndex) {
+    // Colorise un pixel gris avec le gradient Floc'h de l'image
+    // luminance (0→1) détermine la position dans le gradient ET module la brillance
+    // Résultat: les nuances de gris sont préservées mais teintées
+    function colorFromLuminance(luminance, imageIndex) {
       // imageIndex est 1-based (1 à 7), FLOCH_GRADIENTS est 0-based
       const gradientIdx = Math.max(0, Math.min(FLOCH_GRADIENTS.length - 1, imageIndex - 1));
       const gradient = FLOCH_GRADIENTS[gradientIdx];
 
-      // Clamp la depth
-      const d = Math.max(gradient[0].depth, Math.min(gradient[gradient.length - 1].depth, normalizedDepth));
+      // Mapper luminance (0→1) vers depth (-0.50→+0.50) pour parcourir le gradient
+      const d = luminance - 0.5;
+      const dClamped = Math.max(gradient[0].depth, Math.min(gradient[gradient.length - 1].depth, d));
 
       // Trouver les deux stops encadrants
       let lower = gradient[0];
       let upper = gradient[gradient.length - 1];
       for (let i = 0; i < gradient.length - 1; i++) {
-        if (d >= gradient[i].depth && d <= gradient[i + 1].depth) {
+        if (dClamped >= gradient[i].depth && dClamped <= gradient[i + 1].depth) {
           lower = gradient[i];
           upper = gradient[i + 1];
           break;
         }
       }
 
-      // Interpolation linéaire
+      // Interpolation linéaire dans le gradient
       const range = upper.depth - lower.depth;
-      const t = range > 0 ? (d - lower.depth) / range : 0;
+      const t = range > 0 ? (dClamped - lower.depth) / range : 0;
 
+      const baseR = lower.color[0] + (upper.color[0] - lower.color[0]) * t;
+      const baseG = lower.color[1] + (upper.color[1] - lower.color[1]) * t;
+      const baseB = lower.color[2] + (upper.color[2] - lower.color[2]) * t;
+
+      // Moduler par la luminance pour préserver les nuances de gris
+      // luminance 0 = sombre, luminance 1 = clair
+      // On utilise un facteur qui préserve le contraste (pas un simple multiply)
+      const lum2 = luminance * 2.0; // 0→2, centré sur 1 pour les tons moyens
       return [
-        lower.color[0] + (upper.color[0] - lower.color[0]) * t,
-        lower.color[1] + (upper.color[1] - lower.color[1]) * t,
-        lower.color[2] + (upper.color[2] - lower.color[2]) * t,
+        Math.min(1, baseR * lum2),
+        Math.min(1, baseG * lum2),
+        Math.min(1, baseB * lum2),
       ];
     }
 
@@ -1768,62 +1779,7 @@
       : 880;
 
     // Pré-charger toutes les images au démarrage depuis Ressources/photographies/
-    // Charge les images officielles (IMG_001 à IMG_007) puis les images test
-    function preloadDepthMap(imageIndex) {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const targetWidth = TARGET_WIDTH;
-          const targetHeight = TARGET_HEIGHT;
-
-          // Appliquer le MÊME crop que processTexture pour aligner depth map et image
-          const srcWidth = img.width;
-          const srcHeight = img.height;
-          const targetRatio = targetWidth / targetHeight;
-          const srcRatio = srcWidth / srcHeight;
-
-          let cropX = 0, cropY = 0, cropWidth = srcWidth, cropHeight = srcHeight;
-          let drawX = 0, drawY = 0, drawW = targetWidth, drawH = targetHeight;
-
-          if (isMobile && isPortrait) {
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, targetWidth, targetHeight);
-            if (srcRatio > targetRatio) {
-              drawW = targetWidth;
-              drawH = targetWidth / srcRatio;
-              drawY = (targetHeight - drawH) / 2;
-            } else {
-              drawH = targetHeight;
-              drawW = targetHeight * srcRatio;
-              drawX = (targetWidth - drawW) / 2;
-            }
-            ctx.drawImage(img, 0, 0, srcWidth, srcHeight, drawX, drawY, drawW, drawH);
-          } else {
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-            if (srcRatio > targetRatio) {
-              cropWidth = srcHeight * targetRatio;
-              cropX = (srcWidth - cropWidth) / 2;
-            } else {
-              cropHeight = srcWidth / targetRatio;
-              cropY = (srcHeight - cropHeight) / 2;
-            }
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, targetWidth, targetHeight);
-          }
-
-          const imgData = canvas.getContext('2d').getImageData(0, 0, targetWidth, targetHeight);
-          depthMapCache.set(imageIndex, imgData);
-          resolve(true);
-        };
-        img.onerror = () => resolve(false);
-        img.src = `./Ressources/photographies/IMG_${String(imageIndex).padStart(3, '0')}_depth.png`;
-      });
-    }
+    // Pré-charger toutes les images au démarrage depuis Ressources/photographies/
 
     function preloadAllImages() {
       const targetWidth = TARGET_WIDTH;
@@ -1873,8 +1829,7 @@
         const imgData = tempContext.getImageData(0, 0, targetWidth, targetHeight);
         imageCache.set(idx, imgData);
 
-        const depthMapData = depthMapCache.get(idx) || null;
-        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, idx);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, idx);
         colorCache.set(idx, colors);
         depthCache.set(idx, depths);
       }
@@ -1892,14 +1847,7 @@
       }
 
       return new Promise(async (resolveAll) => {
-        // Charger les depth maps en parallèle (non bloquant)
-        const depthMapPromises = [];
-        for (let idx = 1; idx <= 7; idx++) {
-          depthMapPromises.push(preloadDepthMap(idx));
-        }
-
         // Phase 1: Charger les images officielles IMG_001 à IMG_007
-        // (on n'arrête pas au premier échec, on gère les trous comme IMG_006 manquant)
         for (let idx = 1; idx <= 7; idx++) {
           const imagePath = `./Ressources/photographies/IMG_${String(idx).padStart(3, '0')}.jpg?v=${IMAGE_VERSION}`;
           const loaded = await tryLoadImage(imagePath, idx);
@@ -1909,22 +1857,7 @@
           }
         }
 
-        // Attendre que les depth maps soient chargées (ne bloque pas si déjà terminé)
-        await Promise.all(depthMapPromises);
-
-        // Recalculer colorCache/depthCache pour les images dont la depth map est disponible
-        for (const idx of availableImages) {
-          if (depthMapCache.has(idx) && imageCache.has(idx)) {
-            const imgData = imageCache.get(idx);
-            const depthMapData = depthMapCache.get(idx);
-            const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, idx);
-            colorCache.set(idx, colors);
-            depthCache.set(idx, depths);
-          }
-        }
-
         maxImageIndex = availableImages.length;
-        console.log(`[Depth Anything V2] Depth maps chargées: ${depthMapCache.size}/${maxImageIndex}`);
         if (maxImageIndex === 0) {
           console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/photographies/');
           resolveAll();
@@ -1994,7 +1927,6 @@
         const particleVertices = [];
         const particleColors = [];
         const normalizedDepths = []; // Profondeurs normalisées pour disparity dynamique
-        const currentDepthMap = depthMapCache.get(currentImageIndex);
 
         // Appliquer la densité pour échantillonner les pixels
         const step = Math.max(1, Math.floor(1 / particleParams.density));
@@ -2008,17 +1940,8 @@
             const a = imgData.data[i + 3] / 255;
 
             if (a > 0.5) {
-              let normalizedDepth;
-              if (currentDepthMap) {
-                const dx = Math.floor(x * (currentDepthMap.width / targetWidth));
-                const dy = Math.floor(y * (currentDepthMap.height / targetHeight));
-                const depthIdx = (dy * currentDepthMap.width + dx) * 4;
-                const depthValue = currentDepthMap.data[depthIdx] / 255;
-                normalizedDepth = depthValue - 0.5;
-              } else {
-                const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                normalizedDepth = (luminance - 0.5);
-              }
+              const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+              let normalizedDepth = (luminance - 0.5);
               normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.05;
 
               const saturated = saturateColor(r, g, b, particleParams.saturation);
@@ -2045,7 +1968,7 @@
 
                 particleVertices.push(posX, posY, 0); // Z=0 au départ
                 if (useDepthGradientColors) {
-                  const [gr, gg, gb] = colorFromDepth(normalizedDepth, currentImageIndex);
+                  const [gr, gg, gb] = colorFromLuminance(luminance, currentImageIndex);
                   particleColors.push(gr, gg, gb);
                 } else {
                   particleColors.push(r, g, b);
@@ -2137,8 +2060,7 @@
 
       if (imageCache.has(imageIndex)) {
         const imgData = imageCache.get(imageIndex);
-        const depthMapData = depthMapCache.get(imageIndex) || null;
-        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, imageIndex);
+        const { colors, depths } = extractColorsAndDepths(imgData, targetWidth, targetHeight, imageIndex);
         colorCache.set(imageIndex, colors);
         depthCache.set(imageIndex, depths);
         callback(colors, depths);
@@ -2148,7 +2070,7 @@
     }
 
     // Extraire les couleurs ET les profondeurs d'ImageData selon la densité actuelle
-    function extractColorsAndDepths(imgData, targetWidth, targetHeight, depthMapData, imageIndex) {
+    function extractColorsAndDepths(imgData, targetWidth, targetHeight, imageIndex) {
       const colors = [];
       const depths = [];
       const step = Math.max(1, Math.floor(1 / particleParams.density));
@@ -2162,16 +2084,8 @@
           const a = imgData.data[i + 3] / 255;
 
           if (a > 0.5) {
-            let normalizedDepth;
-            if (depthMapData) {
-              const dx = Math.floor(x * (depthMapData.width / targetWidth));
-              const dy = Math.floor(y * (depthMapData.height / targetHeight));
-              const depthIdx = (dy * depthMapData.width + dx) * 4;
-              normalizedDepth = (depthMapData.data[depthIdx] / 255) - 0.5;
-            } else {
-              const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-              normalizedDepth = (luminance - 0.5);
-            }
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            let normalizedDepth = (luminance - 0.5);
             normalizedDepth += (seededRandom(x, y, 3) - 0.5) * 0.05;
 
             const saturated = saturateColor(r, g, b, particleParams.saturation);
@@ -2184,7 +2098,7 @@
             if (brightness >= particleParams.hideBlack) {
               depths.push(normalizedDepth);
               if (useDepthGradientColors) {
-                const [gr, gg, gb] = colorFromDepth(normalizedDepth, imageIndex || 1);
+                const [gr, gg, gb] = colorFromLuminance(luminance, imageIndex || 1);
                 colors.push(gr, gg, gb);
               } else {
                 colors.push(r, g, b);
