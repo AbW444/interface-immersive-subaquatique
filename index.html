@@ -3545,18 +3545,21 @@
       isTransitioning: document.getElementById('debug-is-transitioning')
     };
 
-    // Drag-orbit variables (doivent être déclarées avant animate())
+    // Drag look-around variables (doivent être déclarées avant animate())
     let dragActive = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
-    let dragTargetRotX = 0;
-    let dragTargetRotY = 0;
-    let dragCurrentRotX = 0;
-    let dragCurrentRotY = 0;
-    const DRAG_SENSITIVITY = 0.003;
-    const DRAG_MAX_ANGLE = 0.25;
-    const DRAG_LERP = 0.08;
-    const DRAG_RETURN_LERP = 0.04;
+    let dragPrevX = 0;
+    let dragPrevY = 0;
+    let dragTargetX = 0; // Target look offset (world units)
+    let dragTargetY = 0;
+    let dragCurrentX = 0; // Current smoothed offset
+    let dragCurrentY = 0;
+    let dragVelocityX = 0; // Inertia
+    let dragVelocityY = 0;
+    const DRAG_SENSITIVITY = 0.006;  // Sensibilité du déplacement
+    const DRAG_MAX_OFFSET = 3.5;     // Max offset en world units
+    const DRAG_LERP = 0.10;          // Fluidité du mouvement actif
+    const DRAG_RETURN_LERP = 0.07;   // Vitesse de retour au centre
+    const DRAG_INERTIA_DECAY = 0.92; // Décélération inertielle
 
     // Cursor color tracking (doit être déclaré avant animate/loadImage)
     let _lastCursorImageIndex = -1;
@@ -3995,15 +3998,32 @@
         transitionProgress: window.lastTransitionProgress || 0
       });
 
-      // Drag-orbit: interpolation fluide de la rotation
-      const lerpRate = dragActive ? DRAG_LERP : DRAG_RETURN_LERP;
-      const dRX = dragTargetRotX - dragCurrentRotX;
-      const dRY = dragTargetRotY - dragCurrentRotY;
-      if (Math.abs(dRX) > 0.0001 || Math.abs(dRY) > 0.0001) {
-        dragCurrentRotX += dRX * lerpRate;
-        dragCurrentRotY += dRY * lerpRate;
-        sceneGroup.rotation.x = dragCurrentRotX;
-        sceneGroup.rotation.y = dragCurrentRotY;
+      // Drag look-around: interpolation fluide du point de regard caméra
+      if (dragActive) {
+        // Mouvement actif : lerp vers la target
+        dragCurrentX += (dragTargetX - dragCurrentX) * DRAG_LERP;
+        dragCurrentY += (dragTargetY - dragCurrentY) * DRAG_LERP;
+      } else {
+        // Inertie puis retour au centre
+        if (Math.abs(dragVelocityX) > 0.0001 || Math.abs(dragVelocityY) > 0.0001) {
+          dragTargetX = Math.max(-DRAG_MAX_OFFSET, Math.min(DRAG_MAX_OFFSET, dragTargetX + dragVelocityX));
+          dragTargetY = Math.max(-DRAG_MAX_OFFSET, Math.min(DRAG_MAX_OFFSET, dragTargetY + dragVelocityY));
+          dragVelocityX *= DRAG_INERTIA_DECAY;
+          dragVelocityY *= DRAG_INERTIA_DECAY;
+        }
+        // Retour progressif au centre
+        dragTargetX *= (1 - DRAG_RETURN_LERP);
+        dragTargetY *= (1 - DRAG_RETURN_LERP);
+        dragCurrentX += (dragTargetX - dragCurrentX) * DRAG_LERP;
+        dragCurrentY += (dragTargetY - dragCurrentY) * DRAG_LERP;
+      }
+      if (Math.abs(dragCurrentX) > 0.001 || Math.abs(dragCurrentY) > 0.001) {
+        camera.lookAt(dragCurrentX, dragCurrentY, 0);
+        needsRender = true;
+      } else if (Math.abs(dragCurrentX) > 0 || Math.abs(dragCurrentY) > 0) {
+        dragCurrentX = 0;
+        dragCurrentY = 0;
+        camera.lookAt(0, 0, 0);
         needsRender = true;
       }
 
@@ -4416,32 +4436,39 @@
     });
 
     // ═══════════════════════════════════════════════
-    // DRAG-ORBIT — Clic maintenu + mouvement = rotation caméra légère
+    // DRAG LOOK-AROUND — Clic maintenu + mouvement = déplacer le regard
+    // (comme une caméra qui pivote sur place, pas de déplacement)
     // ═══════════════════════════════════════════════
     window.addEventListener('mousedown', (e) => {
       if (clickGateActive || landingActive || introActive) return;
-      if (e.button !== 0) return; // Clic gauche uniquement
-      // Ignorer si on clique sur un élément UI
+      if (e.button !== 0) return;
       if (e.target.closest('#settings-panel, #ux-states-panel, #scroll-config-panel, #debug-panel, #info-overlay, .admin-panel')) return;
       dragActive = true;
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
+      dragPrevX = e.clientX;
+      dragPrevY = e.clientY;
+      dragVelocityX = 0;
+      dragVelocityY = 0;
     });
 
     window.addEventListener('mousemove', (e) => {
       if (!dragActive) return;
-      const dx = e.clientX - dragStartX;
-      const dy = e.clientY - dragStartY;
-      dragTargetRotY = Math.max(-DRAG_MAX_ANGLE, Math.min(DRAG_MAX_ANGLE, dx * DRAG_SENSITIVITY));
-      dragTargetRotX = Math.max(-DRAG_MAX_ANGLE, Math.min(DRAG_MAX_ANGLE, -dy * DRAG_SENSITIVITY));
+      // Delta depuis le dernier frame (pas depuis le start) → mouvement incrémental
+      const dx = e.clientX - dragPrevX;
+      const dy = e.clientY - dragPrevY;
+      dragPrevX = e.clientX;
+      dragPrevY = e.clientY;
+      // Souris droite = vue droite, souris haut = vue haut (pas d'inversion)
+      dragTargetX = Math.max(-DRAG_MAX_OFFSET, Math.min(DRAG_MAX_OFFSET, dragTargetX + dx * DRAG_SENSITIVITY));
+      dragTargetY = Math.max(-DRAG_MAX_OFFSET, Math.min(DRAG_MAX_OFFSET, dragTargetY - dy * DRAG_SENSITIVITY));
+      // Stocker la vélocité pour l'inertie
+      dragVelocityX = dx * DRAG_SENSITIVITY;
+      dragVelocityY = -dy * DRAG_SENSITIVITY;
     });
 
     window.addEventListener('mouseup', () => {
       if (dragActive) {
         dragActive = false;
-        // Retour progressif au centre (targets → 0)
-        dragTargetRotX = 0;
-        dragTargetRotY = 0;
+        // Pas de reset immédiat → l'inertie puis le retour se font dans animate()
       }
     });
 
@@ -5261,11 +5288,13 @@
     // Reset Camera
     document.getElementById('reset-camera-btn').addEventListener('click', () => {
       targetZoomLevel = 0.5;
-      dragTargetRotX = 0;
-      dragTargetRotY = 0;
-      dragCurrentRotX = 0;
-      dragCurrentRotY = 0;
-      sceneGroup.rotation.set(0, 0, 0);
+      dragTargetX = 0;
+      dragTargetY = 0;
+      dragCurrentX = 0;
+      dragCurrentY = 0;
+      dragVelocityX = 0;
+      dragVelocityY = 0;
+      camera.lookAt(0, 0, 0);
     });
 
     /* FIN INTERFACE DE PARAMÉTRAGE */
