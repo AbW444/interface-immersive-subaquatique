@@ -3880,17 +3880,10 @@
       setupExperienceScrollIndicator();
       // Afficher la page info par défaut à l'entrée dans l'expérience
       setTimeout(() => toggleInfoOverlay(true), 2100);
-      // Start audio at theme 2 directly on first user gesture
-      let audioAutoStarted = false;
-      const autoStartAudio = () => {
-        if (audioAutoStarted) return;
-        audioAutoStarted = true;
-        AudioEngine.startAt(2);
-        updateSoundToggleIcon();
-      };
-      window.addEventListener('wheel', autoStartAudio, { once: true });
-      window.addEventListener('touchstart', autoStartAudio, { once: true });
-      window.addEventListener('click', autoStartAudio, { once: true });
+      // Démarrer l'audio immédiatement à l'entrée dans l'expérience
+      // (le dismiss intro est déclenché par un user gesture, donc AudioContext est autorisé)
+      AudioEngine.startAt(2);
+      updateSoundToggleIcon();
     }
 
     function setupExperienceScrollIndicator() {
