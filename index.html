@@ -759,7 +759,7 @@
     .click-gate-text {
       font-family: 'Instrument Serif', Georgia, serif;
       font-weight: 400;
-      font-size: clamp(16px, 3vw, 28px);
+      font-size: clamp(24px, 4.5vw, 42px);
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.92);
@@ -2438,11 +2438,17 @@
       // (see dismissLanding → setupExperienceScrollIndicator)
     }
 
-    // Dès que les images sont prêtes → fondu
-    preloadAllImages().then(onReady).catch(err => {
-      console.error('Erreur pré-chargement:', err);
-      onReady();
-    });
+    // Le preload est déclenché APRÈS le clic sur le click-gate (voir dismissClickGate)
+    // Si pas de click-gate (fallback), lancer immédiatement
+    function startPreload() {
+      preloadAllImages().then(onReady).catch(err => {
+        console.error('Erreur pré-chargement:', err);
+        onReady();
+      });
+    }
+    if (!document.getElementById('click-gate')) {
+      startPreload();
+    }
 
     // Position de la caméra (mobile) et sceneGroup (fixe)
     camera.position.set(0, 0, 25); // Caméra commence loin en arrière
@@ -4189,14 +4195,8 @@
       AudioEngine.playDismissWhoosh();
       clickGate.classList.add('dismissing');
       setTimeout(() => clickGate.remove(), 1000);
-      // S'assurer que le landing est prêt (animations + scroll unlock)
-      const lp = document.getElementById('landing-page');
-      if (lp && !lp.classList.contains('ready')) {
-        lp.classList.add('ready');
-        landingScrollLocked = true;
-        setTimeout(() => { landingScrollLocked = false; }, 2600);
-        startLandingHintTimer();
-      }
+      // LANCER LE CHARGEMENT DES IMAGES maintenant (après le clic, pas avant)
+      startPreload();
     }
 
     if (clickGate) {
