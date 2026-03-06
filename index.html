@@ -44,7 +44,7 @@
     /* Info overlay */
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
-      background: transparent;
+      background: rgba(0, 0, 0, 0.88);
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       overflow: hidden;
@@ -53,10 +53,12 @@
       opacity: 1; pointer-events: auto;
     }
 
-    /* Absolute positioning — elements pinned to screen edges */
+    /* Flexbox layout — title on top, grid below, footer at bottom */
     #info-overlay .info-frame {
       position: absolute; inset: 0;
-      padding: 20px;
+      padding: 60px 80px;
+      display: flex; flex-direction: column;
+      box-sizing: border-box;
     }
 
     /* Frame border — hidden */
@@ -64,8 +66,7 @@
 
     /* Title block — top-left */
     #info-overlay .info-title-block {
-      position: absolute;
-      top: 20px; left: 20px;
+      flex-shrink: 0;
     }
     #info-overlay .info-title-top {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -92,71 +93,63 @@
       pointer-events: none;
     }
 
+    /* Sections grid — 2x2 layout pushed to bottom */
+    #info-overlay .info-sections-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px 80px;
+      margin-top: auto;
+    }
+
     /* Info sections — shared styles */
     #info-overlay .info-section {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 15px; font-weight: 300;
+      font-size: 14px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
-      color: rgba(255,255,255,0.42);
-      max-width: 308px;
+      color: rgba(255,255,255,0.65);
+    }
+    #info-overlay .info-section.credits-section {
+      color: rgba(255,255,255,0.45);
     }
     #info-overlay .info-section-title {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 23px; font-weight: 400; font-style: italic;
-      color: rgba(255,255,255,0.58);
-      margin-bottom: 7px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px; font-weight: 400;
+      font-style: normal;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 10px;
     }
 
-    /* Concept — bottom-left */
-    #info-overlay .info-section.left-top {
-      position: absolute;
-      bottom: 20px; left: 20px;
-    }
-
-    /* Interaction — top-right */
-    #info-overlay .info-section.right-top {
-      position: absolute;
-      top: 20px; right: 20px;
-      text-align: right;
-    }
-
-    /* Son génératif — bottom-right */
-    #info-overlay .info-section.left-bottom {
-      position: absolute;
-      bottom: 20px; right: 20px;
-      text-align: right;
-    }
-
-    /* Sound toggle — vertically centered right */
+    /* Sound toggle — inline in grid */
     #info-overlay .info-sound-toggle {
-      position: absolute;
-      top: 50%; right: 20px;
-      transform: translateY(-50%);
-      width: 68px; height: 68px;
-      border: none; background: transparent;
+      width: 44px; height: 44px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      background: transparent;
       cursor: pointer; padding: 0;
-      opacity: 0.35; transition: opacity 0.3s;
+      opacity: 0.5; transition: opacity 0.3s;
       display: flex; align-items: center; justify-content: center;
+      margin-top: 12px;
     }
-    #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
-    #info-overlay .info-sound-toggle svg { width: 33px; height: 33px; }
+    #info-overlay .info-sound-toggle:hover { opacity: 0.8; }
+    #info-overlay .info-sound-toggle svg { width: 20px; height: 20px; }
 
-    /* Footer — bottom-center */
+    /* Footer — bottom */
     #info-overlay .info-footer {
-      position: absolute;
-      bottom: 20px; left: 50%;
-      transform: translateX(-50%);
+      flex-shrink: 0;
       text-align: center;
+      margin-top: 40px;
     }
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
       font-size: 11px; font-weight: 300;
-      color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.35);
       letter-spacing: 0.02em;
     }
     #info-overlay .info-hint {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px; color: rgba(255,255,255,0.18);
+      font-size: 10px; color: rgba(255,255,255,0.35);
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
     }
@@ -668,45 +661,31 @@
       }
       /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
-      /* Info overlay: mobile portrait — stack vertically, bien centré */
+      /* Info overlay: mobile portrait — stack vertically */
       #info-overlay { overflow-y: auto; -webkit-overflow-scrolling: touch; }
       #info-overlay .info-frame {
-        display: flex; flex-direction: column;
-        gap: 24px; padding: 48px 28px 32px;
+        padding: 30px 20px;
         min-height: 100vh;
-        box-sizing: border-box;
       }
-      #info-overlay .info-title-block,
-      #info-overlay .info-section,
-      #info-overlay .info-footer,
-      #info-overlay .info-sound-toggle {
-        position: static;
-        transform: none;
-      }
-      #info-overlay .info-title-block {
-        text-align: center;
-        margin-bottom: 8px;
+      #info-overlay .info-sections-grid {
+        grid-template-columns: 1fr;
+        gap: 28px;
       }
       #info-overlay .info-section {
-        max-width: none;
-        text-align: center !important;
-        margin-top: 0; padding-top: 0;
+        text-align: center;
       }
       #info-overlay .info-section-title {
-        font-size: 20px;
+        font-size: 11px;
       }
       #info-overlay .info-section p {
         font-size: 13px;
-        line-height: 1.05;
+        line-height: 1.45;
       }
       #info-overlay .info-sound-toggle {
-        margin: 8px auto 0;
-        display: block;
+        margin: 0 auto;
       }
       #info-overlay .info-footer {
-        text-align: center;
-        margin-top: auto;
-        padding-top: 20px;
+        margin-top: 28px;
       }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 0 24px; }
@@ -717,23 +696,20 @@
     /* Info overlay: mobile paysage — 2 colonnes côte à côte */
     @media (max-height: 500px) and (pointer: coarse), (max-height: 500px) and (max-width: 960px) {
       #info-overlay .info-frame {
-        flex-direction: row; flex-wrap: wrap;
-        gap: 16px; padding: 24px 28px;
-        align-items: flex-start;
+        padding: 24px 28px;
         min-height: 100vh;
       }
-      #info-overlay .info-title-block {
-        width: 100%; text-align: center;
-        margin-bottom: 0;
+      #info-overlay .info-sections-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px 40px;
       }
       #info-overlay .info-section {
-        width: calc(50% - 12px);
-        text-align: left !important;
+        text-align: left;
       }
-      #info-overlay .info-section-title { font-size: 17px; }
-      #info-overlay .info-section p { font-size: 12px; line-height: 1.05; }
+      #info-overlay .info-section-title { font-size: 11px; }
+      #info-overlay .info-section p { font-size: 12px; line-height: 1.4; }
       #info-overlay .info-sound-toggle { margin: 0 auto; }
-      #info-overlay .info-footer { width: 100%; text-align: center; padding-top: 8px; }
+      #info-overlay .info-footer { margin-top: 16px; }
     }
 
     /* ═══════════════════════════════════════════════
@@ -1092,7 +1068,7 @@
   <!-- Page d'accueil -->
   <!-- Page d'entrée click-gate (user gesture pour AudioContext) -->
   <div id="click-gate">
-    <div class="click-gate-text">ENTRER</div>
+    <div class="click-gate-text">CLIQUER POUR ENTRER</div>
   </div>
 
   <div id="landing-page">
@@ -1141,46 +1117,37 @@
         <div class="info-title-main">PHOTOGRAPHIQUE</div>
       </div>
 
-      <!-- Frame outline -->
-      <div class="info-frame-border"></div>
+      <!-- Sections grid — 2x2 -->
+      <div class="info-sections-grid">
+        <div class="info-section">
+          <div class="info-section-title">Concept</div>
+          <p>Ce projet croise deux séries de Nicolas Floc'h. Les paysages sous-marins d'Invisible sont décomposés en particules 3D. Leur couleur provient de La couleur de l'eau — chaque profondeur reçoit la teinte réelle de la colonne d'eau au même endroit des Calanques.</p>
+        </div>
 
-      <!-- Sections — inside the frame, positioned at edges -->
-      <div class="info-section left-top">
-        <div class="info-section-title">Concept</div>
-        <p>Ce projet croise deux séries de Nicolas Floc'h.<br>Les paysages sous-marins d'Invisible sont décomposés<br>en particules 3D. Leur couleur provient de<br>La couleur de l'eau — chaque profondeur<br>reçoit la teinte réelle de la colonne d'eau<br>au même endroit des Calanques.</p>
+        <div class="info-section">
+          <div class="info-section-title">Interaction</div>
+          <p>Scrollez pour pénétrer dans l'image. Les couches se séparent, le volume se révèle. À la profondeur maximale, une transition vous fait remonter vers la photographie suivante — de la côte vers le large.</p>
+        </div>
+
+        <div class="info-section">
+          <div class="info-section-title">Son génératif</div>
+          <p>Le son est généré en temps réel. Les fréquences montent avec le zoom, du grave profond au cristallin de surface. Le paysage sonore traduit la pression et la densité du milieu immergé.</p>
+          <button class="info-sound-toggle" id="info-sound-toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+              <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="info-section credits-section">
+          <div class="info-section-title">Crédits</div>
+          <p>Photographies : Nicolas Floc'h, série Invisible, commande publique Parc national des Calanques, 2018-2020.<br>Palette chromatique : La couleur de l'eau, Nicolas Floc'h, FRAC Provence-Alpes-Côte d'Azur, 2020.<br>Conception et développement : Holosene, 2025-2026.</p>
+        </div>
       </div>
 
-      <div class="info-section right-top">
-        <div class="info-section-title">Interaction</div>
-        <p>Scrollez pour pénétrer dans l'image.<br>Les couches se séparent, le volume se révèle.<br>À la profondeur maximale, une transition<br>vous fait remonter vers la photographie suivante —<br>de la côte vers le large.</p>
-      </div>
-
-      <div class="info-section left-bottom">
-        <div class="info-section-title">Son génératif</div>
-        <p>Le son est généré en temps réel.<br>Les fréquences montent avec le zoom,<br>du grave profond au cristallin de surface.<br>Le paysage sonore traduit la pression<br>et la densité du milieu immergé.</p>
-      </div>
-
-      <!-- Sound toggle — bottom-right -->
-      <button class="info-sound-toggle" id="info-sound-toggle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-          <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-        </svg>
-      </button>
-
-      <div class="info-section">
-        <div class="info-section-title">Crédits</div>
-        <p>
-            Photographies : Nicolas Floc'h, série Invisible,
-            commande publique Parc national des Calanques, 2018-2020.
-            Palette chromatique : La couleur de l'eau, Nicolas Floc'h,
-            FRAC Provence-Alpes-Côte d'Azur, 2020.
-            Conception et développement : Holosene, 2025-2026.
-        </p>
-      </div>
-
-      <!-- Footer — below frame -->
+      <!-- Footer -->
       <div class="info-footer">
         <div class="info-tech">Three.js · Web Audio API · Depth Anything V2</div>
         <div class="info-hint"><span class="hint-desktop">Appuyez sur i ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
@@ -4718,8 +4685,8 @@
     // Sound toggle in info overlay
     let audioMuted = false;
     const soundToggle = document.getElementById('info-sound-toggle');
-    const SOUND_SVG_ON = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>';
-    const SOUND_SVG_OFF = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+    const SOUND_SVG_ON = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/>';
+    const SOUND_SVG_OFF = '<path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="22" y1="9" x2="17" y2="14"/><line x1="17" y1="9" x2="22" y2="14"/>';
 
     function updateSoundToggleIcon() {
       if (!soundToggle) return;
