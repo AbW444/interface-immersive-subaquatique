@@ -786,21 +786,23 @@
     #click-gate.dismissing {
       pointer-events: none;
       cursor: none !important;
-      animation: clickGateFadeOut 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+      animation: clickGateFadeOut 1.6s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
     }
     #click-gate.dismissing * {
       cursor: none !important;
     }
     #click-gate.dismissing .click-gate-text {
-      animation: clickGateTextOut 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation: clickGateTextOut 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     @keyframes clickGateFadeOut {
       0%   { background: rgba(0,0,0,1); }
-      60%  { background: rgba(0,0,0,1); }
+      40%  { background: rgba(0,0,0,1); }
       100% { background: rgba(0,0,0,0); }
     }
     @keyframes clickGateTextOut {
-      to { opacity: 0; transform: scale(1.15); }
+      0%   { opacity: 1; transform: scale(1); }
+      60%  { opacity: 0; transform: scale(1.08); }
+      100% { opacity: 0; transform: scale(1.15); }
     }
 
     #landing-page {
@@ -2475,7 +2477,8 @@
       if (landingPage && !landingPage.classList.contains('ready')) {
         landingPage.classList.add('ready');
         setTimeout(() => { landingScrollLocked = false; }, 2600);
-        startLandingHintTimer();
+        // Chevron apparaît 3s après la fin des animations (2.6s + 3s = 5.6s)
+        setTimeout(() => { startLandingHintTimer(); }, 2600);
       }
     }
 
@@ -4259,7 +4262,7 @@
         clickGate.remove();
         // Si le preload est déjà terminé, lancer le landing maintenant
         if (preloadDone) showLanding();
-      }, 1000);
+      }, 1700);
       // LANCER LE CHARGEMENT DES IMAGES maintenant (après le clic, pas avant)
       startPreload();
     }
@@ -4376,8 +4379,8 @@
       introScrollLocked = true;
       // Unlock intro scroll after all intro animations finish (2.4s)
       setTimeout(() => { introScrollLocked = false; }, 2500);
-      // Start intro chevron timer
-      startIntroHintTimer();
+      // Chevron intro apparaît 3s après la fin des animations (2.5s + 3s = 5.5s)
+      setTimeout(() => { startIntroHintTimer(); }, 2500);
       setTimeout(() => landingPage.remove(), 2000);
     }
 
