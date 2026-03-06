@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="description" content="Photographic Volume, espace immersif de photographies en particules 3D">
+  <meta name="description" content="Volume Photographique — Traduction volumétrique des paysages sous-marins de Nicolas Floc'h">
   <meta name="theme-color" content="#000000">
-  <meta property="og:title" content="Photographic Volume">
-  <meta property="og:description" content="Espace immersif de photographies en particules 3D">
+  <meta property="og:title" content="Volume Photographique">
+  <meta property="og:description" content="Paysages sous-marins des Calanques traduits en sculptures de particules navigables">
   <meta property="og:type" content="website">
   <title>Volume Photographique</title>
   <link rel="icon" type="image/png" href="Ressources/favicon.png">
@@ -1075,7 +1075,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="custom-cursor"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
+  <div id="custom-cursor"><img src="Ressources/curseur.png" alt="Curseur" draggable="false"></div>
   <!-- SVG grain filters for glow effect -->
   <svg style="position:absolute;width:0;height:0" aria-hidden="true">
     <filter id="grain-filter" x="0%" y="0%" width="100%" height="100%">
@@ -1092,7 +1092,7 @@
   <!-- Page d'accueil -->
   <!-- Page d'entrée click-gate (user gesture pour AudioContext) -->
   <div id="click-gate">
-    <div class="click-gate-text">CLIQUER</div>
+    <div class="click-gate-text">ENTRER</div>
   </div>
 
   <div id="landing-page">
@@ -1101,9 +1101,9 @@
         <div class="landing-title-line">VOLUME</div>
         <div class="landing-title-line">PHOTOGRAPHIQUE</div>
       </div>
-      <div class="landing-rule"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
+      <div class="landing-rule"><img src="Ressources/curseur.png" alt="Séparateur" draggable="false"></div>
       <div class="landing-bottom">
-        <p class="landing-desc">Traverser l'espace perceptif<br>de la photographie.</p>
+        <p class="landing-desc">Traverser le volume<br>des paysages immergés.</p>
       </div>
     </div>
     <div class="landing-scroll-hint" id="landing-scroll-hint">
@@ -1117,11 +1117,11 @@
   <div id="intro-page">
     <div class="intro-content">
       <div class="intro-top">
-        <p class="intro-text">Ces photographies sont issues<br>d'archives personnelles,<br>collectées entre 2018 et 2024.</p>
+        <p class="intro-text">Ces photographies sont issues<br>de la série Invisible<br>de Nicolas Floc'h — Calanques, 2018-2020.</p>
       </div>
-      <div class="intro-rule"><img src="Ressources/curseur.png" alt="" draggable="false"></div>
+      <div class="intro-rule"><img src="Ressources/curseur.png" alt="Séparateur" draggable="false"></div>
       <div class="intro-bottom">
-        <p class="intro-text-secondary">Elles n'illustrent rien.<br>Elles ne documentent rien.<br>Elles existent comme des volumes —<br>des densités de lumière<br>suspendues dans le temps.</p>
+        <p class="intro-text-secondary">Paysages sous-marins en noir et blanc,<br>recolorisés par la colonne d'eau —<br>la profondeur donne la teinte,<br>la lumière sculpte le volume.</p>
       </div>
     </div>
     <div class="intro-scroll-hint">
@@ -1147,17 +1147,17 @@
       <!-- Sections — inside the frame, positioned at edges -->
       <div class="info-section left-top">
         <div class="info-section-title">Concept</div>
-        <p>Chaque photographie est décomposée en particules<br>positionnées dans un espace 3D.<br>Le scroll contrôle la profondeur, les couches se séparent<br>et révèlent la structure interne de l'image.</p>
+        <p>Ce projet croise deux séries de Nicolas Floc'h.<br>Les paysages sous-marins d'Invisible sont décomposés<br>en particules 3D. Leur couleur provient de<br>La couleur de l'eau — chaque profondeur<br>reçoit la teinte réelle de la colonne d'eau<br>au même endroit des Calanques.</p>
       </div>
 
       <div class="info-section right-top">
         <div class="info-section-title">Interaction</div>
-        <p>Scrollez ou glissez pour naviguer.<br>Le parcours est cyclique : zoom avant,<br>transition, zoom arrière, puis reprise.</p>
+        <p>Scrollez pour pénétrer dans l'image.<br>Les couches se séparent, le volume se révèle.<br>À la profondeur maximale, une transition<br>vous fait remonter vers la photographie suivante —<br>de la côte vers le large.</p>
       </div>
 
       <div class="info-section left-bottom">
         <div class="info-section-title">Son génératif</div>
-        <p>Le son est synthétisé en temps réel.<br>Chaque niveau de zoom modifie fréquences,<br>résonances et textures.<br>Le paysage audio évolue avec la profondeur visuelle.</p>
+        <p>Le son est généré en temps réel.<br>Les fréquences montent avec le zoom,<br>du grave profond au cristallin de surface.<br>Le paysage sonore traduit la pression<br>et la densité du milieu immergé.</p>
       </div>
 
       <!-- Sound toggle — bottom-right -->
@@ -1169,10 +1169,21 @@
         </svg>
       </button>
 
+      <div class="info-section">
+        <div class="info-section-title">Crédits</div>
+        <p>
+            Photographies : Nicolas Floc'h, série Invisible,
+            commande publique Parc national des Calanques, 2018-2020.
+            Palette chromatique : La couleur de l'eau, Nicolas Floc'h,
+            FRAC Provence-Alpes-Côte d'Azur, 2020.
+            Conception et développement : Holosene, 2025-2026.
+        </p>
+      </div>
+
       <!-- Footer — below frame -->
       <div class="info-footer">
-        <div class="info-tech">Three.js · Web Audio API</div>
-        <div class="info-hint"><span class="hint-desktop">Cliquez ou Alt pour revenir</span><span class="hint-mobile">Double-tap pour revenir</span></div>
+        <div class="info-tech">Three.js · Web Audio API · Depth Anything V2</div>
+        <div class="info-hint"><span class="hint-desktop">Appuyez sur i ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
       </div>
 
     </div>
@@ -1280,8 +1291,8 @@
 
       <!-- Action Buttons -->
       <div class="scroll-config-buttons">
-        <button class="scroll-config-btn" id="scroll-reset-btn">Reset to Default</button>
-        <button class="scroll-config-btn primary" id="scroll-copy-btn">Copy Config</button>
+        <button class="scroll-config-btn" id="scroll-reset-btn">Réinitialiser</button>
+        <button class="scroll-config-btn primary" id="scroll-copy-btn">Copier</button>
       </div>
     </div>
   </div>
@@ -1294,7 +1305,7 @@
       <!-- Point Size -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Point Size</span>
+          <span class="param-label">Taille</span>
           <div class="param-value-display">
             <span class="param-value" id="size-value">0.02</span>
             <div class="param-buttons">
@@ -1311,7 +1322,7 @@
       <!-- Particle Shape -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Particle Shape</span>
+          <span class="param-label">Forme</span>
         </div>
         <div class="shape-buttons">
           <button class="shape-btn active" data-shape="circle">●</button>
@@ -1322,18 +1333,18 @@
       <!-- Color Mode -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Color Mode</span>
+          <span class="param-label">Couleur</span>
         </div>
         <div class="shape-buttons">
-          <button class="shape-btn" id="color-mode-image" data-colormode="image">Image</button>
-          <button class="shape-btn active" id="color-mode-depth" data-colormode="depth">Floc'h</button>
+          <button class="shape-btn" id="color-mode-image" data-colormode="image">Photographie</button>
+          <button class="shape-btn active" id="color-mode-depth" data-colormode="depth">Colonne d'eau</button>
         </div>
       </div>
 
       <!-- Particle Density -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Particle Density</span>
+          <span class="param-label">Densité</span>
           <div class="param-value-display">
             <span class="param-value" id="density-value">0.4</span>
             <div class="param-buttons">
@@ -1350,7 +1361,7 @@
       <!-- Depth Spread -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Depth Spread</span>
+          <span class="param-label">Profondeur</span>
           <div class="param-value-display">
             <span class="param-value" id="disparity-value">0.0</span>
             <div class="param-buttons">
@@ -1367,7 +1378,7 @@
       <!-- Breath Speed -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Breath Speed</span>
+          <span class="param-label">Respiration</span>
           <div class="param-value-display">
             <span class="param-value" id="movement-value">0.000</span>
             <div class="param-buttons">
@@ -1384,7 +1395,7 @@
       <!-- Movement Mode -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Movement Mode</span>
+          <span class="param-label">Mouvement</span>
         </div>
         <div class="movement-mode-buttons">
           <button class="movement-mode-btn active" data-mode="1">Z</button>
@@ -1398,7 +1409,7 @@
       <!-- Brightness (Saturation) -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Brightness</span>
+          <span class="param-label">Luminosité</span>
           <div class="param-value-display">
             <span class="param-value" id="saturation-value">1.0</span>
             <div class="param-buttons">
@@ -1415,7 +1426,7 @@
       <!-- Hide Black -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Hide Black</span>
+          <span class="param-label">Masquer sombres</span>
           <div class="param-value-display">
             <span class="param-value" id="hideBlack-value">0.0</span>
             <div class="param-buttons">
@@ -1432,7 +1443,7 @@
       <!-- Grid Randomness -->
       <div class="param-control">
         <div class="param-header">
-          <span class="param-label">Grid Randomness</span>
+          <span class="param-label">Dispersion</span>
           <div class="param-value-display">
             <span class="param-value" id="randomness-value">0.00</span>
             <div class="param-buttons">
@@ -1485,9 +1496,9 @@
 
       <!-- Buttons -->
       <div class="settings-buttons">
-        <button class="settings-btn primary" id="apply-btn">Apply</button>
-        <button class="settings-btn" id="reset-defaults-btn">Reset to Defaults</button>
-        <button class="settings-btn" id="reset-camera-btn">Reset Camera</button>
+        <button class="settings-btn primary" id="apply-btn">Appliquer</button>
+        <button class="settings-btn" id="reset-defaults-btn">Réinitialiser</button>
+        <button class="settings-btn" id="reset-camera-btn">Réinitialiser caméra</button>
       </div>
 
     </div>
@@ -1497,7 +1508,7 @@
   <div id="ux-states-panel" class="admin-panel">
     <button class="panel-close" onclick="this.parentElement.classList.remove('visible')">&times;</button>
     <div class="ux-states-header">
-      <h2 class="ux-states-title panel-title">États de Lecture</h2>
+      <h2 class="ux-states-title panel-title">États</h2>
     </div>
     <div class="ux-states-content">
       <!-- Liste des états -->
@@ -1513,12 +1524,12 @@
 
       <!-- Sélecteur de courbe -->
       <div class="ux-curve-selector">
-        <div class="ux-curve-label">Type de Courbe</div>
+        <div class="ux-curve-label">Courbe</div>
         <select class="ux-curve-select" id="ux-curve-type">
           <option value="linear">Linéaire</option>
-          <option value="easeIn" selected>Ease In (Accélération)</option>
-          <option value="easeOut">Ease Out (Décélération)</option>
-          <option value="easeInOut">Ease In-Out (S-Curve)</option>
+          <option value="easeIn" selected>Ease In</option>
+          <option value="easeOut">Ease Out</option>
+          <option value="easeInOut">Ease In-Out</option>
         </select>
       </div>
 
@@ -1820,7 +1831,7 @@
           ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, drawX, drawY, drawW, drawH);
           const imgData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
           depthMapCache.set(imageIndex, imgData);
-          console.log(`[Depth Map] IMG_${String(imageIndex).padStart(3, '0')} chargée (${srcWidth}×${srcHeight} → ${TARGET_WIDTH}×${TARGET_HEIGHT})`);
+          console.log(`[Depth] IMG_${String(imageIndex).padStart(3, '0')} loaded (${srcWidth}×${srcHeight} → ${TARGET_WIDTH}×${TARGET_HEIGHT})`);
           resolve(true);
         };
         img.onerror = () => {
@@ -2035,11 +2046,11 @@
             officialImages.push(idx);
           }
         }
-        console.log(`[Depth Map] ${depthMapCache.size}/7 depth maps chargées`);
+        console.log(`[Depth] ${depthMapCache.size}/7 depth maps loaded`);
 
         maxImageIndex = availableImages.length;
         if (maxImageIndex === 0) {
-          console.error('Aucune image chargée. Vérifiez le dossier ./Ressources/photographies/');
+          console.error('No images found. Check path.');
           resolveAll();
           return;
         }
@@ -2647,7 +2658,7 @@
       // Mapping: max zoom = aigu, min zoom = grave (sur toutes les pistes)
       const THEMES = {
         1: {
-          name: 'Résonance 01',
+          name: 'Benthique',
           // Original Résonance immergée — D2/A2, filtres Q=35 chantants
           muffleFreq: 350,
           droneFreqs: [73.42, 110], // D2, A2
@@ -2672,7 +2683,7 @@
           color: 'rgba(80,160,140,0.7)'
         },
         2: {
-          name: 'Micro-Friction 02',
+          name: 'Krill',
           // Base similaire à 01, + couche krill/friction haute fréquence vers max zoom
           muffleFreq: 450,
           droneFreqs: [73.42, 110], // D2, A2 — même base que 01
@@ -2701,7 +2712,7 @@
           color: 'rgba(120,190,160,0.7)'
         },
         3: {
-          name: 'Résonance 03 — Médium',
+          name: 'Pélagique',
           // Registre médium élargi, résonances plus présentes
           muffleFreq: 500,
           droneFreqs: [110, 164.81], // A2, E3
@@ -2725,7 +2736,7 @@
           color: 'rgba(100,140,170,0.7)'
         },
         4: {
-          name: 'Résonance 04 — Cristallin',
+          name: 'Phytoplancton',
           // Registre aigu, résonances qui brillent, harmoniques hautes
           muffleFreq: 700,
           droneFreqs: [164.81, 246.94], // E3, B3
@@ -2749,7 +2760,7 @@
           color: 'rgba(140,180,200,0.7)'
         },
         5: {
-          name: 'Résonance 05 — Spectral',
+          name: 'Bioluminescence',
           // Ultra-aigu, presque supra, harmoniques cristallines, sub contrastant
           muffleFreq: 1000,
           droneFreqs: [246.94, 369.99], // B3, F#4
@@ -4904,7 +4915,7 @@
         settingsPanel.classList.toggle('visible');
       }
 
-      // Touche M - Ouvrir l'interface États de Lecture
+      // Touche M - Ouvrir l'interface États
       if (event.key === 'm' || event.key === 'M') {
         const uxStatesPanel = document.getElementById('ux-states-panel');
         uxStatesPanel.classList.toggle('visible');
@@ -5126,7 +5137,7 @@
 
       if (uxJourneyMode) {
         // Activer le mode
-        uxToggleBtn.textContent = 'Désactiver';
+        uxToggleBtn.textContent = 'Inactif';
         uxToggleBtn.classList.add('active');
         targetZoomLevel = 0;
         // Charger le premier état
@@ -5139,7 +5150,7 @@
 
     // Restaurer l'état de l'interface au chargement
     if (uxJourneyMode) {
-      uxToggleBtn.textContent = 'Désactiver';
+      uxToggleBtn.textContent = 'Inactif';
       uxToggleBtn.classList.add('active');
     } else {
       uxToggleBtn.textContent = 'Actif';
