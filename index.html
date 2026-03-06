@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="description" content="Volume Photographique — Traduction volumétrique des paysages sous-marins de Nicolas Floc'h">
+  <meta name="description" content="Volume Photographique, traduction volumétrique des paysages sous-marins de Nicolas Floc'h">
   <meta name="theme-color" content="#000000">
   <meta property="og:title" content="Volume Photographique">
   <meta property="og:description" content="Paysages sous-marins des Calanques traduits en sculptures de particules navigables">
@@ -141,12 +141,25 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.65; }
     #info-overlay .info-sound-toggle svg { width: 33px; height: 33px; }
 
-    /* Footer — bottom-center */
+    /* Footer — bottom-left, aligned with Concept bottom */
     #info-overlay .info-footer {
       position: absolute;
-      bottom: 20px; left: 50%;
+      bottom: 60px; left: 50%;
       transform: translateX(-50%);
       text-align: center;
+    }
+    #info-overlay .info-credits-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px; font-weight: 300;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.02em;
+      background: none; border: none;
+      cursor: pointer; padding: 6px 16px;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    #info-overlay .info-credits-btn:hover {
+      color: rgba(255,255,255,0.6);
+      text-shadow: 0 0 12px rgba(255,255,255,0.3), 0 0 24px rgba(255,255,255,0.15);
     }
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
@@ -159,6 +172,41 @@
       font-size: 10px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
+    }
+
+    /* Credits modal */
+    #credits-modal {
+      position: fixed; inset: 0; z-index: 30000;
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    #credits-modal.visible {
+      opacity: 1; pointer-events: auto;
+    }
+    #credits-modal .credits-content {
+      text-align: center;
+      max-width: 480px;
+      padding: 40px;
+    }
+    #credits-modal .credits-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 23px; font-weight: 400; font-style: italic;
+      color: rgba(255,255,255,0.58);
+      margin-bottom: 16px;
+    }
+    #credits-modal .credits-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 300;
+      line-height: 1.8; letter-spacing: 0.01em;
+      color: rgba(255,255,255,0.42);
+    }
+    #credits-modal .credits-close-hint {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; color: rgba(255,255,255,0.18);
+      letter-spacing: 0.15em; text-transform: uppercase;
+      margin-top: 28px;
     }
     #info-overlay .hint-mobile { display: none; }
     @media (max-width: 768px), (pointer: coarse) {
@@ -1117,11 +1165,11 @@
   <div id="intro-page">
     <div class="intro-content">
       <div class="intro-top">
-        <p class="intro-text">Ces photographies sont issues<br>de la série Invisible<br>de Nicolas Floc'h — Calanques, 2018-2020.</p>
+        <p class="intro-text">Ces photographies sont issues<br>de la série Invisible<br>de Nicolas Floc'h, Calanques, 2018-2020.</p>
       </div>
       <div class="intro-rule"><img src="Ressources/curseur.png" alt="Séparateur" draggable="false"></div>
       <div class="intro-bottom">
-        <p class="intro-text-secondary">Paysages sous-marins en noir et blanc,<br>recolorisés par la colonne d'eau —<br>la profondeur donne la teinte,<br>la lumière sculpte le volume.</p>
+        <p class="intro-text-secondary">Paysages sous-marins en noir et blanc,<br>recolorisés par la colonne d'eau.<br>la profondeur donne la teinte,<br>la lumière sculpte le volume.</p>
       </div>
     </div>
     <div class="intro-scroll-hint">
@@ -1147,12 +1195,12 @@
       <!-- Sections — inside the frame, positioned at edges -->
       <div class="info-section left-top">
         <div class="info-section-title">Concept</div>
-        <p>Ce projet croise deux séries de Nicolas Floc'h. Les paysages sous-marins d'Invisible sont décomposés en particules 3D. Leur couleur provient de La couleur de l'eau — chaque profondeur reçoit la teinte réelle de la colonne d'eau au même endroit des Calanques.</p>
+        <p>Ce projet croise deux séries de Nicolas Floc'h. Les paysages sous-marins d'Invisible sont décomposés en particules 3D. Leur couleur provient de La couleur de l'eau, chaque profondeur reçoit la teinte réelle de la colonne d'eau au même endroit des Calanques.</p>
       </div>
 
       <div class="info-section right-top">
         <div class="info-section-title">Interaction</div>
-        <p>Scrollez pour pénétrer dans l'image. Les couches se séparent, le volume se révèle. À la profondeur maximale, une transition vous fait remonter vers la photographie suivante — de la côte vers le large.</p>
+        <p>Scrollez pour pénétrer dans l'image. Les couches se séparent, le volume se révèle. À la profondeur maximale, une transition vous fait remonter vers la photographie suivante, de la côte vers le large.</p>
       </div>
 
       <div class="info-section left-bottom">
@@ -1169,23 +1217,28 @@
         </svg>
       </button>
 
-      <div class="info-section">
-        <div class="info-section-title">Crédits</div>
-        <p>
-            Photographies : Nicolas Floc'h, série Invisible,
-            commande publique Parc national des Calanques, 2018-2020.
-            Palette chromatique : La couleur de l'eau, Nicolas Floc'h,
-            FRAC Provence-Alpes-Côte d'Azur, 2020.
-            Conception et développement : Holosene, 2025-2026.
-        </p>
-      </div>
-
-      <!-- Footer — below frame -->
+      <!-- Footer -->
       <div class="info-footer">
+        <button class="info-credits-btn" id="credits-btn">Cliquer pour afficher les crédits</button>
         <div class="info-tech">Three.js · Web Audio API · Depth Anything V2</div>
-        <div class="info-hint"><span class="hint-desktop">Appuyez sur i ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
+        <div class="info-hint"><span class="hint-desktop">Appuyez sur ALT ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Credits modal -->
+  <div id="credits-modal">
+    <div class="credits-content">
+      <div class="credits-title">Crédits</div>
+      <p class="credits-text">
+        Photographies : Nicolas Floc'h, série Invisible,<br>
+        commande publique Parc national des Calanques, 2018-2020.<br><br>
+        Palette chromatique : La couleur de l'eau, Nicolas Floc'h,<br>
+        FRAC Provence-Alpes-Côte d'Azur, 2020.<br><br>
+        Conception et développement : Holosene, 2025-2026.
+      </p>
+      <div class="credits-close-hint">Cliquez pour fermer</div>
     </div>
   </div>
 
@@ -4713,6 +4766,21 @@
       clearTimeout(indicator._hideTimeout);
       indicator.style.opacity = '1';
       indicator._hideTimeout = setTimeout(() => { indicator.style.opacity = '0'; }, 3500);
+    }
+
+    // Credits modal
+    const creditsModal = document.getElementById('credits-modal');
+    const creditsBtn = document.getElementById('credits-btn');
+    if (creditsBtn) {
+      creditsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        creditsModal.classList.add('visible');
+      });
+    }
+    if (creditsModal) {
+      creditsModal.addEventListener('click', () => {
+        creditsModal.classList.remove('visible');
+      });
     }
 
     // Sound toggle in info overlay
