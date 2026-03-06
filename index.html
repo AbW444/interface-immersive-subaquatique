@@ -155,7 +155,7 @@
       letter-spacing: 0.12em; text-transform: uppercase;
       background: none; border: none;
       cursor: pointer; padding: 8px 20px;
-      margin-bottom: 6px;
+      margin-top: 6px;
       transition: color 0.3s, text-shadow 0.3s;
     }
     #info-overlay .info-credits-btn:hover {
@@ -1221,9 +1221,9 @@
 
       <!-- Footer -->
       <div class="info-footer">
-        <button class="info-credits-btn" id="credits-btn">Cliquer pour afficher les crédits</button>
         <div class="info-tech">Three.js · Web Audio API · Depth Anything V2</div>
         <div class="info-hint"><span class="hint-desktop">Appuyez sur ALT ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
+        <button class="info-credits-btn" id="credits-btn">Cliquer pour afficher les crédits</button>
       </div>
 
     </div>
@@ -4818,6 +4818,7 @@
     const INFO_FADE_DURATION = 800; // ms for full fade out
     let cursorAllowed = false; // gated by info overlay visibility
 
+    let scrollIndDelayTimer = null;
     function toggleInfoOverlay(show) {
       if (clickGateActive || landingActive) return;
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
@@ -4826,7 +4827,14 @@
       cursorAllowed = visible;
       setCursorVisible(visible);
       const scrollInd = document.getElementById('scroll-indicator');
-      if (scrollInd) scrollInd.style.display = visible ? 'none' : '';
+      if (scrollInd) {
+        clearTimeout(scrollIndDelayTimer);
+        if (visible) {
+          scrollInd.style.display = 'none';
+        } else {
+          scrollIndDelayTimer = setTimeout(() => { scrollInd.style.display = ''; }, 2000);
+        }
+      }
     }
     // Fermer l'overlay en cliquant dessus
     infoOverlay.addEventListener('click', () => toggleInfoOverlay(false));
