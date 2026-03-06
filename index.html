@@ -44,7 +44,7 @@
     /* Info overlay */
     #info-overlay {
       position: fixed; inset: 0; z-index: 20000;
-      background: rgba(0, 0, 0, 0.88);
+      background: transparent;
       opacity: 0; pointer-events: none;
       transition: opacity 0.5s ease;
       overflow: hidden;
@@ -53,21 +53,19 @@
       opacity: 1; pointer-events: auto;
     }
 
-    /* Flex column: titre en haut, grille au milieu, footer en bas */
+    /* Absolute positioning — elements pinned to screen edges */
     #info-overlay .info-frame {
       position: absolute; inset: 0;
       padding: 60px 80px;
-      display: flex; flex-direction: column;
-      box-sizing: border-box;
     }
 
     /* Frame border — hidden */
     #info-overlay .info-frame-border { display: none; }
 
-    /* Titre — haut gauche */
+    /* Title block — top-left */
     #info-overlay .info-title-block {
-      flex-shrink: 0;
-      margin-bottom: 40px;
+      position: absolute;
+      top: 60px; left: 80px;
     }
     #info-overlay .info-title-top {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -94,35 +92,42 @@
       pointer-events: none;
     }
 
-    /* Grille 2x2 des sections */
-    #info-overlay .info-sections-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px 80px;
-      margin-top: auto;
-    }
-
-    /* Sections — styles partagés */
+    /* Info sections — shared styles */
     #info-overlay .info-section {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 14px; font-weight: 300;
+      font-size: 15px; font-weight: 300;
       line-height: 1.65; letter-spacing: 0.01em;
-      color: rgba(255,255,255,0.65);
+      color: rgba(255,255,255,0.42);
+      max-width: 308px;
     }
     #info-overlay .info-section-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 11px; font-weight: 400;
-      font-style: normal;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.9);
-      margin-bottom: 10px;
-    }
-    #info-overlay .info-section.credits-section {
-      color: rgba(255,255,255,0.45);
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 23px; font-weight: 400; font-style: italic;
+      color: rgba(255,255,255,0.58);
+      margin-bottom: 7px;
     }
 
-    /* Bouton son — dans la section Son génératif */
+    /* Concept — bottom-left */
+    #info-overlay .info-section.left-top {
+      position: absolute;
+      bottom: 60px; left: 80px;
+    }
+
+    /* Interaction — top-right */
+    #info-overlay .info-section.right-top {
+      position: absolute;
+      top: 60px; right: 80px;
+      text-align: right;
+    }
+
+    /* Son génératif — bottom-right */
+    #info-overlay .info-section.left-bottom {
+      position: absolute;
+      bottom: 60px; right: 80px;
+      text-align: right;
+    }
+
+    /* Sound toggle — inside Son génératif section */
     #info-overlay .info-sound-toggle {
       width: 44px; height: 44px;
       border: 1px solid rgba(255,255,255,0.15);
@@ -137,21 +142,22 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.8; }
     #info-overlay .info-sound-toggle svg { width: 20px; height: 20px; }
 
-    /* Footer */
+    /* Footer — bottom-center */
     #info-overlay .info-footer {
-      flex-shrink: 0;
+      position: absolute;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%);
       text-align: center;
-      margin-top: 40px;
     }
     #info-overlay .info-tech {
       font-family: 'Space Grotesk', sans-serif;
       font-size: 11px; font-weight: 300;
-      color: rgba(255,255,255,0.35);
+      color: rgba(255,255,255,0.25);
       letter-spacing: 0.02em;
     }
     #info-overlay .info-hint {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 10px; color: rgba(255,255,255,0.35);
+      font-size: 10px; color: rgba(255,255,255,0.18);
       letter-spacing: 0.15em; text-transform: uppercase;
       margin-top: 4px;
     }
@@ -663,32 +669,45 @@
       }
       /* Audio: admin indicator hidden on mobile, mute button always visible */
       #audio-indicator { display: none !important; }
-      /* Info overlay: mobile portrait */
+      /* Info overlay: mobile portrait — stack vertically, bien centré */
       #info-overlay { overflow-y: auto; -webkit-overflow-scrolling: touch; }
       #info-overlay .info-frame {
-        padding: 30px 20px;
+        display: flex; flex-direction: column;
+        gap: 24px; padding: 48px 28px 32px;
         min-height: 100vh;
+        box-sizing: border-box;
+      }
+      #info-overlay .info-title-block,
+      #info-overlay .info-section,
+      #info-overlay .info-footer,
+      #info-overlay .info-sound-toggle {
+        position: static;
+        transform: none;
       }
       #info-overlay .info-title-block {
         text-align: center;
-        margin-bottom: 24px;
-      }
-      #info-overlay .info-sections-grid {
-        grid-template-columns: 1fr;
-        gap: 28px;
+        margin-bottom: 8px;
       }
       #info-overlay .info-section {
-        text-align: center;
+        max-width: none;
+        text-align: center !important;
+        margin-top: 0; padding-top: 0;
+      }
+      #info-overlay .info-section-title {
+        font-size: 20px;
       }
       #info-overlay .info-section p {
         font-size: 13px;
-        line-height: 1.45;
+        line-height: 1.5;
       }
       #info-overlay .info-sound-toggle {
-        margin: 12px auto 0;
+        margin: 8px auto 0;
+        display: inline-flex;
       }
       #info-overlay .info-footer {
-        margin-top: 28px;
+        text-align: center;
+        margin-top: auto;
+        padding-top: 20px;
       }
       /* Landing: adaptatif mobile */
       .landing-content { padding: 0 24px; }
@@ -696,26 +715,26 @@
       .landing-bottom { padding-bottom: 30px; }
       .landing-scroll-hint { bottom: 28px; }
     }
-    /* Info overlay: mobile paysage — 2 colonnes */
+    /* Info overlay: mobile paysage — 2 colonnes côte à côte */
     @media (max-height: 500px) and (pointer: coarse), (max-height: 500px) and (max-width: 960px) {
       #info-overlay .info-frame {
-        padding: 24px 28px;
+        flex-direction: row; flex-wrap: wrap;
+        gap: 16px; padding: 24px 28px;
+        align-items: flex-start;
         min-height: 100vh;
       }
       #info-overlay .info-title-block {
-        text-align: center;
-        margin-bottom: 16px;
-      }
-      #info-overlay .info-sections-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 16px 40px;
+        width: 100%; text-align: center;
+        margin-bottom: 0;
       }
       #info-overlay .info-section {
-        text-align: left;
+        width: calc(50% - 12px);
+        text-align: left !important;
       }
-      #info-overlay .info-section p { font-size: 12px; line-height: 1.4; }
-      #info-overlay .info-sound-toggle { margin: 8px auto 0; }
-      #info-overlay .info-footer { margin-top: 16px; }
+      #info-overlay .info-section-title { font-size: 17px; }
+      #info-overlay .info-section p { font-size: 12px; line-height: 1.5; }
+      #info-overlay .info-sound-toggle { margin: 0 auto; }
+      #info-overlay .info-footer { width: 100%; text-align: center; padding-top: 8px; }
     }
 
     /* ═══════════════════════════════════════════════
@@ -1123,35 +1142,44 @@
         <div class="info-title-main">PHOTOGRAPHIQUE</div>
       </div>
 
-      <div class="info-sections-grid">
-        <div class="info-section">
-          <div class="info-section-title">Concept</div>
-          <p>Ce projet croise deux séries de Nicolas Floc'h. Les paysages sous-marins d'Invisible sont décomposés en particules 3D. Leur couleur provient de La couleur de l'eau — chaque profondeur reçoit la teinte réelle de la colonne d'eau au même endroit des Calanques.</p>
-        </div>
+      <!-- Frame outline -->
+      <div class="info-frame-border"></div>
 
-        <div class="info-section">
-          <div class="info-section-title">Interaction</div>
-          <p>Scrollez pour pénétrer dans l'image. Les couches se séparent, le volume se révèle. À la profondeur maximale, une transition vous fait remonter vers la photographie suivante — de la côte vers le large.</p>
-        </div>
-
-        <div class="info-section">
-          <div class="info-section-title">Son génératif</div>
-          <p>Le son est généré en temps réel. Les fréquences montent avec le zoom, du grave profond au cristallin de surface. Le paysage sonore traduit la pression et la densité du milieu immergé.</p>
-          <button class="info-sound-toggle" id="info-sound-toggle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 5L6 9H2v6h4l5 4V5z"/>
-              <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-              <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="info-section credits-section">
-          <div class="info-section-title">Crédits</div>
-          <p>Photographies : Nicolas Floc'h, série Invisible, commande publique Parc national des Calanques, 2018-2020.<br>Palette chromatique : La couleur de l'eau, Nicolas Floc'h, FRAC Provence-Alpes-Côte d'Azur, 2020.<br>Conception et développement : Holosene, 2025-2026.</p>
-        </div>
+      <!-- Sections — inside the frame, positioned at edges -->
+      <div class="info-section left-top">
+        <div class="info-section-title">Concept</div>
+        <p>Ce projet croise deux séries de Nicolas Floc'h. Les paysages sous-marins d'Invisible sont décomposés en particules 3D. Leur couleur provient de La couleur de l'eau — chaque profondeur reçoit la teinte réelle de la colonne d'eau au même endroit des Calanques.</p>
       </div>
 
+      <div class="info-section right-top">
+        <div class="info-section-title">Interaction</div>
+        <p>Scrollez pour pénétrer dans l'image. Les couches se séparent, le volume se révèle. À la profondeur maximale, une transition vous fait remonter vers la photographie suivante — de la côte vers le large.</p>
+      </div>
+
+      <div class="info-section left-bottom">
+        <div class="info-section-title">Son génératif</div>
+        <p>Le son est généré en temps réel. Les fréquences montent avec le zoom, du grave profond au cristallin de surface. Le paysage sonore traduit la pression et la densité du milieu immergé.</p>
+        <button class="info-sound-toggle" id="info-sound-toggle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+            <path class="sound-wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path class="sound-wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">Crédits</div>
+        <p>
+            Photographies : Nicolas Floc'h, série Invisible,
+            commande publique Parc national des Calanques, 2018-2020.
+            Palette chromatique : La couleur de l'eau, Nicolas Floc'h,
+            FRAC Provence-Alpes-Côte d'Azur, 2020.
+            Conception et développement : Holosene, 2025-2026.
+        </p>
+      </div>
+
+      <!-- Footer — below frame -->
       <div class="info-footer">
         <div class="info-tech">Three.js · Web Audio API · Depth Anything V2</div>
         <div class="info-hint"><span class="hint-desktop">Appuyez sur i ou cliquez pour fermer</span><span class="hint-mobile">Double-tap pour fermer</span></div>
