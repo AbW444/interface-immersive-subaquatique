@@ -141,12 +141,14 @@
     #info-overlay .info-sound-toggle:hover { opacity: 0.80; }
     #info-overlay .info-sound-toggle svg { width: 28px; height: 28px; }
 
-    /* Footer — bottom-left, aligned with Concept bottom */
+    /* Footer — centered, aligned with bottom of sections */
     #info-overlay .info-footer {
       position: absolute;
-      bottom: 40px; left: 50%;
+      bottom: 60px; left: 50%;
       transform: translateX(-50%);
       text-align: center;
+      user-select: none;
+      -webkit-user-select: none;
     }
     #info-overlay .info-credits-btn {
       font-family: 'Space Grotesk', sans-serif;
@@ -154,7 +156,7 @@
       color: rgba(255,255,255,0.68);
       letter-spacing: 0.12em; text-transform: uppercase;
       background: none; border: none;
-      cursor: pointer; padding: 8px 20px;
+      cursor: pointer; padding: 8px 20px 0 20px;
       margin-top: 6px;
       transition: color 0.3s, text-shadow 0.3s;
     }
