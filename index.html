@@ -4974,7 +4974,7 @@
         return;
       }
       // Alt → toggle info overlay / Esc → fermer
-      if (event.key === 'Alt') {
+      if (event.key === 'Alt' || event.key === ' ') {
         event.preventDefault();
         toggleInfoOverlay();
         return;
