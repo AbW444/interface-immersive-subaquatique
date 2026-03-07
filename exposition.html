@@ -57,6 +57,21 @@
     <div id="crosshair"></div>
     <div id="vignette"></div>
     <div id="hint">Cliquer sur la projection</div>
+    <div id="info-overlay" style="
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.75); z-index: 80;
+        opacity: 0; pointer-events: none; transition: opacity 0.5s ease;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #ccc;
+    ">
+        <div style="text-align: center; max-width: 500px; line-height: 2.2; font-size: 13px; letter-spacing: 0.1em;">
+            <div style="font-size: 18px; font-weight: 300; letter-spacing: 0.25em; margin-bottom: 24px; color: #fff;">VOLUME PHOTOGRAPHIQUE</div>
+            <div style="color: #999;">Holosene, 2025-2026</div>
+            <div style="color: #999;">Photographies : Nicolas Floc'h</div>
+            <div style="color: #999;">Série Invisible, Calanques, 2018-2020</div>
+            <div style="margin-top: 16px; color: #666; font-size: 11px;">Scroll pour zoomer &middot; Échap pour revenir</div>
+        </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -553,6 +568,20 @@
             spot.shadow.bias = -0.002;
             scene.add(spot);
             scene.add(spot.target);
+
+            // Lumière d'ambiance douce sur le mur d'entrée (face à l'écran)
+            // Pour qu'on perçoive l'architecture quand on se retourne
+            const backAmbient = new THREE.PointLight(0xeeeeff, 0.25, 18, 2);
+            backAmbient.position.set(0, 4, ROOM_D / 2 - 3);
+            scene.add(backAmbient);
+
+            // Lumières latérales très douces pour deviner les murs
+            const leftFill = new THREE.PointLight(0xddeeff, 0.1, 14, 2);
+            leftFill.position.set(-ROOM_W / 2 + 2, 3, 0);
+            scene.add(leftFill);
+            const rightFill = new THREE.PointLight(0xddeeff, 0.1, 14, 2);
+            rightFill.position.set(ROOM_W / 2 - 2, 3, 0);
+            scene.add(rightFill);
         }
 
         // =============================================
@@ -595,18 +624,18 @@
             canvas.width = cW; canvas.height = cH;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = 'rgba(12, 12, 12, 0.95)';
+            ctx.fillStyle = 'rgba(8, 8, 8, 0.92)';
             ctx.fillRect(0, 0, cW, cH);
 
-            ctx.fillStyle = '#bbbbbb';
+            ctx.fillStyle = '#eeeeee';
             ctx.font = '500 26px "Helvetica Neue", Helvetica, Arial, sans-serif';
             ctx.fillText('VOLUME PHOTOGRAPHIQUE', 36, 50);
 
-            ctx.fillStyle = '#444';
+            ctx.fillStyle = '#666';
             ctx.fillRect(36, 70, 50, 1);
 
             ctx.font = '300 17px "Helvetica Neue", Helvetica, Arial, sans-serif';
-            ctx.fillStyle = '#777';
+            ctx.fillStyle = '#bbbbbb';
             const lines = [
                 'Holosene, 2025-2026', '',
                 'Photographies : Nicolas Floc\'h',
@@ -627,7 +656,7 @@
             tex.encoding = THREE.sRGBEncoding;
             const cartel = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.5, 0.5 * cH / cW),
-                new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9 })
+                new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 1.0 })
             );
             cartel.position.set(SCREEN_W / 2 + 0.8, SCREEN_BOTTOM + 0.5, -ROOM_D / 2 + 0.015);
             scene.add(cartel);
@@ -636,7 +665,7 @@
             const halo = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.7, 0.6),
                 new THREE.MeshBasicMaterial({
-                    color: 0xffffff, transparent: true, opacity: 0.015,
+                    color: 0xffffff, transparent: true, opacity: 0.04,
                     blending: THREE.AdditiveBlending
                 })
             );
@@ -674,48 +703,131 @@
         }
 
         // =============================================
-        // SILHOUETTES GIACOMETTI
+        // MANNEQUINS HUMANOÏDES LISSES
         // =============================================
         function buildSilhouettes() {
-            const silMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 });
+            // Matériau lisse réaliste — surface douce, légèrement réfléchissante
+            const skinMat = new THREE.MeshPhongMaterial({
+                color: 0x1a1a1a, specular: 0x222222, shininess: 30,
+                flatShading: false
+            });
+            const SEG = 24; // segments élevés pour surface lisse
 
             function makePerson(x, z, lookAngle) {
                 const g = new THREE.Group();
 
-                // Jambes fines écartées
-                const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.90, 6);
+                // Pieds
                 for (const s of [-1, 1]) {
-                    const leg = new THREE.Mesh(legGeo, silMat);
-                    leg.position.set(s * 0.065, 0.45, 0);
-                    leg.castShadow = true;
-                    g.add(leg);
+                    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.04, 0.18, 4, 2, 4), skinMat);
+                    foot.position.set(s * 0.085, 0.02, 0.03);
+                    g.add(foot);
                 }
 
-                // Torse parallélépipède fin
-                const torso = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.50, 0.08), silMat);
-                torso.position.y = 1.15;
+                // Tibias (mollets)
+                for (const s of [-1, 1]) {
+                    const shin = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.045, 0.04, 0.42, SEG, 1),
+                        skinMat
+                    );
+                    shin.position.set(s * 0.085, 0.25, 0);
+                    shin.castShadow = true;
+                    g.add(shin);
+                }
+
+                // Genoux
+                for (const s of [-1, 1]) {
+                    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.05, SEG, SEG / 2), skinMat);
+                    knee.position.set(s * 0.085, 0.46, 0);
+                    g.add(knee);
+                }
+
+                // Cuisses
+                for (const s of [-1, 1]) {
+                    const thigh = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.06, 0.05, 0.42, SEG, 1),
+                        skinMat
+                    );
+                    thigh.position.set(s * 0.085, 0.67, 0);
+                    thigh.castShadow = true;
+                    g.add(thigh);
+                }
+
+                // Bassin — ellipsoïde aplati
+                const pelvis = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.16, SEG, SEG / 2),
+                    skinMat
+                );
+                pelvis.scale.set(1, 0.5, 0.7);
+                pelvis.position.y = 0.90;
+                g.add(pelvis);
+
+                // Torse — cylindre fuselé (épaules larges, taille fine)
+                const torso = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.17, 0.13, 0.48, SEG, 1),
+                    skinMat
+                );
+                torso.position.y = 1.22;
                 torso.castShadow = true;
                 g.add(torso);
 
+                // Épaules — sphères lisses
+                for (const s of [-1, 1]) {
+                    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.06, SEG, SEG / 2), skinMat);
+                    shoulder.position.set(s * 0.20, 1.42, 0);
+                    g.add(shoulder);
+                }
+
+                // Bras supérieurs
+                for (const s of [-1, 1]) {
+                    const upArm = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.04, 0.035, 0.30, SEG, 1),
+                        skinMat
+                    );
+                    upArm.position.set(s * 0.22, 1.24, 0);
+                    upArm.rotation.z = s * 0.06;
+                    g.add(upArm);
+                }
+
+                // Coudes
+                for (const s of [-1, 1]) {
+                    const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.035, SEG, SEG / 2), skinMat);
+                    elbow.position.set(s * 0.23, 1.08, 0);
+                    g.add(elbow);
+                }
+
+                // Avant-bras
+                for (const s of [-1, 1]) {
+                    const forearm = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.032, 0.025, 0.28, SEG, 1),
+                        skinMat
+                    );
+                    forearm.position.set(s * 0.24, 0.92, 0.01);
+                    forearm.rotation.z = s * 0.04;
+                    g.add(forearm);
+                }
+
+                // Mains (petites sphères aplaties)
+                for (const s of [-1, 1]) {
+                    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.03, SEG, SEG / 2), skinMat);
+                    hand.scale.set(0.7, 1, 0.5);
+                    hand.position.set(s * 0.24, 0.77, 0.02);
+                    g.add(hand);
+                }
+
                 // Cou
-                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.12, 6), silMat);
-                neck.position.y = 1.46;
+                const neck = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.045, 0.05, 0.10, SEG, 1),
+                    skinMat
+                );
+                neck.position.y = 1.51;
                 g.add(neck);
 
-                // Tête
-                const head = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 10), silMat);
-                head.position.y = 1.62;
+                // Tête — ovoïde lisse
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.10, SEG, SEG), skinMat);
+                head.scale.set(0.95, 1.05, 0.95);
+                head.position.y = 1.66;
                 head.castShadow = true;
                 g.add(head);
-
-                // Bras très fins
-                const armGeo = new THREE.CylinderGeometry(0.02, 0.018, 0.60, 6);
-                for (const s of [-1, 1]) {
-                    const arm = new THREE.Mesh(armGeo, silMat);
-                    arm.position.set(s * 0.18, 1.0, 0);
-                    arm.rotation.z = s * 0.05;
-                    g.add(arm);
-                }
 
                 g.position.set(x, 0, z);
                 g.rotation.y = lookAngle || 0;
@@ -723,45 +835,93 @@
                 return g;
             }
 
-            // Silhouette 1 : zone interaction, face à l'écran
+            // Mannequin 1 : zone interaction, face à l'écran
             makePerson(-1.2, -ROOM_D / 2 + 4.5, 0);
-            // Silhouette 2 : en retrait, 3/4
+            // Mannequin 2 : en retrait, 3/4
             makePerson(3, -ROOM_D / 2 + 8, -0.4);
 
-            // Silhouette 3 : assise sur le banc
+            // Mannequin 3 : assis sur le banc
             const benchZ = -ROOM_D / 2 + 10;
             const seated = new THREE.Group();
 
-            const sTorso = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.45, 0.08), silMat);
-            sTorso.position.y = 0.67;
+            // Bassin assis
+            const sPelvis = new THREE.Mesh(new THREE.SphereGeometry(0.14, SEG, SEG / 2), skinMat);
+            sPelvis.scale.set(1, 0.5, 0.7);
+            sPelvis.position.y = 0.44;
+            seated.add(sPelvis);
+
+            // Torse assis
+            const sTorso = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.16, 0.12, 0.44, SEG, 1), skinMat
+            );
+            sTorso.position.y = 0.72;
             seated.add(sTorso);
 
-            const sNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 6), silMat);
-            sNeck.position.y = 0.93;
-            seated.add(sNeck);
-
-            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), silMat);
-            sHead.position.y = 1.05;
-            seated.add(sHead);
-
-            // Cuisses horizontales
+            // Épaules assises
             for (const s of [-1, 1]) {
-                const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
-                thigh.rotation.x = Math.PI / 2;
-                thigh.position.set(s * 0.06, 0.42, 0.18);
-                seated.add(thigh);
-                const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.022, 0.40, 6), silMat);
-                shin.position.set(s * 0.06 + (s > 0 ? 0.04 : 0), 0.2, 0.36);
-                shin.rotation.x = -0.1;
-                seated.add(shin);
+                const sh = new THREE.Mesh(new THREE.SphereGeometry(0.055, SEG, SEG / 2), skinMat);
+                sh.position.set(s * 0.18, 0.92, 0);
+                seated.add(sh);
             }
 
-            // Bras repos
+            // Cou + tête assis
+            const sNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.08, SEG), skinMat);
+            sNeck.position.y = 0.98;
+            seated.add(sNeck);
+            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, SEG, SEG), skinMat);
+            sHead.scale.set(0.95, 1.05, 0.95);
+            sHead.position.y = 1.12;
+            seated.add(sHead);
+
+            // Cuisses (horizontales vers l'avant)
             for (const s of [-1, 1]) {
-                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
-                arm.position.set(s * 0.17, 0.55, 0.05);
-                arm.rotation.z = s * 0.1;
-                seated.add(arm);
+                const thigh = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.055, 0.05, 0.40, SEG), skinMat
+                );
+                thigh.rotation.x = Math.PI / 2;
+                thigh.position.set(s * 0.08, 0.42, 0.18);
+                seated.add(thigh);
+
+                // Genou
+                const knee = new THREE.Mesh(new THREE.SphereGeometry(0.05, SEG, SEG / 2), skinMat);
+                knee.position.set(s * 0.08, 0.42, 0.38);
+                seated.add(knee);
+
+                // Tibia pendant
+                const shin = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.04, 0.035, 0.40, SEG), skinMat
+                );
+                shin.position.set(s * 0.08, 0.22, 0.38);
+                shin.rotation.x = -0.05;
+                seated.add(shin);
+
+                // Pied
+                const foot = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.08, 0.035, 0.16, 4, 2, 4), skinMat
+                );
+                foot.position.set(s * 0.08, 0.02, 0.40);
+                seated.add(foot);
+            }
+
+            // Bras assis au repos
+            for (const s of [-1, 1]) {
+                const upArm = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.038, 0.032, 0.28, SEG), skinMat
+                );
+                upArm.position.set(s * 0.20, 0.76, 0.03);
+                upArm.rotation.z = s * 0.1;
+                seated.add(upArm);
+                const forearm = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03, 0.024, 0.26, SEG), skinMat
+                );
+                forearm.position.set(s * 0.22, 0.58, 0.10);
+                forearm.rotation.x = -0.4;
+                forearm.rotation.z = s * 0.08;
+                seated.add(forearm);
+                const hand = new THREE.Mesh(new THREE.SphereGeometry(0.028, SEG, SEG / 2), skinMat);
+                hand.scale.set(0.7, 1, 0.5);
+                hand.position.set(s * 0.22, 0.48, 0.18);
+                seated.add(hand);
             }
 
             seated.position.set(0.5, 0, benchZ);
@@ -803,9 +963,31 @@
         const vignetteEl = document.getElementById('vignette');
         const hintEl = document.getElementById('hint');
 
-        document.addEventListener('click', () => {
+        const infoOverlay = document.getElementById('info-overlay');
+        let infoVisible = false;
+
+        function showInfo() {
+            if (infoVisible) return;
+            infoVisible = true;
+            infoOverlay.style.opacity = '1';
+            infoOverlay.style.pointerEvents = 'auto';
+        }
+        function hideInfo() {
+            if (!infoVisible) return;
+            infoVisible = false;
+            infoOverlay.style.opacity = '0';
+            infoOverlay.style.pointerEvents = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
             if (!isLocked) {
                 renderer.domElement.requestPointerLock();
+                return;
+            }
+
+            // In installation mode: left click toggles info (like index.html)
+            if (controlMode === 'installation') {
+                // Don't toggle if it was a right-click (handled by contextmenu)
                 return;
             }
 
@@ -822,14 +1004,23 @@
             }
         });
 
+        // Right-click or Alt: toggle info overlay in installation mode
+        document.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            if (controlMode === 'installation') {
+                if (infoVisible) hideInfo(); else showInfo();
+            }
+        });
+
         function enterInstallationMode() {
             controlMode = 'installation';
             hintEl.classList.remove('visible');
-            crosshairEl.style.display = 'none';
+            // Keep crosshair visible — user can still look around
         }
 
         function exitInstallationMode() {
             controlMode = 'gallery';
+            hideInfo();
             crosshairEl.style.display = isLocked ? 'block' : 'none';
         }
 
@@ -837,7 +1028,7 @@
             isLocked = !!document.pointerLockElement;
             if (isLocked) {
                 instructionsEl.classList.add('hidden');
-                crosshairEl.style.display = controlMode === 'gallery' ? 'block' : 'none';
+                crosshairEl.style.display = 'block';
                 vignetteEl.style.display = 'block';
             } else {
                 crosshairEl.style.display = 'none';
@@ -845,8 +1036,9 @@
             }
         });
 
+        // Mouse ALWAYS controls camera — even in installation mode
         document.addEventListener('mousemove', (e) => {
-            if (!isLocked || controlMode === 'installation') return;
+            if (!isLocked) return;
             yaw -= e.movementX * MOUSE_SENS;
             pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch - e.movementY * MOUSE_SENS));
         });
@@ -855,6 +1047,11 @@
             keys[e.code] = true;
             if (e.key === 'Escape' && controlMode === 'installation') {
                 exitInstallationMode();
+                e.preventDefault();
+            }
+            // Alt toggles info in installation mode
+            if (e.key === 'Alt' && controlMode === 'installation') {
+                if (infoVisible) hideInfo(); else showInfo();
                 e.preventDefault();
             }
         });
@@ -900,8 +1097,12 @@
         }, { passive: false });
 
         function updateMovement(dt) {
-            if (!isLocked || controlMode !== 'gallery') return;
+            if (!isLocked) return;
 
+            // Camera look — ALWAYS active (both modes)
+            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+
+            // ZQSD movement — works in BOTH modes
             const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
             const rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
             const vel = new THREE.Vector3();
@@ -921,7 +1122,13 @@
             camera.position.z = Math.max(-ROOM_D/2 + m, Math.min(ROOM_D/2 - m, camera.position.z));
             camera.position.y = EYE_HEIGHT;
 
-            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+            // Auto-exit installation mode if too far from screen
+            if (controlMode === 'installation') {
+                const screenDist = camera.position.distanceTo(new THREE.Vector3(0, SCREEN_CENTER_Y, -ROOM_D / 2));
+                if (screenDist > INTERACTION_DIST + 8) {
+                    exitInstallationMode();
+                }
+            }
         }
 
         function updateHint() {
