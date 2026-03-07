@@ -1749,37 +1749,37 @@
       },
       {
         name: "État 2",
-        size: 0.04, density: 0.6, disparity: 0.3,
+        size: 0.04, density: 0.6, disparity: 0.5,
         movement: 0.008, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
         name: "État 3",
-        size: 0.04, density: 0.6, disparity: 0.8,
+        size: 0.04, density: 0.6, disparity: 1.4,
         movement: 0.025, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
         name: "État 4",
-        size: 0.04, density: 0.6, disparity: 1.5,
+        size: 0.04, density: 0.6, disparity: 2.5,
         movement: 0.06, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
         name: "État 5",
-        size: 0.04, density: 0.6, disparity: 2.2,
+        size: 0.04, density: 0.6, disparity: 3.8,
         movement: 0.15, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
         name: "État 6",
-        size: 0.04, density: 0.6, disparity: 2.5,
+        size: 0.04, density: 0.6, disparity: 4.5,
         movement: 0.35, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       },
       {
         name: "État 7",
-        size: 0.04, density: 0.6, disparity: 2.77,
+        size: 0.04, density: 0.6, disparity: 5.0,
         movement: 0.5, randomness: 0.4, saturation: 1,
         hideBlack: 0, shape: "circle", movementMode: 2
       }
@@ -1844,8 +1844,8 @@
     let imagesPreloaded = false;
 
     // Poids du moteur hybride depth map + luminance (v4)
-    let depthMacroWeight = 0.7;  // Poids de la depth map (séparation des grands plans)
-    let depthMicroWeight = 0.3;  // Poids de la luminance photo (micro-relief sculptural)
+    let depthMacroWeight = 0.85;  // Poids de la depth map (séparation des grands plans)
+    let depthMicroWeight = 0.15;  // Poids de la luminance photo (micro-relief sculptural)
 
     // Pré-charger une depth map avec le MÊME crop que la photo (silencieux si 404)
     function preloadDepthMap(imageIndex) {
@@ -3360,7 +3360,7 @@
         });
 
         // === SUB-BASS ===
-        const depthNorm = disparity / 2.77;
+        const depthNorm = disparity / 5.0;
         const subVol = T.subVol * 0.5 * depthNorm * (0.4 + proximity * 0.6);
         layers.sub.gain.gain.setTargetAtTime(subVol, now, TAU);
         layers.sub.panDepth.gain.setTargetAtTime(depthNorm * 0.5, now, 0.6);
