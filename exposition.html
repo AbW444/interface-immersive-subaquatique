@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volume Photographique — Maquette d'exposition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #instructions {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.85);
+            color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            z-index: 100; cursor: pointer; user-select: none;
+            transition: opacity 0.6s ease;
+        }
+        #instructions.hidden { opacity: 0; pointer-events: none; }
+        #instructions h1 {
+            font-size: 2.4rem; font-weight: 300; letter-spacing: 0.15em;
+            margin-bottom: 2rem; text-transform: uppercase;
+        }
+        #instructions p {
+            font-size: 1rem; font-weight: 300; letter-spacing: 0.08em;
+            color: #aaa; line-height: 2;
+        }
+        #crosshair {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 20px; height: 20px; z-index: 50; pointer-events: none; display: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(255,255,255,0.4);
+        }
+        #crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
+        #crosshair::after { width: 100%; height: 1px; top: 50%; left: 0; }
+        /* Vignette */
+        #vignette {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10; display: none;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="instructions">
+        <h1>Cliquer pour entrer</h1>
+        <p>ZQSD &middot; fl&egrave;ches pour se d&eacute;placer<br>Souris pour regarder</p>
+    </div>
+    <div id="crosshair"></div>
+    <div id="vignette"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    (function() {
+        'use strict';
+
+        // =============================================
+        // CONSTANTES
+        // =============================================
+        const ROOM_W = 18, ROOM_D = 12, ROOM_H = 5;
+        const EYE_HEIGHT = 1.6;
+        const MOVE_SPEED = 3;
+        const MOUSE_SENS = 0.002;
+        const PITCH_LIMIT = Math.PI * 80 / 180;
+
+        const SCREEN_W = 6, SCREEN_H = 3.4;
+        const SCREEN_BOTTOM = 0.8;
+        const SCREEN_CENTER_Y = SCREEN_BOTTOM + SCREEN_H / 2;
+
+        const PARTICLE_COUNT = 100000;
+        const RT_W = 1920, RT_H = 1080;
+
+        // =============================================
+        // RENDERER & SCENES
+        // =============================================
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.9;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.body.appendChild(renderer.domElement);
+
+        // Scene galerie
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        // Camera FPS
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.set(0, EYE_HEIGHT, 5);
+
+        // Scene particules (rendue dans un RenderTarget)
+        const particleScene = new THREE.Scene();
+        particleScene.background = new THREE.Color(0x020508);
+        const particleCamera = new THREE.PerspectiveCamera(50, RT_W / RT_H, 0.1, 100);
+        particleCamera.position.set(0, 0, 8);
+
+        const renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat
+        });
+
+        // =============================================
+        // GALLERY ARCHITECTURE
+        // =============================================
+        function buildGallery() {
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0xf0f0f0, roughness: 0.9, metalness: 0.0
+            });
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a, roughness: 0.3, metalness: 0.1
+            });
+            const ceilMat = new THREE.MeshStandardMaterial({
+                color: 0xf0f0f0, roughness: 0.95, metalness: 0.0
+            });
+
+            // Sol
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_W, ROOM_D),
+                floorMat
+            );
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Plafond
+            const ceiling = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_W, ROOM_D),
+                ceilMat
+            );
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.y = ROOM_H;
+            scene.add(ceiling);
+
+            // Mur du fond (derrière l'écran)
+            const backWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_W, ROOM_H),
+                wallMat
+            );
+            backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
+            backWall.receiveShadow = true;
+            scene.add(backWall);
+
+            // Mur d'entrée (derrière le visiteur)
+            const frontWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_W, ROOM_H),
+                wallMat
+            );
+            frontWall.position.set(0, ROOM_H / 2, ROOM_D / 2);
+            frontWall.rotation.y = Math.PI;
+            scene.add(frontWall);
+
+            // Mur gauche
+            const leftWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_D, ROOM_H),
+                wallMat
+            );
+            leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            scene.add(leftWall);
+
+            // Mur droit
+            const rightWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(ROOM_D, ROOM_H),
+                wallMat
+            );
+            rightWall.position.set(ROOM_W / 2, ROOM_H / 2, 0);
+            rightWall.rotation.y = -Math.PI / 2;
+            scene.add(rightWall);
+        }
+
+        // =============================================
+        // SCREEN (projection)
+        // =============================================
+        let screenMesh;
+        function buildScreen() {
+            const screenMat = new THREE.MeshBasicMaterial({
+                map: renderTarget.texture
+            });
+            screenMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(SCREEN_W, SCREEN_H),
+                screenMat
+            );
+            screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.02);
+            scene.add(screenMesh);
+
+            // Reflet au sol
+            const reflectMat = new THREE.MeshBasicMaterial({
+                map: renderTarget.texture,
+                transparent: true,
+                opacity: 0.07,
+                blending: THREE.AdditiveBlending
+            });
+            const reflect = new THREE.Mesh(
+                new THREE.PlaneGeometry(SCREEN_W * 1.2, SCREEN_H * 0.8),
+                reflectMat
+            );
+            reflect.rotation.x = -Math.PI / 2;
+            reflect.position.set(0, 0.005, -ROOM_D / 2 + SCREEN_H * 0.4 + 0.5);
+            // Flip vertical pour simuler reflet
+            reflect.scale.y = -1;
+            scene.add(reflect);
+
+            // Lueur diffuse au sol devant l'écran
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0x1a6060,
+                transparent: true,
+                opacity: 0.04,
+                blending: THREE.AdditiveBlending
+            });
+            const glow = new THREE.Mesh(
+                new THREE.PlaneGeometry(SCREEN_W * 1.5, 5),
+                glowMat
+            );
+            glow.rotation.x = -Math.PI / 2;
+            glow.position.set(0, 0.006, -ROOM_D / 2 + 3);
+            scene.add(glow);
+        }
+
+        // =============================================
+        // LIGHTING
+        // =============================================
+        function buildLighting() {
+            // Ambient
+            const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+            scene.add(ambient);
+
+            // Spot gauche → écran
+            const spot1 = new THREE.SpotLight(0xfff5e6, 0.8, 15, Math.PI / 6, 0.5, 1);
+            spot1.position.set(-1.5, ROOM_H - 0.1, -ROOM_D / 2 + 4);
+            spot1.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
+            spot1.castShadow = true;
+            spot1.shadow.mapSize.set(512, 512);
+            scene.add(spot1);
+            scene.add(spot1.target);
+
+            // Spot droit → écran
+            const spot2 = new THREE.SpotLight(0xfff5e6, 0.8, 15, Math.PI / 6, 0.5, 1);
+            spot2.position.set(1.5, ROOM_H - 0.1, -ROOM_D / 2 + 4);
+            spot2.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
+            spot2.castShadow = true;
+            spot2.shadow.mapSize.set(512, 512);
+            scene.add(spot2);
+            scene.add(spot2.target);
+
+            // Point light douce depuis l'écran (simule irradiation)
+            const screenGlow = new THREE.PointLight(0x29AC9C, 0.3, 10, 2);
+            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.5);
+            scene.add(screenGlow);
+        }
+
+        // =============================================
+        // CARTEL
+        // =============================================
+        function buildCartel() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+
+            // Fond blanc
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 512, 400);
+
+            ctx.fillStyle = '#111111';
+            ctx.textBaseline = 'top';
+
+            // Titre
+            ctx.font = '600 28px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            ctx.fillText('VOLUME PHOTOGRAPHIQUE', 30, 30);
+
+            // Ligne de séparation
+            ctx.fillRect(30, 70, 80, 1.5);
+
+            // Infos
+            ctx.font = '300 18px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            ctx.fillStyle = '#333333';
+            const lines = [
+                'Holosene, 2025-2026',
+                '',
+                'Photographies : Nicolas Floc\'h',
+                'Série Invisible, Calanques, 2018-2020',
+                'Palette : La couleur de l\'eau,',
+                'FRAC PACA, 2020',
+                '',
+                'Three.js, Web Audio API,',
+                'Depth Anything V2',
+                '',
+                'Expérience web interactive'
+            ];
+            let y = 95;
+            for (const line of lines) {
+                ctx.fillText(line, 30, y);
+                y += line === '' ? 12 : 24;
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
+            const mat = new THREE.MeshStandardMaterial({
+                map: tex, roughness: 0.8, metalness: 0.0
+            });
+            const cartel = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.4, 0.32),
+                mat
+            );
+            cartel.position.set(SCREEN_W / 2 + 0.7, 1.5, -ROOM_D / 2 + 0.02);
+            scene.add(cartel);
+        }
+
+        // =============================================
+        // INTERACTION ZONE + SENSOR
+        // =============================================
+        function buildInteractionZone() {
+            // Rectangle au sol (lignes)
+            const linesMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 });
+            const zoneW = 3, zoneD = 2;
+            const zoneZ = -ROOM_D / 2 + 3;
+            const pts = [
+                new THREE.Vector3(-zoneW/2, 0.005, zoneZ - zoneD/2),
+                new THREE.Vector3(zoneW/2, 0.005, zoneZ - zoneD/2),
+                new THREE.Vector3(zoneW/2, 0.005, zoneZ + zoneD/2),
+                new THREE.Vector3(-zoneW/2, 0.005, zoneZ + zoneD/2),
+                new THREE.Vector3(-zoneW/2, 0.005, zoneZ - zoneD/2),
+            ];
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+            scene.add(new THREE.Line(lineGeo, linesMat));
+
+            // Capteur sur pied
+            const sensorZ = -ROOM_D / 2 + 3;
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5, metalness: 0.6 });
+            // Pied
+            const pole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.025, 1.1, 8),
+                poleMat
+            );
+            pole.position.set(0, 0.55, sensorZ);
+            pole.castShadow = true;
+            scene.add(pole);
+            // Tête capteur
+            const head = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.04, 0.04, 0.1, 12),
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 })
+            );
+            head.position.set(0, 1.15, sensorZ);
+            scene.add(head);
+            // LED indicateur
+            const led = new THREE.Mesh(
+                new THREE.SphereGeometry(0.008, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x29AC9C })
+            );
+            led.position.set(0, 1.21, sensorZ - 0.04);
+            scene.add(led);
+            // Base
+            const base = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16),
+                poleMat
+            );
+            base.position.set(0, 0.01, sensorZ);
+            scene.add(base);
+        }
+
+        // =============================================
+        // SILHOUETTES
+        // =============================================
+        function buildSilhouettes() {
+            const silMat = new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a, roughness: 0.9, metalness: 0.0
+            });
+
+            function makeSilhouette(x, z, scale) {
+                const s = scale || 1;
+                const group = new THREE.Group();
+                // Corps (capsule = cylindre + 2 sphères)
+                const body = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.18 * s, 0.16 * s, 0.9 * s, 8),
+                    silMat
+                );
+                body.position.y = 0.7 * s;
+                body.castShadow = true;
+                group.add(body);
+
+                // Jambes
+                const legGeo = new THREE.CylinderGeometry(0.06 * s, 0.06 * s, 0.8 * s, 6);
+                const legL = new THREE.Mesh(legGeo, silMat);
+                legL.position.set(-0.08 * s, 0.18 * s, 0);
+                legL.castShadow = true;
+                group.add(legL);
+                const legR = new THREE.Mesh(legGeo, silMat);
+                legR.position.set(0.08 * s, 0.18 * s, 0);
+                legR.castShadow = true;
+                group.add(legR);
+
+                // Tête
+                const head = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.12 * s, 10, 10),
+                    silMat
+                );
+                head.position.y = 1.32 * s;
+                head.castShadow = true;
+                group.add(head);
+
+                // Cou
+                const neck = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.12 * s, 6),
+                    silMat
+                );
+                neck.position.y = 1.18 * s;
+                group.add(neck);
+
+                group.position.set(x, 0, z);
+                group.scale.y = 1.18; // un peu plus grand
+                scene.add(group);
+                return group;
+            }
+
+            // Visiteur proche (dans la zone d'interaction), regardant l'écran
+            const s1 = makeSilhouette(-0.8, -ROOM_D / 2 + 2.5, 1);
+            s1.rotation.y = Math.PI * 0.05;
+
+            // Visiteur en retrait, observant
+            const s2 = makeSilhouette(2.5, 0, 0.95);
+            s2.rotation.y = -Math.PI * 0.1;
+
+            // Visiteur assis sur le banc (plus petit pour simuler assis)
+            const s3Group = new THREE.Group();
+            const sittingBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.16, 0.14, 0.6, 8),
+                silMat
+            );
+            sittingBody.position.y = 0.75;
+            s3Group.add(sittingBody);
+            const sittingHead = new THREE.Mesh(
+                new THREE.SphereGeometry(0.11, 10, 10),
+                silMat
+            );
+            sittingHead.position.y = 1.15;
+            s3Group.add(sittingHead);
+            // Jambes pliées
+            const sLeg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.05, 0.45, 6),
+                silMat
+            );
+            sLeg.rotation.x = Math.PI / 2.5;
+            sLeg.position.set(0.08, 0.4, 0.15);
+            s3Group.add(sLeg);
+            const sLeg2 = sLeg.clone();
+            sLeg2.position.x = -0.08;
+            s3Group.add(sLeg2);
+            s3Group.position.set(-0.5, 0, ROOM_D / 2 - 3.5);
+            scene.add(s3Group);
+        }
+
+        // =============================================
+        // BANC
+        // =============================================
+        function buildBench() {
+            const benchMat = new THREE.MeshStandardMaterial({
+                color: 0x2a1f14, roughness: 0.75, metalness: 0.05
+            });
+            const benchZ = ROOM_D / 2 - 3.5;
+
+            // Assise
+            const seat = new THREE.Mesh(
+                new THREE.BoxGeometry(2.4, 0.06, 0.4),
+                benchMat
+            );
+            seat.position.set(0, 0.44, benchZ);
+            seat.castShadow = true;
+            seat.receiveShadow = true;
+            scene.add(seat);
+
+            // Pieds (4 pieds en métal)
+            const legMat = new THREE.MeshStandardMaterial({
+                color: 0x1a1a1a, roughness: 0.4, metalness: 0.7
+            });
+            const legGeo = new THREE.BoxGeometry(0.04, 0.44, 0.04);
+            const positions = [
+                [-1.1, 0.22, benchZ - 0.15],
+                [-1.1, 0.22, benchZ + 0.15],
+                [1.1, 0.22, benchZ - 0.15],
+                [1.1, 0.22, benchZ + 0.15]
+            ];
+            for (const p of positions) {
+                const leg = new THREE.Mesh(legGeo, legMat);
+                leg.position.set(p[0], p[1], p[2]);
+                leg.castShadow = true;
+                scene.add(leg);
+            }
+        }
+
+        // =============================================
+        // PARTICLE SYSTEM (for the virtual screen)
+        // =============================================
+        let particles;
+        function buildParticles() {
+            const count = PARTICLE_COUNT;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const depths = new Float32Array(count); // for animation
+
+            // Color gradient: deep blue → teal → turquoise
+            const colorDeep = new THREE.Color(0x012B4F);
+            const colorMid = new THREE.Color(0x017979);
+            const colorSurface = new THREE.Color(0x29AC9C);
+
+            // Grid layout with slight randomness
+            const gridW = Math.ceil(Math.sqrt(count * (16/9)));
+            const gridH = Math.ceil(count / gridW);
+            const aspect = 16 / 9;
+
+            const spreadX = 7;
+            const spreadY = spreadX / aspect;
+
+            for (let i = 0; i < count; i++) {
+                const gx = i % gridW;
+                const gy = Math.floor(i / gridW);
+
+                const nx = gx / gridW;     // 0..1
+                const ny = gy / gridH;     // 0..1
+
+                // Position XY on grid
+                const x = (nx - 0.5) * spreadX;
+                const y = (0.5 - ny) * spreadY;
+
+                // Procedural "depth" - create a landscape-like depth
+                // Multiple octaves of sin/cos for organic feel
+                const freq1 = 2.5, freq2 = 5.0, freq3 = 8.0;
+                const d1 = Math.sin(nx * freq1 * Math.PI) * Math.cos(ny * freq1 * Math.PI * 0.7) * 0.5;
+                const d2 = Math.sin(nx * freq2 * Math.PI + 1.3) * Math.cos(ny * freq2 * Math.PI + 0.7) * 0.25;
+                const d3 = Math.sin(nx * freq3 * Math.PI + 2.1) * Math.sin(ny * freq3 * Math.PI + 1.1) * 0.12;
+
+                // Gradient from bottom (deep) to top (surface)
+                const depthGrad = (1 - ny) * 0.4 - 0.2;
+
+                const depth = d1 + d2 + d3 + depthGrad;
+                depths[i] = depth;
+
+                const z = depth * 1.5;
+
+                // Add slight noise
+                const jitterX = (Math.random() - 0.5) * 0.015;
+                const jitterY = (Math.random() - 0.5) * 0.015;
+
+                positions[i * 3] = x + jitterX;
+                positions[i * 3 + 1] = y + jitterY;
+                positions[i * 3 + 2] = z;
+
+                // Color based on depth: deep=blue, surface=turquoise
+                const t = (depth + 0.8) / 1.6; // normalize to ~0..1
+                const tc = Math.max(0, Math.min(1, t));
+                const color = new THREE.Color();
+                if (tc < 0.5) {
+                    color.lerpColors(colorDeep, colorMid, tc * 2);
+                } else {
+                    color.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
+                }
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const mat = new THREE.PointsMaterial({
+                size: 0.025,
+                vertexColors: true,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particles = new THREE.Points(geo, mat);
+            particles.userData.depths = depths;
+            particleScene.add(particles);
+        }
+
+        // Try loading a real image for the particles
+        function tryLoadImageParticles() {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const w = 400, h = Math.round(400 * img.height / img.width);
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const imgData = ctx.getImageData(0, 0, w, h);
+
+                const count = Math.min(PARTICLE_COUNT, w * h);
+                const positions = particles.geometry.attributes.position.array;
+                const colors = particles.geometry.attributes.color.array;
+                const depths = particles.userData.depths;
+
+                const aspect = w / h;
+                const spreadX = 7;
+                const spreadY = spreadX / aspect;
+
+                const colorDeep = new THREE.Color(0x012B4F);
+                const colorMid = new THREE.Color(0x017979);
+                const colorSurface = new THREE.Color(0x29AC9C);
+
+                // Sample pixels
+                const step = Math.max(1, Math.floor((w * h) / count));
+                let idx = 0;
+                for (let p = 0; p < w * h && idx < count; p += step) {
+                    const px = p % w;
+                    const py = Math.floor(p / w);
+                    const pi = (py * w + px) * 4;
+
+                    const r = imgData.data[pi] / 255;
+                    const g = imgData.data[pi + 1] / 255;
+                    const b = imgData.data[pi + 2] / 255;
+                    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                    const nx = px / w;
+                    const ny = py / h;
+
+                    positions[idx * 3] = (nx - 0.5) * spreadX;
+                    positions[idx * 3 + 1] = (0.5 - ny) * spreadY;
+                    positions[idx * 3 + 2] = (lum - 0.5) * 2.5;
+
+                    depths[idx] = lum - 0.5;
+
+                    // Tinted colors (keep photo hue but shift toward palette)
+                    const tc = Math.max(0, Math.min(1, lum));
+                    const palColor = new THREE.Color();
+                    if (tc < 0.5) {
+                        palColor.lerpColors(colorDeep, colorMid, tc * 2);
+                    } else {
+                        palColor.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
+                    }
+                    // Mix original color with palette
+                    colors[idx * 3] = r * 0.3 + palColor.r * 0.7;
+                    colors[idx * 3 + 1] = g * 0.3 + palColor.g * 0.7;
+                    colors[idx * 3 + 2] = b * 0.3 + palColor.b * 0.7;
+
+                    idx++;
+                }
+
+                particles.geometry.attributes.position.needsUpdate = true;
+                particles.geometry.attributes.color.needsUpdate = true;
+            };
+            // Try loading from project
+            img.src = 'Ressources/IMG_001.jpg';
+        }
+
+        // =============================================
+        // FPS CONTROLS
+        // =============================================
+        let yaw = 0, pitch = 0;
+        const keys = {};
+        let isLocked = false;
+
+        const instructions = document.getElementById('instructions');
+        const crosshair = document.getElementById('crosshair');
+        const vignette = document.getElementById('vignette');
+
+        document.addEventListener('click', () => {
+            if (!isLocked) {
+                renderer.domElement.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            isLocked = !!document.pointerLockElement;
+            if (isLocked) {
+                instructions.classList.add('hidden');
+                crosshair.style.display = 'block';
+                vignette.style.display = 'block';
+            } else {
+                crosshair.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isLocked) return;
+            yaw -= e.movementX * MOUSE_SENS;
+            pitch -= e.movementY * MOUSE_SENS;
+            pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.key === 'Escape' && isLocked) {
+                document.exitPointerLock();
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        function updateMovement(dt) {
+            if (!isLocked) return;
+
+            const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            const velocity = new THREE.Vector3();
+
+            // ZQSD + Arrows
+            if (keys['KeyW'] || keys['KeyZ'] || keys['ArrowUp']) velocity.add(forward);
+            if (keys['KeyS'] || keys['ArrowDown']) velocity.sub(forward);
+            if (keys['KeyA'] || keys['KeyQ'] || keys['ArrowLeft']) velocity.sub(right);
+            if (keys['KeyD'] || keys['ArrowRight']) velocity.add(right);
+
+            if (velocity.lengthSq() > 0) {
+                velocity.normalize().multiplyScalar(MOVE_SPEED * dt);
+                camera.position.add(velocity);
+            }
+
+            // Collisions (clamp inside room with margin)
+            const margin = 0.35;
+            camera.position.x = Math.max(-ROOM_W / 2 + margin, Math.min(ROOM_W / 2 - margin, camera.position.x));
+            camera.position.z = Math.max(-ROOM_D / 2 + margin, Math.min(ROOM_D / 2 - margin, camera.position.z));
+            camera.position.y = EYE_HEIGHT;
+
+            // Apply look rotation
+            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+            camera.quaternion.setFromEuler(euler);
+        }
+
+        // =============================================
+        // ANIMATION
+        // =============================================
+        let prevTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            const dt = Math.min((now - prevTime) / 1000, 0.1);
+            prevTime = now;
+            const t = now / 1000;
+
+            // Update FPS movement
+            updateMovement(dt);
+
+            // Animate particles
+            if (particles) {
+                const positions = particles.geometry.attributes.position.array;
+                const depths = particles.userData.depths;
+                const count = depths.length;
+
+                // Breathing: oscillation Z
+                const breathAmp = 0.15;
+                const breathFreq = 0.4;
+
+                for (let i = 0; i < count; i++) {
+                    const baseDepth = depths[i];
+                    // Breathing with phase offset based on position
+                    const px = positions[i * 3];
+                    const py = positions[i * 3 + 1];
+                    const phase = px * 0.3 + py * 0.5;
+                    const breath = Math.sin(t * breathFreq * Math.PI * 2 + phase) * breathAmp * (0.5 + Math.abs(baseDepth));
+
+                    positions[i * 3 + 2] = baseDepth * 1.5 + breath;
+                }
+                particles.geometry.attributes.position.needsUpdate = true;
+
+                // Camera cycle: zoom in/out over 15s
+                const cycle = t * (2 * Math.PI / 15);
+                const zoomOffset = Math.sin(cycle) * 3.0;
+                particleCamera.position.z = 8 + zoomOffset;
+
+                // Slight Y rotation (±5°)
+                const rotY = Math.sin(cycle * 0.7) * (5 * Math.PI / 180);
+                particleCamera.rotation.y = rotY;
+
+                // Subtle vertical sway
+                particleCamera.position.y = Math.sin(cycle * 0.5 + 1) * 0.15;
+                particleCamera.lookAt(0, particleCamera.position.y * 0.3, 0);
+            }
+
+            // Render particle scene to RenderTarget
+            renderer.setRenderTarget(renderTarget);
+            renderer.render(particleScene, particleCamera);
+
+            // Render gallery scene
+            renderer.setRenderTarget(null);
+            renderer.render(scene, camera);
+        }
+
+        // =============================================
+        // RESIZE
+        // =============================================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // =============================================
+        // INIT
+        // =============================================
+        buildGallery();
+        buildScreen();
+        buildLighting();
+        buildCartel();
+        buildInteractionZone();
+        buildSilhouettes();
+        buildBench();
+        buildParticles();
+        tryLoadImageParticles();
+        animate();
+
+    })();
+    </script>
+</body>
+</html>
