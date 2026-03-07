@@ -2498,14 +2498,17 @@
 
       precomputeInProgress = true;
 
-      // Capturer oldColors/oldDepths MAINTENANT (avant que les chunks ne s'étalent)
-      const oldColorsCopy = particles.geometry.attributes.color.array.slice();
-      const oldDepthsCopy = particles.geometry.attributes.normalizedDepth ? particles.geometry.attributes.normalizedDepth.array.slice() : null;
+      // Références vers les tableaux live (stables car pas de transition en cours)
+      const liveColorsArray = particles.geometry.attributes.color.array;
+      const liveDepthsArray = particles.geometry.attributes.normalizedDepth ? particles.geometry.attributes.normalizedDepth.array : null;
 
       const sourcePixels = particles.userData.sourcePixels;
       const len = sourcePixels.length;
+      // Allouer buffers vides (pas de copie, juste allocation rapide)
       const colors = new Float32Array(len * 3);
       const depths = new Float32Array(len);
+      const oldColorsCopy = new Float32Array(len * 3);
+      const oldDepthsCopy = liveDepthsArray ? new Float32Array(len) : null;
       const currentDepthMap = depthMapCache.get(nextImageIndex) || null;
       const targetWidth = TARGET_WIDTH;
 
@@ -2521,6 +2524,16 @@
         }
 
         const end = Math.min(offset + CHUNK_SIZE, len);
+
+        // Copier le chunk des couleurs/profondeurs actuelles (étale la copie ~46MB sur plusieurs frames)
+        const colorStart = offset * 3;
+        const colorEnd = end * 3;
+        oldColorsCopy.set(liveColorsArray.subarray(colorStart, colorEnd), colorStart);
+        if (oldDepthsCopy && liveDepthsArray) {
+          oldDepthsCopy.set(liveDepthsArray.subarray(offset, end), offset);
+        }
+
+        // Calculer le chunk de transition pour la prochaine image
         computeTransitionChunk(sourcePixels, imgData, currentDepthMap, targetWidth, colors, depths, nextImageIndex, offset, end);
         offset = end;
 
