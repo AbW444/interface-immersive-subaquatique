@@ -2525,20 +2525,13 @@
     let preloadDone = false;
     function onReady() {
       preloadDone = true;
-      // Charger la première image, puis fondu du noir
+      // Charger la première image
       loadImage(currentImageIndex);
-      const loadingScreen = document.getElementById('loading-screen');
-      if (loadingScreen) {
-        loadingScreen.classList.add('hidden'); // Fondu 1.2s
-        setTimeout(() => loadingScreen.remove(), 1300);
-      }
-      // Si le click-gate a déjà été supprimé, lancer le landing immédiatement
-      // Sinon, dismissClickGate() appellera showLanding() après son animation
+      // Le loading-screen est déjà retiré par dismissClickGate()
+      // Si le click-gate a déjà été supprimé et le landing pas encore lancé, le lancer
       if (!document.getElementById('click-gate')) {
         showLanding();
       }
-      // Scroll indicator setup is deferred until landing page is dismissed
-      // (see dismissLanding → setupExperienceScrollIndicator)
     }
 
     function showLanding() {
@@ -4327,10 +4320,16 @@
       // Son de dismiss whoosh
       AudioEngine.playDismissWhoosh();
       clickGate.classList.add('dismissing');
+      // Retirer le loading-screen immédiatement (le landing-page a son propre fond noir)
+      const loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+        setTimeout(() => loadingScreen.remove(), 1300);
+      }
       setTimeout(() => {
         clickGate.remove();
-        // Si le preload est déjà terminé, lancer le landing maintenant
-        if (preloadDone) showLanding();
+        // Lancer le landing immédiatement (le preload continue en arrière-plan)
+        showLanding();
       }, 1700);
       // LANCER LE CHARGEMENT DES IMAGES maintenant (après le clic, pas avant)
       startPreload();
