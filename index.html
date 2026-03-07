@@ -1711,6 +1711,9 @@
     let newDepths = null;
     let transitionCooldown = 0; // Frames de cooldown post-transition avant reload autorisé
     let hasTriggeredTransition = false; // Pour éviter déclenchements multiples
+    // Pré-calcul de la transition (évite le lag au zoom max)
+    let precomputedTransition = null; // { nextImageIndex, colors, depths }
+    let hasPrecomputed = false;
 
     const textureLoader = new THREE.TextureLoader();
 
@@ -2477,25 +2480,54 @@
       return { colors, depths };
     }
 
+    // Pré-calcul anticipé de la transition (appelé à ~60% du zoom)
+    function precomputeNextTransition() {
+      if (hasPrecomputed || isTransitioning || availableImages.length === 0) return;
+      const currentIndex = availableImages.indexOf(currentImageIndex);
+      let nextIndex = (currentIndex + 1) % availableImages.length;
+      let nextImageIndex = availableImages[nextIndex];
+      if (nextImageIndex === currentImageIndex) return;
+
+      const result = computeTransitionData(nextImageIndex);
+      if (result) {
+        // Capturer les couleurs/depths actuelles maintenant
+        precomputedTransition = {
+          nextImageIndex,
+          colors: result.colors,
+          depths: result.depths,
+          oldColors: particles ? particles.geometry.attributes.color.array.slice() : null,
+          oldDepths: particles && particles.geometry.attributes.normalizedDepth ? particles.geometry.attributes.normalizedDepth.array.slice() : null
+        };
+        hasPrecomputed = true;
+      }
+    }
+
     // Fonction pour transition fluide vers l'image suivante
     function transitionToNextImage() {
       if (isTransitioning) return;
-
       if (availableImages.length === 0) return;
 
-      // Trouver l'index actuel dans le tableau d'images disponibles
-      const currentIndex = availableImages.indexOf(currentImageIndex);
-
-      // Passer à l'image suivante dans le cycle des images disponibles
-      let nextIndex = (currentIndex + 1) % availableImages.length;
-      let nextImageIndex = availableImages[nextIndex];
-
-      if (nextImageIndex === currentImageIndex) {
-        nextIndex = (currentIndex + 1) % availableImages.length;
-        nextImageIndex = availableImages[nextIndex];
+      // Utiliser les données pré-calculées si disponibles
+      if (precomputedTransition) {
+        oldColors = precomputedTransition.oldColors;
+        oldDepths = precomputedTransition.oldDepths;
+        newColors = precomputedTransition.colors;
+        newDepths = precomputedTransition.depths;
+        currentImageIndex = precomputedTransition.nextImageIndex;
+        isTransitioning = true;
+        transitionProgress = 0;
+        if (typeof updateCursorColor === 'function') updateCursorColor(currentImageIndex);
+        precomputedTransition = null;
+        hasPrecomputed = false;
+        return;
       }
 
-      // Capturer l'état actuel (aligné avec la géométrie)
+      // Fallback: calcul synchrone (ne devrait pas arriver)
+      const currentIndex = availableImages.indexOf(currentImageIndex);
+      let nextIndex = (currentIndex + 1) % availableImages.length;
+      let nextImageIndex = availableImages[nextIndex];
+      if (nextImageIndex === currentImageIndex) return;
+
       if (particles && particles.geometry.attributes.color) {
         oldColors = particles.geometry.attributes.color.array.slice();
       }
@@ -2503,8 +2535,6 @@
         oldDepths = particles.geometry.attributes.normalizedDepth.array.slice();
       }
 
-      // Calculer les données cibles aux MÊMES positions pixels que la géométrie
-      // (pas depuis le cache qui peut avoir un sampling différent)
       const result = computeTransitionData(nextImageIndex);
       if (result) {
         newColors = result.colors;
@@ -2512,7 +2542,6 @@
         currentImageIndex = nextImageIndex;
         isTransitioning = true;
         transitionProgress = 0;
-        // Mettre à jour la couleur du curseur pour la nouvelle image
         if (typeof updateCursorColor === 'function') updateCursorColor(nextImageIndex);
       }
     }
@@ -3733,6 +3762,11 @@
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
       }
 
+      // PRÉ-CALCUL ANTICIPÉ: préparer la transition à 60% du zoom pour éviter le lag
+      if (scrollPhase === 'zoomIn' && !hasPrecomputed && !isTransitioning && zoomLevel > MAX_ZOOM_LEVEL * 0.6) {
+        precomputeNextTransition();
+      }
+
       // DÉTECTION DES POINTS DE BASCULE: Cycle bidirectionnel infini
       // IMPORTANT: Utiliser zoomLevel (position réelle lissée) et non targetZoomLevel (cible scroll)
       if (scrollPhase === 'zoomIn' && zoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
@@ -3745,6 +3779,8 @@
         scrollPhase = 'zoomIn';
         targetZoomLevel = 0;
         hasTriggeredTransition = false;
+        hasPrecomputed = false;
+        precomputedTransition = null;
         isInDeadZone = true;
         scrollDeadZoneAccumulator = 0;
         wheelScrollAccumulator = 0;
