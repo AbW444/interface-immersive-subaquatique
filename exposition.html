@@ -11,41 +11,40 @@
         #instructions {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0,0,0,0.88);
             color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             z-index: 100; cursor: pointer; user-select: none;
-            transition: opacity 0.6s ease;
+            transition: opacity 0.8s ease;
         }
         #instructions.hidden { opacity: 0; pointer-events: none; }
         #instructions h1 {
-            font-size: 2.4rem; font-weight: 300; letter-spacing: 0.15em;
-            margin-bottom: 2rem; text-transform: uppercase;
+            font-size: 2rem; font-weight: 300; letter-spacing: 0.2em;
+            margin-bottom: 2.5rem; text-transform: uppercase;
         }
         #instructions p {
-            font-size: 1rem; font-weight: 300; letter-spacing: 0.08em;
-            color: #aaa; line-height: 2;
+            font-size: 0.9rem; font-weight: 300; letter-spacing: 0.1em;
+            color: #888; line-height: 2.2; text-align: center;
         }
         #crosshair {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 20px; height: 20px; z-index: 50; pointer-events: none; display: none;
+            width: 16px; height: 16px; z-index: 50; pointer-events: none; display: none;
         }
         #crosshair::before, #crosshair::after {
-            content: ''; position: absolute; background: rgba(255,255,255,0.4);
+            content: ''; position: absolute; background: rgba(255,255,255,0.3);
         }
         #crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
         #crosshair::after { width: 100%; height: 1px; top: 50%; left: 0; }
-        /* Vignette */
         #vignette {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 10; display: none;
-            background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.5) 100%);
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
         }
     </style>
 </head>
 <body>
     <div id="instructions">
         <h1>Cliquer pour entrer</h1>
-        <p>ZQSD &middot; fl&egrave;ches pour se d&eacute;placer<br>Souris pour regarder</p>
+        <p>ZQSD pour se déplacer<br>Souris pour regarder</p>
     </div>
     <div id="crosshair"></div>
     <div id="vignette"></div>
@@ -60,11 +59,11 @@
         // =============================================
         const ROOM_W = 18, ROOM_D = 12, ROOM_H = 5;
         const EYE_HEIGHT = 1.6;
-        const MOVE_SPEED = 3;
+        const MOVE_SPEED = 2.5;
         const MOUSE_SENS = 0.002;
         const PITCH_LIMIT = Math.PI * 80 / 180;
 
-        const SCREEN_W = 6, SCREEN_H = 3.4;
+        const SCREEN_W = 6, SCREEN_H = 3.375; // exact 16:9
         const SCREEN_BOTTOM = 0.8;
         const SCREEN_CENTER_Y = SCREEN_BOTTOM + SCREEN_H / 2;
 
@@ -72,30 +71,32 @@
         const RT_W = 1920, RT_H = 1080;
 
         // =============================================
-        // RENDERER & SCENES
+        // RENDERER
         // =============================================
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.9;
+        renderer.toneMappingExposure = 0.85;
         renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.physicallyCorrectLights = true;
         document.body.appendChild(renderer.domElement);
 
-        // Scene galerie
+        // =============================================
+        // SCENES & CAMERAS
+        // =============================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0.012);
 
-        // Camera FPS
-        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 50);
-        camera.position.set(0, EYE_HEIGHT, 5);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 50);
+        camera.position.set(0, EYE_HEIGHT, 4.5);
 
-        // Scene particules (rendue dans un RenderTarget)
         const particleScene = new THREE.Scene();
-        particleScene.background = new THREE.Color(0x020508);
-        const particleCamera = new THREE.PerspectiveCamera(50, RT_W / RT_H, 0.1, 100);
+        particleScene.background = new THREE.Color(0x010308);
+        const particleCamera = new THREE.PerspectiveCamera(45, RT_W / RT_H, 0.1, 100);
         particleCamera.position.set(0, 0, 8);
 
         const renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
@@ -108,149 +109,168 @@
         // GALLERY ARCHITECTURE
         // =============================================
         function buildGallery() {
-            const wallMat = new THREE.MeshStandardMaterial({
-                color: 0xf0f0f0, roughness: 0.9, metalness: 0.0
-            });
+            // Sol béton ciré
             const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x1a1a1a, roughness: 0.3, metalness: 0.1
+                color: 0x1a1a1a, roughness: 0.25, metalness: 0.15
             });
-            const ceilMat = new THREE.MeshStandardMaterial({
-                color: 0xf0f0f0, roughness: 0.95, metalness: 0.0
-            });
-
-            // Sol
-            const floor = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_W, ROOM_D),
-                floorMat
-            );
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
 
             // Plafond
-            const ceiling = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_W, ROOM_D),
-                ceilMat
-            );
+            const ceilMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.95 });
+            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), ceilMat);
             ceiling.rotation.x = Math.PI / 2;
             ceiling.position.y = ROOM_H;
             scene.add(ceiling);
 
-            // Mur du fond (derrière l'écran)
-            const backWall = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_W, ROOM_H),
-                wallMat
-            );
+            // Murs
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.92 });
+
+            // Mur du fond
+            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallMat);
             backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
             backWall.receiveShadow = true;
             scene.add(backWall);
 
-            // Mur d'entrée (derrière le visiteur)
-            const frontWall = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_W, ROOM_H),
-                wallMat
-            );
+            // Mur d'entrée
+            const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallMat);
             frontWall.position.set(0, ROOM_H / 2, ROOM_D / 2);
             frontWall.rotation.y = Math.PI;
             scene.add(frontWall);
 
-            // Mur gauche
-            const leftWall = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_D, ROOM_H),
-                wallMat
-            );
+            // Murs latéraux
+            const sideGeo = new THREE.PlaneGeometry(ROOM_D, ROOM_H);
+            const leftWall = new THREE.Mesh(sideGeo, wallMat);
             leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
             leftWall.rotation.y = Math.PI / 2;
             scene.add(leftWall);
 
-            // Mur droit
-            const rightWall = new THREE.Mesh(
-                new THREE.PlaneGeometry(ROOM_D, ROOM_H),
-                wallMat
-            );
+            const rightWall = new THREE.Mesh(sideGeo, wallMat);
             rightWall.position.set(ROOM_W / 2, ROOM_H / 2, 0);
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
+
+            // Plinthes (baseboards) — listel sombre en bas des murs
+            const plintheMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6, metalness: 0.1 });
+            const plintheH = 0.08;
+
+            // Plinthe fond
+            const pB = new THREE.Mesh(new THREE.BoxGeometry(ROOM_W, plintheH, 0.02), plintheMat);
+            pB.position.set(0, plintheH / 2, -ROOM_D / 2 + 0.01);
+            scene.add(pB);
+            // Plinthe entrée
+            const pF = new THREE.Mesh(new THREE.BoxGeometry(ROOM_W, plintheH, 0.02), plintheMat);
+            pF.position.set(0, plintheH / 2, ROOM_D / 2 - 0.01);
+            scene.add(pF);
+            // Plinthe gauche
+            const pL = new THREE.Mesh(new THREE.BoxGeometry(0.02, plintheH, ROOM_D), plintheMat);
+            pL.position.set(-ROOM_W / 2 + 0.01, plintheH / 2, 0);
+            scene.add(pL);
+            // Plinthe droite
+            const pR = new THREE.Mesh(new THREE.BoxGeometry(0.02, plintheH, ROOM_D), plintheMat);
+            pR.position.set(ROOM_W / 2 - 0.01, plintheH / 2, 0);
+            scene.add(pR);
         }
 
         // =============================================
-        // SCREEN (projection)
+        // ÉCRAN + REFLETS
         // =============================================
         let screenMesh;
         function buildScreen() {
-            const screenMat = new THREE.MeshBasicMaterial({
-                map: renderTarget.texture
-            });
-            screenMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(SCREEN_W, SCREEN_H),
-                screenMat
+            // Cadre noir fin autour de l'écran (bord-à-bord)
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.4, metalness: 0.3 });
+            const frameDepth = 0.04;
+            const frameBorder = 0.03;
+            const frame = new THREE.Mesh(
+                new THREE.BoxGeometry(SCREEN_W + frameBorder * 2, SCREEN_H + frameBorder * 2, frameDepth),
+                frameMat
             );
-            screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.02);
+            frame.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + frameDepth / 2 + 0.005);
+            scene.add(frame);
+
+            // Écran (projection)
+            const screenMat = new THREE.MeshBasicMaterial({ map: renderTarget.texture });
+            screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), screenMat);
+            screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + frameDepth + 0.008);
             scene.add(screenMesh);
 
-            // Reflet au sol
+            // Reflet au sol — plan horizontal avec la texture de l'écran
+            const reflectGeo = new THREE.PlaneGeometry(SCREEN_W * 1.3, 4);
             const reflectMat = new THREE.MeshBasicMaterial({
                 map: renderTarget.texture,
                 transparent: true,
-                opacity: 0.07,
-                blending: THREE.AdditiveBlending
+                opacity: 0.06,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
             });
-            const reflect = new THREE.Mesh(
-                new THREE.PlaneGeometry(SCREEN_W * 1.2, SCREEN_H * 0.8),
-                reflectMat
-            );
+            const reflect = new THREE.Mesh(reflectGeo, reflectMat);
             reflect.rotation.x = -Math.PI / 2;
-            reflect.position.set(0, 0.005, -ROOM_D / 2 + SCREEN_H * 0.4 + 0.5);
-            // Flip vertical pour simuler reflet
-            reflect.scale.y = -1;
+            reflect.position.set(0, 0.003, -ROOM_D / 2 + 2.5);
             scene.add(reflect);
 
-            // Lueur diffuse au sol devant l'écran
-            const glowMat = new THREE.MeshBasicMaterial({
-                color: 0x1a6060,
+            // Halo lumineux diffus au sol (plus large, plus doux)
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0x0d3d3d,
                 transparent: true,
-                opacity: 0.04,
-                blending: THREE.AdditiveBlending
+                opacity: 0.06,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
             });
-            const glow = new THREE.Mesh(
-                new THREE.PlaneGeometry(SCREEN_W * 1.5, 5),
-                glowMat
-            );
-            glow.rotation.x = -Math.PI / 2;
-            glow.position.set(0, 0.006, -ROOM_D / 2 + 3);
-            scene.add(glow);
+            const halo = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), haloMat);
+            halo.rotation.x = -Math.PI / 2;
+            halo.position.set(0, 0.004, -ROOM_D / 2 + 4);
+            scene.add(halo);
         }
 
         // =============================================
-        // LIGHTING
+        // ÉCLAIRAGE
         // =============================================
         function buildLighting() {
-            // Ambient
-            const ambient = new THREE.AmbientLight(0xffffff, 0.15);
-            scene.add(ambient);
+            // Ambient très faible (pénombre galerie)
+            scene.add(new THREE.AmbientLight(0xffffff, 0.12));
 
-            // Spot gauche → écran
-            const spot1 = new THREE.SpotLight(0xfff5e6, 0.8, 15, Math.PI / 6, 0.5, 1);
-            spot1.position.set(-1.5, ROOM_H - 0.1, -ROOM_D / 2 + 4);
-            spot1.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
-            spot1.castShadow = true;
-            spot1.shadow.mapSize.set(512, 512);
-            scene.add(spot1);
-            scene.add(spot1.target);
+            // Hemisphere light pour douceur
+            const hemi = new THREE.HemisphereLight(0xfff8f0, 0x080808, 0.15);
+            scene.add(hemi);
 
-            // Spot droit → écran
-            const spot2 = new THREE.SpotLight(0xfff5e6, 0.8, 15, Math.PI / 6, 0.5, 1);
-            spot2.position.set(1.5, ROOM_H - 0.1, -ROOM_D / 2 + 4);
-            spot2.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
-            spot2.castShadow = true;
-            spot2.shadow.mapSize.set(512, 512);
-            scene.add(spot2);
-            scene.add(spot2.target);
+            // 2 spots sur l'écran depuis le plafond
+            const spotParams = { color: 0xfff5e6, intensity: 1.2, distance: 12, angle: Math.PI / 5.5, penumbra: 0.6, decay: 1.5 };
+            for (const xOff of [-1.8, 1.8]) {
+                const spot = new THREE.SpotLight(spotParams.color, spotParams.intensity, spotParams.distance, spotParams.angle, spotParams.penumbra, spotParams.decay);
+                spot.position.set(xOff, ROOM_H - 0.05, -ROOM_D / 2 + 3.5);
+                spot.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
+                spot.castShadow = true;
+                spot.shadow.mapSize.set(1024, 1024);
+                spot.shadow.bias = -0.001;
+                scene.add(spot);
+                scene.add(spot.target);
 
-            // Point light douce depuis l'écran (simule irradiation)
-            const screenGlow = new THREE.PointLight(0x29AC9C, 0.3, 10, 2);
-            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.5);
+                // Spot housing visible au plafond (petit cylindre noir)
+                const housing = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.08, 0.12, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.6 })
+                );
+                housing.position.set(xOff, ROOM_H - 0.06, -ROOM_D / 2 + 3.5);
+                scene.add(housing);
+            }
+
+            // Rail d'éclairage au plafond (barre horizontale)
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.6 });
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(5, 0.03, 0.03), railMat);
+            rail.position.set(0, ROOM_H - 0.015, -ROOM_D / 2 + 3.5);
+            scene.add(rail);
+
+            // Irradiation de l'écran (point light turquoise)
+            const screenGlow = new THREE.PointLight(0x29AC9C, 0.6, 8, 2);
+            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.8);
             scene.add(screenGlow);
+
+            // Légère lumière chaude au fond pour les murs latéraux
+            const warmFill = new THREE.PointLight(0xfff0e0, 0.08, 15, 2);
+            warmFill.position.set(0, 3, 2);
+            scene.add(warmFill);
         }
 
         // =============================================
@@ -258,403 +278,356 @@
         // =============================================
         function buildCartel() {
             const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 400;
+            const cW = 600, cH = 480;
+            canvas.width = cW;
+            canvas.height = cH;
             const ctx = canvas.getContext('2d');
 
-            // Fond blanc
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 512, 400);
-
-            ctx.fillStyle = '#111111';
-            ctx.textBaseline = 'top';
+            ctx.fillRect(0, 0, cW, cH);
 
             // Titre
-            ctx.font = '600 28px "Helvetica Neue", Helvetica, Arial, sans-serif';
-            ctx.fillText('VOLUME PHOTOGRAPHIQUE', 30, 30);
+            ctx.fillStyle = '#0a0a0a';
+            ctx.font = '600 30px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            ctx.fillText('VOLUME PHOTOGRAPHIQUE', 36, 50);
 
-            // Ligne de séparation
-            ctx.fillRect(30, 70, 80, 1.5);
+            // Filet
+            ctx.fillRect(36, 72, 60, 1.5);
 
-            // Infos
-            ctx.font = '300 18px "Helvetica Neue", Helvetica, Arial, sans-serif';
-            ctx.fillStyle = '#333333';
+            // Corps du cartel
+            ctx.font = '300 19px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            ctx.fillStyle = '#2a2a2a';
             const lines = [
-                'Holosene, 2025-2026',
-                '',
-                'Photographies : Nicolas Floc\'h',
-                'Série Invisible, Calanques, 2018-2020',
-                'Palette : La couleur de l\'eau,',
-                'FRAC PACA, 2020',
-                '',
-                'Three.js, Web Audio API,',
-                'Depth Anything V2',
-                '',
-                'Expérience web interactive'
+                { t: 'Holosene, 2025-2026', gap: 28 },
+                { t: '', gap: 14 },
+                { t: 'Photographies : Nicolas Floc\'h', gap: 26 },
+                { t: 'Série Invisible, Calanques, 2018-2020', gap: 26 },
+                { t: 'Palette : La couleur de l\'eau,', gap: 26 },
+                { t: 'FRAC PACA, 2020', gap: 26 },
+                { t: '', gap: 14 },
+                { t: 'Three.js, Web Audio API,', gap: 26 },
+                { t: 'Depth Anything V2', gap: 26 },
+                { t: '', gap: 14 },
+                { t: 'Expérience web interactive', gap: 26 },
             ];
-            let y = 95;
-            for (const line of lines) {
-                ctx.fillText(line, 30, y);
-                y += line === '' ? 12 : 24;
+            let y = 100;
+            for (const l of lines) {
+                if (l.t) ctx.fillText(l.t, 36, y);
+                y += l.gap;
             }
 
             const tex = new THREE.CanvasTexture(canvas);
             tex.encoding = THREE.sRGBEncoding;
-            const mat = new THREE.MeshStandardMaterial({
-                map: tex, roughness: 0.8, metalness: 0.0
-            });
+
             const cartel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.4, 0.32),
-                mat
+                new THREE.PlaneGeometry(0.42, 0.42 * cH / cW),
+                new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })
             );
-            cartel.position.set(SCREEN_W / 2 + 0.7, 1.5, -ROOM_D / 2 + 0.02);
+            cartel.position.set(SCREEN_W / 2 + 0.72, 1.5, -ROOM_D / 2 + 0.015);
             scene.add(cartel);
         }
 
         // =============================================
-        // INTERACTION ZONE + SENSOR
+        // ZONE D'INTERACTION + CAPTEUR
         // =============================================
         function buildInteractionZone() {
-            // Rectangle au sol (lignes)
-            const linesMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 });
-            const zoneW = 3, zoneD = 2;
             const zoneZ = -ROOM_D / 2 + 3;
+            const zoneW = 3, zoneD = 2;
+
+            // Rectangle au sol
+            const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
             const pts = [
-                new THREE.Vector3(-zoneW/2, 0.005, zoneZ - zoneD/2),
-                new THREE.Vector3(zoneW/2, 0.005, zoneZ - zoneD/2),
-                new THREE.Vector3(zoneW/2, 0.005, zoneZ + zoneD/2),
-                new THREE.Vector3(-zoneW/2, 0.005, zoneZ + zoneD/2),
-                new THREE.Vector3(-zoneW/2, 0.005, zoneZ - zoneD/2),
+                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ - zoneD / 2),
+                new THREE.Vector3( zoneW / 2, 0.003, zoneZ - zoneD / 2),
+                new THREE.Vector3( zoneW / 2, 0.003, zoneZ + zoneD / 2),
+                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ + zoneD / 2),
+                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ - zoneD / 2),
             ];
-            const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
-            scene.add(new THREE.Line(lineGeo, linesMat));
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
 
             // Capteur sur pied
-            const sensorZ = -ROOM_D / 2 + 3;
-            const poleMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5, metalness: 0.6 });
-            // Pied
-            const pole = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.02, 0.025, 1.1, 8),
-                poleMat
-            );
-            pole.position.set(0, 0.55, sensorZ);
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.7 });
+
+            // Base
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.015, 16), metalMat);
+            base.position.set(0, 0.0075, zoneZ);
+            scene.add(base);
+
+            // Tige
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 1.1, 8), metalMat);
+            pole.position.set(0, 0.565, zoneZ);
             pole.castShadow = true;
             scene.add(pole);
+
             // Tête capteur
-            const head = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.04, 0.04, 0.1, 12),
-                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.3, metalness: 0.8 })
-            );
-            head.position.set(0, 1.15, sensorZ);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.2, metalness: 0.85 });
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.06), headMat);
+            head.position.set(0, 1.14, zoneZ);
             scene.add(head);
-            // LED indicateur
+
+            // LED
             const led = new THREE.Mesh(
-                new THREE.SphereGeometry(0.008, 8, 8),
+                new THREE.SphereGeometry(0.006, 8, 6),
                 new THREE.MeshBasicMaterial({ color: 0x29AC9C })
             );
-            led.position.set(0, 1.21, sensorZ - 0.04);
+            led.position.set(0, 1.14, zoneZ - 0.032);
             scene.add(led);
-            // Base
-            const base = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16),
-                poleMat
-            );
-            base.position.set(0, 0.01, sensorZ);
-            scene.add(base);
+
+            // Point light minuscule pour la LED
+            const ledLight = new THREE.PointLight(0x29AC9C, 0.05, 0.5, 2);
+            ledLight.position.copy(led.position);
+            scene.add(ledLight);
         }
 
         // =============================================
-        // SILHOUETTES
+        // SILHOUETTES HUMAINES
         // =============================================
         function buildSilhouettes() {
-            const silMat = new THREE.MeshStandardMaterial({
-                color: 0x0a0a0a, roughness: 0.9, metalness: 0.0
-            });
+            const silMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.95 });
 
-            function makeSilhouette(x, z, scale) {
-                const s = scale || 1;
-                const group = new THREE.Group();
-                // Corps (capsule = cylindre + 2 sphères)
-                const body = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.18 * s, 0.16 * s, 0.9 * s, 8),
-                    silMat
-                );
-                body.position.y = 0.7 * s;
-                body.castShadow = true;
-                group.add(body);
+            function makePerson(x, z, h, lookAngle) {
+                const g = new THREE.Group();
+                const scale = h / 1.75;
 
                 // Jambes
-                const legGeo = new THREE.CylinderGeometry(0.06 * s, 0.06 * s, 0.8 * s, 6);
-                const legL = new THREE.Mesh(legGeo, silMat);
-                legL.position.set(-0.08 * s, 0.18 * s, 0);
-                legL.castShadow = true;
-                group.add(legL);
-                const legR = new THREE.Mesh(legGeo, silMat);
-                legR.position.set(0.08 * s, 0.18 * s, 0);
-                legR.castShadow = true;
-                group.add(legR);
+                const legH = 0.85 * scale;
+                const legGeo = new THREE.CylinderGeometry(0.055 * scale, 0.05 * scale, legH, 6);
+                for (const side of [-1, 1]) {
+                    const leg = new THREE.Mesh(legGeo, silMat);
+                    leg.position.set(side * 0.075 * scale, legH / 2, 0);
+                    leg.castShadow = true;
+                    g.add(leg);
+                }
 
-                // Tête
-                const head = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.12 * s, 10, 10),
+                // Torse
+                const torsoH = 0.55 * scale;
+                const torso = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.14 * scale, 0.13 * scale, torsoH, 8),
                     silMat
                 );
-                head.position.y = 1.32 * s;
-                head.castShadow = true;
-                group.add(head);
+                torso.position.y = legH + torsoH / 2;
+                torso.castShadow = true;
+                g.add(torso);
 
                 // Cou
+                const neckH = 0.08 * scale;
                 const neck = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.05 * s, 0.05 * s, 0.12 * s, 6),
+                    new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, neckH, 6),
                     silMat
                 );
-                neck.position.y = 1.18 * s;
-                group.add(neck);
+                neck.position.y = legH + torsoH + neckH / 2;
+                g.add(neck);
 
-                group.position.set(x, 0, z);
-                group.scale.y = 1.18; // un peu plus grand
-                scene.add(group);
-                return group;
+                // Tête
+                const headR = 0.1 * scale;
+                const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 12, 10), silMat);
+                head.position.y = legH + torsoH + neckH + headR;
+                head.castShadow = true;
+                g.add(head);
+
+                // Bras
+                const armH = 0.6 * scale;
+                const armGeo = new THREE.CylinderGeometry(0.035 * scale, 0.03 * scale, armH, 6);
+                for (const side of [-1, 1]) {
+                    const arm = new THREE.Mesh(armGeo, silMat);
+                    arm.position.set(side * 0.18 * scale, legH + torsoH * 0.65 - armH / 2 + 0.05, 0);
+                    arm.rotation.z = side * 0.08;
+                    g.add(arm);
+                }
+
+                g.position.set(x, 0, z);
+                g.rotation.y = lookAngle || 0;
+                scene.add(g);
+                return g;
             }
 
-            // Visiteur proche (dans la zone d'interaction), regardant l'écran
-            const s1 = makeSilhouette(-0.8, -ROOM_D / 2 + 2.5, 1);
-            s1.rotation.y = Math.PI * 0.05;
+            // Visiteur 1 : dans la zone, proche de l'écran, regarde l'oeuvre
+            makePerson(-0.9, -ROOM_D / 2 + 2.8, 1.72, 0.06);
 
-            // Visiteur en retrait, observant
-            const s2 = makeSilhouette(2.5, 0, 0.95);
-            s2.rotation.y = -Math.PI * 0.1;
+            // Visiteur 2 : en retrait, côté droit, observe
+            makePerson(3.2, -0.5, 1.68, -0.15);
 
-            // Visiteur assis sur le banc (plus petit pour simuler assis)
-            const s3Group = new THREE.Group();
-            const sittingBody = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.16, 0.14, 0.6, 8),
-                silMat
-            );
-            sittingBody.position.y = 0.75;
-            s3Group.add(sittingBody);
-            const sittingHead = new THREE.Mesh(
-                new THREE.SphereGeometry(0.11, 10, 10),
-                silMat
-            );
-            sittingHead.position.y = 1.15;
-            s3Group.add(sittingHead);
-            // Jambes pliées
-            const sLeg = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.05, 0.05, 0.45, 6),
-                silMat
-            );
-            sLeg.rotation.x = Math.PI / 2.5;
-            sLeg.position.set(0.08, 0.4, 0.15);
-            s3Group.add(sLeg);
-            const sLeg2 = sLeg.clone();
-            sLeg2.position.x = -0.08;
-            s3Group.add(sLeg2);
-            s3Group.position.set(-0.5, 0, ROOM_D / 2 - 3.5);
-            scene.add(s3Group);
+            // Visiteur 3 : assis sur le banc
+            const benchZ = ROOM_D / 2 - 3.5;
+            const seated = new THREE.Group();
+            const sMat = silMat;
+            // Torse assis
+            const sTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.5, 8), sMat);
+            sTorso.position.y = 0.44 + 0.03 + 0.25; // bench height + cushion + half torso
+            seated.add(sTorso);
+            // Tête assise
+            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), sMat);
+            sHead.position.y = 0.44 + 0.03 + 0.5 + 0.07 + 0.095;
+            seated.add(sHead);
+            // Cuisses (horizontales)
+            for (const side of [-1, 1]) {
+                const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.42, 6), sMat);
+                thigh.rotation.x = Math.PI / 2;
+                thigh.position.set(side * 0.08, 0.44 + 0.02, 0.18);
+                seated.add(thigh);
+                // Tibias (verticaux vers le bas)
+                const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.42, 6), sMat);
+                shin.position.set(side * 0.08, 0.22, 0.38);
+                seated.add(shin);
+            }
+            seated.position.set(-0.4, 0, benchZ);
+            scene.add(seated);
         }
 
         // =============================================
         // BANC
         // =============================================
         function buildBench() {
-            const benchMat = new THREE.MeshStandardMaterial({
-                color: 0x2a1f14, roughness: 0.75, metalness: 0.05
-            });
             const benchZ = ROOM_D / 2 - 3.5;
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, roughness: 0.7, metalness: 0.05 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.75 });
 
             // Assise
-            const seat = new THREE.Mesh(
-                new THREE.BoxGeometry(2.4, 0.06, 0.4),
-                benchMat
-            );
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, 0.38), woodMat);
             seat.position.set(0, 0.44, benchZ);
             seat.castShadow = true;
             seat.receiveShadow = true;
             scene.add(seat);
 
-            // Pieds (4 pieds en métal)
-            const legMat = new THREE.MeshStandardMaterial({
-                color: 0x1a1a1a, roughness: 0.4, metalness: 0.7
-            });
-            const legGeo = new THREE.BoxGeometry(0.04, 0.44, 0.04);
-            const positions = [
-                [-1.1, 0.22, benchZ - 0.15],
-                [-1.1, 0.22, benchZ + 0.15],
-                [1.1, 0.22, benchZ - 0.15],
-                [1.1, 0.22, benchZ + 0.15]
-            ];
-            for (const p of positions) {
-                const leg = new THREE.Mesh(legGeo, legMat);
-                leg.position.set(p[0], p[1], p[2]);
-                leg.castShadow = true;
-                scene.add(leg);
+            // 2 pieds en U (style galerie)
+            const legGeo = new THREE.BoxGeometry(0.035, 0.435, 0.035);
+            const barGeo = new THREE.BoxGeometry(0.035, 0.035, 0.34);
+            for (const xOff of [-0.95, 0.95]) {
+                // Pieds verticaux
+                for (const zOff of [-0.14, 0.14]) {
+                    const leg = new THREE.Mesh(legGeo, metalMat);
+                    leg.position.set(xOff, 0.2175, benchZ + zOff);
+                    leg.castShadow = true;
+                    scene.add(leg);
+                }
+                // Traverse horizontale
+                const bar = new THREE.Mesh(barGeo, metalMat);
+                bar.position.set(xOff, 0.02, benchZ);
+                scene.add(bar);
             }
         }
 
         // =============================================
-        // PARTICLE SYSTEM (for the virtual screen)
+        // SYSTÈME DE PARTICULES (écran virtuel)
         // =============================================
         let particles;
+        let basePositions; // pour animer sans dériver
+
         function buildParticles() {
             const count = PARTICLE_COUNT;
             const positions = new Float32Array(count * 3);
             const colors = new Float32Array(count * 3);
-            const depths = new Float32Array(count); // for animation
+            const depths = new Float32Array(count);
 
-            // Color gradient: deep blue → teal → turquoise
-            const colorDeep = new THREE.Color(0x012B4F);
-            const colorMid = new THREE.Color(0x017979);
-            const colorSurface = new THREE.Color(0x29AC9C);
+            const colorDeep    = new THREE.Color(0x011d3a);
+            const colorMid     = new THREE.Color(0x017979);
+            const colorSurface = new THREE.Color(0x3cc4b1);
 
-            // Grid layout with slight randomness
-            const gridW = Math.ceil(Math.sqrt(count * (16/9)));
+            const gridW = Math.ceil(Math.sqrt(count * (16 / 9)));
             const gridH = Math.ceil(count / gridW);
-            const aspect = 16 / 9;
-
-            const spreadX = 7;
-            const spreadY = spreadX / aspect;
+            const spreadX = 7, spreadY = spreadX / (16 / 9);
 
             for (let i = 0; i < count; i++) {
                 const gx = i % gridW;
                 const gy = Math.floor(i / gridW);
+                const nx = gx / gridW, ny = gy / gridH;
 
-                const nx = gx / gridW;     // 0..1
-                const ny = gy / gridH;     // 0..1
+                const x = (nx - 0.5) * spreadX + (Math.random() - 0.5) * 0.012;
+                const y = (0.5 - ny) * spreadY + (Math.random() - 0.5) * 0.012;
 
-                // Position XY on grid
-                const x = (nx - 0.5) * spreadX;
-                const y = (0.5 - ny) * spreadY;
+                // Profondeur procédurale organique (paysage sous-marin)
+                const d = Math.sin(nx * 2.5 * Math.PI) * Math.cos(ny * 1.8 * Math.PI) * 0.5
+                        + Math.sin(nx * 5.2 * Math.PI + 1.3) * Math.cos(ny * 4.8 * Math.PI + 0.7) * 0.25
+                        + Math.sin(nx * 9 * Math.PI + 2.1) * Math.sin(ny * 7 * Math.PI + 1.1) * 0.1
+                        + (1 - ny) * 0.35 - 0.18;
 
-                // Procedural "depth" - create a landscape-like depth
-                // Multiple octaves of sin/cos for organic feel
-                const freq1 = 2.5, freq2 = 5.0, freq3 = 8.0;
-                const d1 = Math.sin(nx * freq1 * Math.PI) * Math.cos(ny * freq1 * Math.PI * 0.7) * 0.5;
-                const d2 = Math.sin(nx * freq2 * Math.PI + 1.3) * Math.cos(ny * freq2 * Math.PI + 0.7) * 0.25;
-                const d3 = Math.sin(nx * freq3 * Math.PI + 2.1) * Math.sin(ny * freq3 * Math.PI + 1.1) * 0.12;
+                depths[i] = d;
+                positions[i * 3]     = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = d * 2;
 
-                // Gradient from bottom (deep) to top (surface)
-                const depthGrad = (1 - ny) * 0.4 - 0.2;
-
-                const depth = d1 + d2 + d3 + depthGrad;
-                depths[i] = depth;
-
-                const z = depth * 1.5;
-
-                // Add slight noise
-                const jitterX = (Math.random() - 0.5) * 0.015;
-                const jitterY = (Math.random() - 0.5) * 0.015;
-
-                positions[i * 3] = x + jitterX;
-                positions[i * 3 + 1] = y + jitterY;
-                positions[i * 3 + 2] = z;
-
-                // Color based on depth: deep=blue, surface=turquoise
-                const t = (depth + 0.8) / 1.6; // normalize to ~0..1
-                const tc = Math.max(0, Math.min(1, t));
-                const color = new THREE.Color();
-                if (tc < 0.5) {
-                    color.lerpColors(colorDeep, colorMid, tc * 2);
-                } else {
-                    color.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
-                }
-                colors[i * 3] = color.r;
-                colors[i * 3 + 1] = color.g;
-                colors[i * 3 + 2] = color.b;
+                // Couleur
+                const tc = Math.max(0, Math.min(1, (d + 0.7) / 1.4));
+                const c = new THREE.Color();
+                if (tc < 0.5) c.lerpColors(colorDeep, colorMid, tc * 2);
+                else c.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
+                colors[i * 3] = c.r;
+                colors[i * 3 + 1] = c.g;
+                colors[i * 3 + 2] = c.b;
             }
+
+            basePositions = new Float32Array(positions);
 
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-            const mat = new THREE.PointsMaterial({
-                size: 0.025,
+            particles = new THREE.Points(geo, new THREE.PointsMaterial({
+                size: 0.022,
                 vertexColors: true,
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.85,
+                opacity: 0.88,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
-            });
-
-            particles = new THREE.Points(geo, mat);
+            }));
             particles.userData.depths = depths;
             particleScene.add(particles);
         }
 
-        // Try loading a real image for the particles
+        // Tentative de chargement d'une vraie photo
         function tryLoadImageParticles() {
             const img = new Image();
-            img.crossOrigin = 'anonymous';
             img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const w = 400, h = Math.round(400 * img.height / img.width);
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
+                const cvs = document.createElement('canvas');
+                const w = 420, h = Math.round(420 * img.height / img.width);
+                cvs.width = w; cvs.height = h;
+                const ctx = cvs.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
-                const imgData = ctx.getImageData(0, 0, w, h);
+                const data = ctx.getImageData(0, 0, w, h).data;
 
+                const pos = particles.geometry.attributes.position.array;
+                const col = particles.geometry.attributes.color.array;
+                const dep = particles.userData.depths;
                 const count = Math.min(PARTICLE_COUNT, w * h);
-                const positions = particles.geometry.attributes.position.array;
-                const colors = particles.geometry.attributes.color.array;
-                const depths = particles.userData.depths;
-
                 const aspect = w / h;
-                const spreadX = 7;
-                const spreadY = spreadX / aspect;
+                const spreadX = 7, spreadY = spreadX / aspect;
 
-                const colorDeep = new THREE.Color(0x012B4F);
-                const colorMid = new THREE.Color(0x017979);
-                const colorSurface = new THREE.Color(0x29AC9C);
+                const cD = new THREE.Color(0x011d3a);
+                const cM = new THREE.Color(0x017979);
+                const cS = new THREE.Color(0x3cc4b1);
 
-                // Sample pixels
-                const step = Math.max(1, Math.floor((w * h) / count));
+                const step = Math.max(1, Math.floor(w * h / count));
                 let idx = 0;
                 for (let p = 0; p < w * h && idx < count; p += step) {
-                    const px = p % w;
-                    const py = Math.floor(p / w);
+                    const px = p % w, py = Math.floor(p / w);
                     const pi = (py * w + px) * 4;
-
-                    const r = imgData.data[pi] / 255;
-                    const g = imgData.data[pi + 1] / 255;
-                    const b = imgData.data[pi + 2] / 255;
+                    const r = data[pi] / 255, g = data[pi+1] / 255, b = data[pi+2] / 255;
                     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-                    const nx = px / w;
-                    const ny = py / h;
+                    pos[idx * 3]     = (px / w - 0.5) * spreadX;
+                    pos[idx * 3 + 1] = (0.5 - py / h) * spreadY;
+                    pos[idx * 3 + 2] = (lum - 0.5) * 2.8;
+                    dep[idx] = lum - 0.5;
 
-                    positions[idx * 3] = (nx - 0.5) * spreadX;
-                    positions[idx * 3 + 1] = (0.5 - ny) * spreadY;
-                    positions[idx * 3 + 2] = (lum - 0.5) * 2.5;
-
-                    depths[idx] = lum - 0.5;
-
-                    // Tinted colors (keep photo hue but shift toward palette)
                     const tc = Math.max(0, Math.min(1, lum));
-                    const palColor = new THREE.Color();
-                    if (tc < 0.5) {
-                        palColor.lerpColors(colorDeep, colorMid, tc * 2);
-                    } else {
-                        palColor.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
-                    }
-                    // Mix original color with palette
-                    colors[idx * 3] = r * 0.3 + palColor.r * 0.7;
-                    colors[idx * 3 + 1] = g * 0.3 + palColor.g * 0.7;
-                    colors[idx * 3 + 2] = b * 0.3 + palColor.b * 0.7;
-
+                    const pc = new THREE.Color();
+                    if (tc < 0.5) pc.lerpColors(cD, cM, tc * 2);
+                    else pc.lerpColors(cM, cS, (tc - 0.5) * 2);
+                    col[idx * 3]     = r * 0.25 + pc.r * 0.75;
+                    col[idx * 3 + 1] = g * 0.25 + pc.g * 0.75;
+                    col[idx * 3 + 2] = b * 0.25 + pc.b * 0.75;
                     idx++;
                 }
-
+                basePositions = new Float32Array(pos);
                 particles.geometry.attributes.position.needsUpdate = true;
                 particles.geometry.attributes.color.needsUpdate = true;
             };
-            // Try loading from project
             img.src = 'Ressources/IMG_001.jpg';
         }
 
         // =============================================
-        // FPS CONTROLS
+        // CONTRÔLES FPS
         // =============================================
         let yaw = 0, pitch = 0;
         const keys = {};
@@ -665,9 +638,7 @@
         const vignette = document.getElementById('vignette');
 
         document.addEventListener('click', () => {
-            if (!isLocked) {
-                renderer.domElement.requestPointerLock();
-            }
+            if (!isLocked) renderer.domElement.requestPointerLock();
         });
 
         document.addEventListener('pointerlockchange', () => {
@@ -684,51 +655,40 @@
         document.addEventListener('mousemove', (e) => {
             if (!isLocked) return;
             yaw -= e.movementX * MOUSE_SENS;
-            pitch -= e.movementY * MOUSE_SENS;
-            pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch));
+            pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch - e.movementY * MOUSE_SENS));
         });
 
-        document.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.key === 'Escape' && isLocked) {
-                document.exitPointerLock();
-            }
-        });
-        document.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
+        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
         function updateMovement(dt) {
             if (!isLocked) return;
 
-            const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-            const velocity = new THREE.Vector3();
+            const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+            const rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            const vel = new THREE.Vector3();
 
-            // ZQSD + Arrows
-            if (keys['KeyW'] || keys['KeyZ'] || keys['ArrowUp']) velocity.add(forward);
-            if (keys['KeyS'] || keys['ArrowDown']) velocity.sub(forward);
-            if (keys['KeyA'] || keys['KeyQ'] || keys['ArrowLeft']) velocity.sub(right);
-            if (keys['KeyD'] || keys['ArrowRight']) velocity.add(right);
+            if (keys['KeyW'] || keys['KeyZ'] || keys['ArrowUp'])    vel.add(fwd);
+            if (keys['KeyS'] || keys['ArrowDown'])                  vel.sub(fwd);
+            if (keys['KeyA'] || keys['KeyQ'] || keys['ArrowLeft'])  vel.sub(rgt);
+            if (keys['KeyD'] || keys['ArrowRight'])                 vel.add(rgt);
 
-            if (velocity.lengthSq() > 0) {
-                velocity.normalize().multiplyScalar(MOVE_SPEED * dt);
-                camera.position.add(velocity);
+            if (vel.lengthSq() > 0) {
+                vel.normalize().multiplyScalar(MOVE_SPEED * dt);
+                camera.position.add(vel);
             }
 
-            // Collisions (clamp inside room with margin)
-            const margin = 0.35;
-            camera.position.x = Math.max(-ROOM_W / 2 + margin, Math.min(ROOM_W / 2 - margin, camera.position.x));
-            camera.position.z = Math.max(-ROOM_D / 2 + margin, Math.min(ROOM_D / 2 - margin, camera.position.z));
+            // Collisions murs
+            const m = 0.3;
+            camera.position.x = Math.max(-ROOM_W/2 + m, Math.min(ROOM_W/2 - m, camera.position.x));
+            camera.position.z = Math.max(-ROOM_D/2 + m, Math.min(ROOM_D/2 - m, camera.position.z));
             camera.position.y = EYE_HEIGHT;
 
-            // Apply look rotation
-            const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-            camera.quaternion.setFromEuler(euler);
+            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
         }
 
         // =============================================
-        // ANIMATION
+        // BOUCLE D'ANIMATION
         // =============================================
         let prevTime = performance.now();
 
@@ -740,50 +700,46 @@
             prevTime = now;
             const t = now / 1000;
 
-            // Update FPS movement
             updateMovement(dt);
 
-            // Animate particles
-            if (particles) {
-                const positions = particles.geometry.attributes.position.array;
-                const depths = particles.userData.depths;
-                const count = depths.length;
+            // Animation particules
+            if (particles && basePositions) {
+                const pos = particles.geometry.attributes.position.array;
+                const dep = particles.userData.depths;
+                const count = dep.length;
 
-                // Breathing: oscillation Z
-                const breathAmp = 0.15;
-                const breathFreq = 0.4;
+                // Cycle de zoom : 15s
+                const cycle = t * (2 * Math.PI / 15);
+                const depthMultiplier = 1.8 + Math.sin(cycle) * 0.8; // varie de 1.0 à 2.6
 
                 for (let i = 0; i < count; i++) {
-                    const baseDepth = depths[i];
-                    // Breathing with phase offset based on position
-                    const px = positions[i * 3];
-                    const py = positions[i * 3 + 1];
-                    const phase = px * 0.3 + py * 0.5;
-                    const breath = Math.sin(t * breathFreq * Math.PI * 2 + phase) * breathAmp * (0.5 + Math.abs(baseDepth));
+                    const bx = basePositions[i * 3];
+                    const by = basePositions[i * 3 + 1];
+                    const d = dep[i];
 
-                    positions[i * 3 + 2] = baseDepth * 1.5 + breath;
+                    // Breathing avec phase spatiale
+                    const phase = bx * 0.4 + by * 0.6;
+                    const breath = Math.sin(t * 0.8 * Math.PI + phase) * 0.1 * (0.4 + Math.abs(d));
+
+                    pos[i * 3]     = bx;
+                    pos[i * 3 + 1] = by;
+                    pos[i * 3 + 2] = d * depthMultiplier + breath;
                 }
                 particles.geometry.attributes.position.needsUpdate = true;
 
-                // Camera cycle: zoom in/out over 15s
-                const cycle = t * (2 * Math.PI / 15);
-                const zoomOffset = Math.sin(cycle) * 3.0;
-                particleCamera.position.z = 8 + zoomOffset;
-
-                // Slight Y rotation (±5°)
-                const rotY = Math.sin(cycle * 0.7) * (5 * Math.PI / 180);
-                particleCamera.rotation.y = rotY;
-
-                // Subtle vertical sway
-                particleCamera.position.y = Math.sin(cycle * 0.5 + 1) * 0.15;
-                particleCamera.lookAt(0, particleCamera.position.y * 0.3, 0);
+                // Caméra particules
+                const zoomZ = Math.sin(cycle) * 2.5;
+                particleCamera.position.set(
+                    Math.sin(cycle * 0.6) * 0.3,
+                    Math.sin(cycle * 0.4 + 1) * 0.15,
+                    7.5 + zoomZ
+                );
+                particleCamera.lookAt(0, 0, 0);
             }
 
-            // Render particle scene to RenderTarget
+            // Rendu dans le RenderTarget puis galerie
             renderer.setRenderTarget(renderTarget);
             renderer.render(particleScene, particleCamera);
-
-            // Render gallery scene
             renderer.setRenderTarget(null);
             renderer.render(scene, camera);
         }
@@ -805,8 +761,8 @@
         buildLighting();
         buildCartel();
         buildInteractionZone();
-        buildSilhouettes();
         buildBench();
+        buildSilhouettes();
         buildParticles();
         tryLoadImageParticles();
         animate();
