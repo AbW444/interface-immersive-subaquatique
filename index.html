@@ -2419,6 +2419,7 @@
 
     // Calcule depths et colors pour une image cible aux MÊMES positions pixels
     // que la géométrie actuelle (alignement parfait pour interpolation fluide)
+    // Version synchrone — utilisée uniquement en fallback
     function computeTransitionData(imageIndex) {
       if (!particles || !particles.userData.sourcePixels) return null;
       const imgData = imageCache.get(imageIndex);
@@ -2431,7 +2432,20 @@
       const depths = new Float32Array(len);
       const currentDepthMap = depthMapCache.get(imageIndex) || null;
 
-      for (let p = 0; p < len; p++) {
+      computeTransitionChunk(sourcePixels, imgData, currentDepthMap, targetWidth, colors, depths, imageIndex, 0, len);
+
+      return { colors, depths };
+    }
+
+    // Traite un chunk de particules pour la transition (réutilisé par sync et async)
+    function computeTransitionChunk(sourcePixels, imgData, currentDepthMap, targetWidth, colors, depths, imageIndex, start, end) {
+      const dmW = currentDepthMap ? currentDepthMap.width : 0;
+      const dmH = currentDepthMap ? currentDepthMap.height : 0;
+      const targetHeight = imgData.height;
+      const dmScaleX = dmW / targetWidth;
+      const dmScaleY = dmH / targetHeight;
+
+      for (let p = start; p < end; p++) {
         const i = sourcePixels[p];
         const r = imgData.data[i] / 255;
         const g = imgData.data[i + 1] / 255;
@@ -2440,24 +2454,14 @@
         const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
         const microDepth = luminance - 0.5;
 
-        // Même bruit déterministe que buildGeometry (seededRandom avec x, y, seed=3)
         const px = (i >> 2) % targetWidth;
         const py = (i >> 2) / targetWidth | 0;
 
-        // Depth map (macro-profondeur) — si disponible pour cette image cible
-        let macroDepth = 0;
         if (currentDepthMap) {
-          const dmW = currentDepthMap.width;
-          const dmH = currentDepthMap.height;
-          const targetHeight = imgData.height;
-          const dx = Math.floor(px * (dmW / targetWidth));
-          const dy = Math.floor(py * (dmH / targetHeight));
-          const depthIdx = (dy * dmW + dx) * 4;
-          const depthValue = currentDepthMap.data[depthIdx] / 255;
-          macroDepth = depthValue - 0.5;
-        }
-
-        if (currentDepthMap) {
+          const dx = (px * dmScaleX) | 0;
+          const dy = (py * dmScaleY) | 0;
+          const depthValue = currentDepthMap.data[(dy * dmW + dx) * 4] / 255;
+          const macroDepth = depthValue - 0.5;
           depths[p] = macroDepth * depthMacroWeight + microDepth * depthMicroWeight + (seededRandom(px, py, 3) - 0.5) * 0.02;
         } else {
           depths[p] = microDepth + (seededRandom(px, py, 3) - 0.5) * 0.02;
@@ -2476,30 +2480,69 @@
           colors[ci + 2] = saturated.b;
         }
       }
-
-      return { colors, depths };
     }
 
-    // Pré-calcul anticipé de la transition (appelé à ~60% du zoom)
+    // Pré-calcul ASYNCHRONE par chunks — évite le freeze à 60% du zoom
+    let precomputeInProgress = false;
+
     function precomputeNextTransition() {
-      if (hasPrecomputed || isTransitioning || availableImages.length === 0) return;
+      if (hasPrecomputed || isTransitioning || precomputeInProgress || availableImages.length === 0) return;
       const currentIndex = availableImages.indexOf(currentImageIndex);
       let nextIndex = (currentIndex + 1) % availableImages.length;
       let nextImageIndex = availableImages[nextIndex];
       if (nextImageIndex === currentImageIndex) return;
 
-      const result = computeTransitionData(nextImageIndex);
-      if (result) {
-        // Capturer les couleurs/depths actuelles maintenant
-        precomputedTransition = {
-          nextImageIndex,
-          colors: result.colors,
-          depths: result.depths,
-          oldColors: particles ? particles.geometry.attributes.color.array.slice() : null,
-          oldDepths: particles && particles.geometry.attributes.normalizedDepth ? particles.geometry.attributes.normalizedDepth.array.slice() : null
-        };
-        hasPrecomputed = true;
+      if (!particles || !particles.userData.sourcePixels) return;
+      const imgData = imageCache.get(nextImageIndex);
+      if (!imgData) return;
+
+      precomputeInProgress = true;
+
+      // Capturer oldColors/oldDepths MAINTENANT (avant que les chunks ne s'étalent)
+      const oldColorsCopy = particles.geometry.attributes.color.array.slice();
+      const oldDepthsCopy = particles.geometry.attributes.normalizedDepth ? particles.geometry.attributes.normalizedDepth.array.slice() : null;
+
+      const sourcePixels = particles.userData.sourcePixels;
+      const len = sourcePixels.length;
+      const colors = new Float32Array(len * 3);
+      const depths = new Float32Array(len);
+      const currentDepthMap = depthMapCache.get(nextImageIndex) || null;
+      const targetWidth = TARGET_WIDTH;
+
+      // Traiter par chunks de 50000 particules max par frame (~3-4ms par chunk)
+      const CHUNK_SIZE = 50000;
+      let offset = 0;
+
+      function processChunk() {
+        // Abandon si la transition a déjà été déclenchée entre temps
+        if (hasPrecomputed || isTransitioning) {
+          precomputeInProgress = false;
+          return;
+        }
+
+        const end = Math.min(offset + CHUNK_SIZE, len);
+        computeTransitionChunk(sourcePixels, imgData, currentDepthMap, targetWidth, colors, depths, nextImageIndex, offset, end);
+        offset = end;
+
+        if (offset < len) {
+          // Encore des chunks à traiter — céder le thread puis continuer
+          setTimeout(processChunk, 0);
+        } else {
+          // Terminé — assembler le résultat
+          precomputedTransition = {
+            nextImageIndex,
+            colors: colors,
+            depths: depths,
+            oldColors: oldColorsCopy,
+            oldDepths: oldDepthsCopy
+          };
+          hasPrecomputed = true;
+          precomputeInProgress = false;
+        }
       }
+
+      // Lancer le premier chunk
+      setTimeout(processChunk, 0);
     }
 
     // Fonction pour transition fluide vers l'image suivante
@@ -3762,8 +3805,8 @@
         wheelScrollAccumulator *= (1 - scrollConfig.wheel.lerp);
       }
 
-      // PRÉ-CALCUL ANTICIPÉ: préparer la transition à 60% du zoom pour éviter le lag
-      if (scrollPhase === 'zoomIn' && !hasPrecomputed && !isTransitioning && zoomLevel > MAX_ZOOM_LEVEL * 0.6) {
+      // PRÉ-CALCUL ANTICIPÉ ASYNCHRONE: lancer dès 35% du zoom (les chunks s'étalent sur plusieurs frames)
+      if (scrollPhase === 'zoomIn' && !hasPrecomputed && !precomputeInProgress && !isTransitioning && zoomLevel > MAX_ZOOM_LEVEL * 0.35) {
         precomputeNextTransition();
       }
 
