@@ -79,76 +79,131 @@
         const INTERACTION_DIST = 5;
 
         // =============================================
-        // PARTICLE ENGINE CONSTANTS (from index.html)
+        // RENDERER
         // =============================================
-        const PARTICLE_COUNT = 120000;
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.8;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.physicallyCorrectLights = true;
+        document.body.appendChild(renderer.domElement);
+
+        // =============================================
+        // SCENE & CAMERA
+        // =============================================
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.FogExp2(0x000000, 0.008);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 60);
+        camera.position.set(0, EYE_HEIGHT, ROOM_D / 2 - 3);
+
+        // =============================================
+        // IFRAME — EMBED DU VRAI INDEX.HTML
+        // =============================================
+        let iframeCanvas = null;
+        let screenTexture = null;
+        let iframeReady = false;
+        let iframeWindow = null;
+
+        function setupIframe() {
+            const iframe = document.createElement('iframe');
+            iframe.src = './index.html';
+            iframe.style.cssText = 'position:absolute; width:1920px; height:1080px; left:-9999px; top:-9999px; opacity:0; pointer-events:none; border:none;';
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                try {
+                    iframeWindow = iframe.contentWindow;
+                    const iDoc = iframe.contentDocument;
+
+                    // Auto-dismiss click-gate
+                    const autoDismiss = () => {
+                        const clickGate = iDoc.getElementById('click-gate');
+                        if (clickGate) {
+                            clickGate.click();
+                        }
+
+                        // Wait then dismiss landing page
+                        setTimeout(() => {
+                            const landing = iDoc.getElementById('landing-page');
+                            if (landing) {
+                                // Simulate scroll to dismiss
+                                iframeWindow.dispatchEvent(new WheelEvent('wheel', {
+                                    deltaY: 100, bubbles: true, cancelable: true
+                                }));
+                            }
+
+                            // Dismiss intro page
+                            setTimeout(() => {
+                                const intro = iDoc.getElementById('intro-page');
+                                if (intro) {
+                                    iframeWindow.dispatchEvent(new WheelEvent('wheel', {
+                                        deltaY: 100, bubbles: true, cancelable: true
+                                    }));
+                                }
+
+                                // Wait for experience to be active, grab canvas
+                                setTimeout(() => {
+                                    iframeCanvas = iDoc.querySelector('canvas');
+                                    if (iframeCanvas) {
+                                        screenTexture = new THREE.CanvasTexture(iframeCanvas);
+                                        screenTexture.minFilter = THREE.LinearFilter;
+                                        screenTexture.magFilter = THREE.LinearFilter;
+                                        screenTexture.encoding = THREE.sRGBEncoding;
+                                        if (screenMesh) {
+                                            screenMesh.material.map = screenTexture;
+                                            screenMesh.material.needsUpdate = true;
+                                            reflectMesh.material.map = screenTexture;
+                                            reflectMesh.material.needsUpdate = true;
+                                        }
+                                        iframeReady = true;
+                                    }
+                                }, 3000);
+                            }, 3000);
+                        }, 3000);
+                    };
+
+                    // Start dismiss sequence
+                    setTimeout(autoDismiss, 1000);
+
+                } catch (e) {
+                    // CORS blocked — fall back to built-in particle engine
+                    console.warn('Iframe access blocked, using fallback particle engine', e);
+                    setupFallbackParticles();
+                }
+            };
+
+            iframe.onerror = () => {
+                setupFallbackParticles();
+            };
+        }
+
+        // =============================================
+        // FALLBACK PARTICLE ENGINE (if iframe fails)
+        // =============================================
         const RT_W = 1920, RT_H = 1080;
+        let renderTarget = null;
+        let particleScene = null;
+        let particleCamera = null;
+        let particles = null;
+        let useFallback = false;
 
-        const MAX_ZOOM_LEVEL = 0.826632;
-        const TRANSITION_END_ZOOM = 0.418116;
-        const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM;
-
-        // 7 Floc'h gradients — exact values from index.html
+        // 7 Floc'h gradients
         const GRADIENTS = [
-            // IMG_001 — Coast / green
-            [
-                { d: -0.50, r: 0.059, g: 0.137, b: 0.102 },
-                { d: -0.25, r: 0.067, g: 0.200, b: 0.125 },
-                { d:  0.00, r: 0.075, g: 0.373, b: 0.184 },
-                { d:  0.25, r: 0.153, g: 0.498, b: 0.267 },
-                { d:  0.50, r: 0.212, g: 0.518, b: 0.290 }
-            ],
-            // IMG_002 — Turquoise-green
-            [
-                { d: -0.50, r: 0.047, g: 0.192, b: 0.149 },
-                { d: -0.25, r: 0.043, g: 0.329, b: 0.235 },
-                { d:  0.00, r: 0.086, g: 0.482, b: 0.353 },
-                { d:  0.25, r: 0.224, g: 0.624, b: 0.506 },
-                { d:  0.50, r: 0.325, g: 0.651, b: 0.549 }
-            ],
-            // IMG_003 — Cyan-teal
-            [
-                { d: -0.50, r: 0.008, g: 0.227, b: 0.267 },
-                { d: -0.25, r: 0.004, g: 0.212, b: 0.216 },
-                { d:  0.00, r: 0.004, g: 0.475, b: 0.475 },
-                { d:  0.25, r: 0.055, g: 0.580, b: 0.553 },
-                { d:  0.50, r: 0.161, g: 0.675, b: 0.612 }
-            ],
-            // IMG_004 — Cyan-blue
-            [
-                { d: -0.50, r: 0.016, g: 0.173, b: 0.227 },
-                { d: -0.25, r: 0.016, g: 0.267, b: 0.333 },
-                { d:  0.00, r: 0.004, g: 0.420, b: 0.486 },
-                { d:  0.25, r: 0.039, g: 0.553, b: 0.592 },
-                { d:  0.50, r: 0.090, g: 0.651, b: 0.702 }
-            ],
-            // IMG_005 — Blue-cyan
-            [
-                { d: -0.50, r: 0.008, g: 0.176, b: 0.310 },
-                { d: -0.25, r: 0.004, g: 0.255, b: 0.424 },
-                { d:  0.00, r: 0.004, g: 0.373, b: 0.537 },
-                { d:  0.25, r: 0.004, g: 0.506, b: 0.663 },
-                { d:  0.50, r: 0.004, g: 0.588, b: 0.702 }
-            ],
-            // IMG_006 — Frank blue
-            [
-                { d: -0.50, r: 0.004, g: 0.169, b: 0.310 },
-                { d: -0.25, r: 0.004, g: 0.251, b: 0.447 },
-                { d:  0.00, r: 0.004, g: 0.396, b: 0.620 },
-                { d:  0.25, r: 0.004, g: 0.525, b: 0.714 },
-                { d:  0.50, r: 0.004, g: 0.596, b: 0.749 }
-            ],
-            // IMG_007 — Deep blue
-            [
-                { d: -0.50, r: 0.000, g: 0.141, b: 0.271 },
-                { d: -0.25, r: 0.004, g: 0.204, b: 0.388 },
-                { d:  0.00, r: 0.004, g: 0.286, b: 0.525 },
-                { d:  0.25, r: 0.004, g: 0.357, b: 0.616 },
-                { d:  0.50, r: 0.004, g: 0.400, b: 0.675 }
-            ]
+            [{ d:-0.50,r:0.059,g:0.137,b:0.102 },{d:-0.25,r:0.067,g:0.200,b:0.125},{d:0,r:0.075,g:0.373,b:0.184},{d:0.25,r:0.153,g:0.498,b:0.267},{d:0.50,r:0.212,g:0.518,b:0.290}],
+            [{ d:-0.50,r:0.047,g:0.192,b:0.149 },{d:-0.25,r:0.043,g:0.329,b:0.235},{d:0,r:0.086,g:0.482,b:0.353},{d:0.25,r:0.224,g:0.624,b:0.506},{d:0.50,r:0.325,g:0.651,b:0.549}],
+            [{ d:-0.50,r:0.008,g:0.227,b:0.267 },{d:-0.25,r:0.004,g:0.212,b:0.216},{d:0,r:0.004,g:0.475,b:0.475},{d:0.25,r:0.055,g:0.580,b:0.553},{d:0.50,r:0.161,g:0.675,b:0.612}],
+            [{ d:-0.50,r:0.016,g:0.173,b:0.227 },{d:-0.25,r:0.016,g:0.267,b:0.333},{d:0,r:0.004,g:0.420,b:0.486},{d:0.25,r:0.039,g:0.553,b:0.592},{d:0.50,r:0.090,g:0.651,b:0.702}],
+            [{ d:-0.50,r:0.008,g:0.176,b:0.310 },{d:-0.25,r:0.004,g:0.255,b:0.424},{d:0,r:0.004,g:0.373,b:0.537},{d:0.25,r:0.004,g:0.506,b:0.663},{d:0.50,r:0.004,g:0.588,b:0.702}],
+            [{ d:-0.50,r:0.004,g:0.169,b:0.310 },{d:-0.25,r:0.004,g:0.251,b:0.447},{d:0,r:0.004,g:0.396,b:0.620},{d:0.25,r:0.004,g:0.525,b:0.714},{d:0.50,r:0.004,g:0.596,b:0.749}],
+            [{ d:-0.50,r:0.000,g:0.141,b:0.271 },{d:-0.25,r:0.004,g:0.204,b:0.388},{d:0,r:0.004,g:0.286,b:0.525},{d:0.25,r:0.004,g:0.357,b:0.616},{d:0.50,r:0.004,g:0.400,b:0.675}]
         ];
 
-        // 7 UX states: [disparity, movement]
         const UX_STATES = [
             { disparity: 0,   movement: 0 },
             { disparity: 0.7, movement: 0.008 },
@@ -159,45 +214,234 @@
             { disparity: 7.0, movement: 0.5 }
         ];
 
-        // =============================================
-        // RENDERER
-        // =============================================
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.7;
-        renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.physicallyCorrectLights = true;
-        document.body.appendChild(renderer.domElement);
+        const MAX_ZOOM_LEVEL = 0.826632;
+        const TRANSITION_END_ZOOM = 0.418116;
+        const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM;
+        const PARTICLE_COUNT = 120000;
+
+        let currentImageIndex = 0;
+        let imageData = [];
+        let zoomLevel = 0, targetZoomLevel = 0;
+        let scrollPhase = 'zoomIn';
+        let hasTriggeredTransition = false;
+        let transitionOld = null, transitionNew = null;
+        let currentAppliedDisparity = 0;
+        let particleMovementOffsets = null;
+
+        function seededRandom(x, y, seed) {
+            let h = seed + x * 374761393 + y * 668265263;
+            h = (h ^ (h >> 13)) * 1274126177;
+            h = h ^ (h >> 16);
+            return (h & 0x7fffffff) / 0x7fffffff;
+        }
+
+        function colorFromLuminance(luminance, gradientIndex) {
+            const grad = GRADIENTS[gradientIndex];
+            const depth = luminance - 0.5;
+            let lo = grad[0], hi = grad[grad.length - 1];
+            for (let i = 0; i < grad.length - 1; i++) {
+                if (depth >= grad[i].d && depth <= grad[i + 1].d) {
+                    lo = grad[i]; hi = grad[i + 1]; break;
+                }
+            }
+            const range = hi.d - lo.d;
+            const t = range > 0 ? (depth - lo.d) / range : 0;
+            const lm = luminance * 2.0;
+            return {
+                r: (lo.r + (hi.r - lo.r) * t) * lm,
+                g: (lo.g + (hi.g - lo.g) * t) * lm,
+                b: (lo.b + (hi.b - lo.b) * t) * lm
+            };
+        }
+
+        function interpolateUXState(progress) {
+            const scaled = Math.max(0, Math.min(1, progress)) * (UX_STATES.length - 1);
+            const idx = Math.min(Math.floor(scaled), UX_STATES.length - 2);
+            const t = scaled - idx;
+            return {
+                disparity: UX_STATES[idx].disparity + (UX_STATES[idx + 1].disparity - UX_STATES[idx].disparity) * t,
+                movement: UX_STATES[idx].movement + (UX_STATES[idx + 1].movement - UX_STATES[idx].movement) * t
+            };
+        }
+
+        function setupFallbackParticles() {
+            useFallback = true;
+
+            renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
+                minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat
+            });
+
+            particleScene = new THREE.Scene();
+            particleScene.background = new THREE.Color(0x000000);
+
+            particleCamera = new THREE.PerspectiveCamera(45, RT_W / RT_H, 0.1, 100);
+            particleCamera.position.set(0, 0, 25);
+
+            const count = PARTICLE_COUNT;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const depths = new Float32Array(count);
+            const scaleFactor = 50;
+            const gridW = Math.ceil(Math.sqrt(count * (16 / 9)));
+            const gridH = Math.ceil(count / gridW);
+
+            for (let i = 0; i < count; i++) {
+                const gx = i % gridW, gy = Math.floor(i / gridW);
+                const nx = gx / gridW, ny = gy / gridH;
+                const x = (nx - 0.5) * (RT_W / scaleFactor);
+                const y = (0.5 - ny) * (RT_H / scaleFactor);
+                const d = Math.sin(nx * 2.5 * Math.PI) * Math.cos(ny * 1.8 * Math.PI) * 0.5
+                        + Math.sin(nx * 5 * Math.PI + 1.3) * Math.cos(ny * 5 * Math.PI + 0.7) * 0.2
+                        + (1 - ny) * 0.3 - 0.15;
+                depths[i] = d;
+                const jx = (seededRandom(gx, gy, 7) - 0.5) * 0.4;
+                const jy = (seededRandom(gx, gy, 8) - 0.5) * 0.4;
+                positions[i * 3] = x + jx;
+                positions[i * 3 + 1] = y + jy;
+                positions[i * 3 + 2] = 0;
+                const lum = d + 0.5;
+                const c = colorFromLuminance(lum, 2);
+                colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+            }
+
+            particleMovementOffsets = new Float32Array(count * 2);
+            for (let i = 0; i < count; i++) {
+                particleMovementOffsets[i * 2] = (seededRandom(i, 0, 11) - 0.5) * 2;
+                particleMovementOffsets[i * 2 + 1] = (seededRandom(i, 0, 12) - 0.5) * 2;
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            // Circle particle texture
+            const tc = document.createElement('canvas');
+            tc.width = 64; tc.height = 64;
+            const tCtx = tc.getContext('2d');
+            const grad = tCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,1)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            tCtx.fillStyle = grad;
+            tCtx.fillRect(0, 0, 64, 64);
+
+            particles = new THREE.Points(geo, new THREE.PointsMaterial({
+                size: 0.04, vertexColors: true, sizeAttenuation: true,
+                transparent: true, opacity: 1, map: new THREE.CanvasTexture(tc),
+                depthWrite: false, blending: THREE.NormalBlending
+            }));
+            particles.rotation.x = Math.PI;
+            particles.userData.depths = depths;
+            particles.userData.basePositions = new Float32Array(positions);
+            particleScene.add(particles);
+
+            // Apply to screen
+            if (screenMesh) {
+                screenMesh.material.map = renderTarget.texture;
+                screenMesh.material.needsUpdate = true;
+                reflectMesh.material.map = renderTarget.texture;
+                reflectMesh.material.needsUpdate = true;
+            }
+
+            // Load first image
+            loadImage(0, (data) => { applyImageData(data); loadImage(1); });
+        }
+
+        function loadImage(index, callback) {
+            if (imageData[index] && imageData[index].loaded) {
+                if (callback) callback(imageData[index]);
+                return;
+            }
+            const pad = String(index + 1).padStart(3, '0');
+            const imgPath = './Ressources/photographies/IMG_' + pad + '.jpg';
+            const depthPath = './Ressources/photographies/IMG_' + pad + '_depth.png';
+            const img = new Image(), depthImg = new Image();
+            let il = false, dl = false, df = false;
+
+            function fin() {
+                if (!il || (!dl && !df)) return;
+                const cvs = document.createElement('canvas');
+                const sw = 420, sh = Math.round(sw * img.height / img.width);
+                cvs.width = sw; cvs.height = sh;
+                const ctx = cvs.getContext('2d');
+                ctx.drawImage(img, 0, 0, sw, sh);
+                const px = ctx.getImageData(0, 0, sw, sh).data;
+                let dpx = null;
+                if (dl) {
+                    const dc = document.createElement('canvas');
+                    dc.width = sw; dc.height = sh;
+                    const dctx = dc.getContext('2d');
+                    dctx.drawImage(depthImg, 0, 0, sw, sh);
+                    dpx = dctx.getImageData(0, 0, sw, sh).data;
+                }
+                const count = Math.min(PARTICLE_COUNT, sw * sh);
+                const step = Math.max(1, Math.floor(sw * sh / count));
+                const nc = new Float32Array(count * 3), nd = new Float32Array(count);
+                const sf = 50;
+                let idx = 0;
+                for (let p = 0; p < sw * sh && idx < count; p += step) {
+                    const ppx = p % sw, ppy = Math.floor(p / sw);
+                    const pi = (ppy * sw + ppx) * 4;
+                    const r = px[pi]/255, g = px[pi+1]/255, b = px[pi+2]/255;
+                    const lum = 0.299*r + 0.587*g + 0.114*b;
+                    let macro = lum - 0.5;
+                    if (dpx) macro = dpx[pi]/255 - 0.5;
+                    const micro = lum - 0.5;
+                    const noise = (seededRandom(ppx, ppy, 3) - 0.5) * 0.02;
+                    nd[idx] = dpx ? macro*0.9 + micro*0.1 + noise : micro + noise;
+                    const c = colorFromLuminance(lum, index);
+                    nc[idx*3] = r*0.15 + c.r*0.85;
+                    nc[idx*3+1] = g*0.15 + c.g*0.85;
+                    nc[idx*3+2] = b*0.15 + c.b*0.85;
+                    idx++;
+                }
+                // Update base positions
+                if (particles) {
+                    const bp = particles.userData.basePositions;
+                    let bi = 0;
+                    for (let p = 0; p < sw * sh && bi < count; p += step) {
+                        const ppx = p % sw, ppy = Math.floor(p / sw);
+                        bp[bi*3] = (ppx/sw - 0.5)*(RT_W/sf) + (seededRandom(ppx,ppy,7)-0.5)*0.4;
+                        bp[bi*3+1] = (0.5-ppy/sh)*(RT_H/sf) + (seededRandom(ppx,ppy,8)-0.5)*0.4;
+                        bi++;
+                    }
+                }
+                imageData[index] = { colors: nc, depths: nd, loaded: true, count: idx };
+                if (callback) callback(imageData[index]);
+            }
+            img.onload = () => { il = true; fin(); };
+            img.onerror = () => { il = true; df = true; fin(); };
+            depthImg.onload = () => { dl = true; fin(); };
+            depthImg.onerror = () => { df = true; fin(); };
+            img.src = imgPath; depthImg.src = depthPath;
+        }
+
+        function applyImageData(data) {
+            if (!particles || !data) return;
+            const col = particles.geometry.attributes.color.array;
+            const dep = particles.userData.depths;
+            const n = Math.min(data.count, dep.length);
+            for (let i = 0; i < n * 3; i++) col[i] = data.colors[i];
+            for (let i = 0; i < n; i++) dep[i] = data.depths[i];
+            particles.geometry.attributes.color.needsUpdate = true;
+        }
+
+        function transitionToNextImage() {
+            const next = (currentImageIndex + 1) % 7;
+            transitionOld = {
+                colors: new Float32Array(particles.geometry.attributes.color.array),
+                depths: new Float32Array(particles.userData.depths)
+            };
+            const doIt = (data) => {
+                transitionNew = { colors: data.colors, depths: data.depths };
+                currentImageIndex = next;
+            };
+            if (imageData[next] && imageData[next].loaded) doIt(imageData[next]);
+            else loadImage(next, doIt);
+        }
 
         // =============================================
-        // SCENES & CAMERAS
-        // =============================================
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
-        scene.fog = new THREE.FogExp2(0x000000, 0.008);
-
-        // Start at back of room, facing screen
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 60);
-        camera.position.set(0, EYE_HEIGHT, ROOM_D / 2 - 3); // 15m from screen (back of room)
-
-        // Particle scene
-        const particleScene = new THREE.Scene();
-        particleScene.background = new THREE.Color(0x000000);
-        const particleCamera = new THREE.PerspectiveCamera(45, RT_W / RT_H, 0.1, 100);
-        particleCamera.position.set(0, 0, 25);
-
-        const renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.LinearFilter,
-            format: THREE.RGBAFormat
-        });
-
-        // =============================================
-        // GALLERY — DARK CATHEDRAL
+        // GALLERY ARCHITECTURE
         // =============================================
         function buildGallery() {
             // Sol béton poli noir — miroir sombre
@@ -209,24 +453,19 @@
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Murs béton brut anthracite
-            const wallMat = new THREE.MeshStandardMaterial({
-                color: 0x181818, roughness: 0.8, metalness: 0.0
-            });
+            // Murs anthracite
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.8 });
 
-            // Mur du fond
             const backWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallMat);
             backWall.position.set(0, ROOM_H / 2, -ROOM_D / 2);
             backWall.receiveShadow = true;
             scene.add(backWall);
 
-            // Mur d'entrée
             const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallMat);
             frontWall.position.set(0, ROOM_H / 2, ROOM_D / 2);
             frontWall.rotation.y = Math.PI;
             scene.add(frontWall);
 
-            // Murs latéraux
             const sideGeo = new THREE.PlaneGeometry(ROOM_D, ROOM_H);
             const leftWall = new THREE.Mesh(sideGeo, wallMat);
             leftWall.position.set(-ROOM_W / 2, ROOM_H / 2, 0);
@@ -238,8 +477,8 @@
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
-            // Plafond — noir, invisible
-            const ceilMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1.0 });
+            // Plafond noir invisible
+            const ceilMat = new THREE.MeshStandardMaterial({ color: 0x040404, roughness: 1.0 });
             const ceil = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), ceilMat);
             ceil.rotation.x = Math.PI / 2;
             ceil.position.y = ROOM_H;
@@ -247,103 +486,99 @@
         }
 
         // =============================================
-        // ÉCRAN MONUMENTAL
+        // ÉCRAN MONUMENTAL + REFLETS
         // =============================================
-        let screenMesh;
+        let screenMesh, reflectMesh;
+
         function buildScreen() {
-            // Écran — MeshBasicMaterial pour luminosité maximale
-            const screenMat = new THREE.MeshBasicMaterial({ map: renderTarget.texture });
+            // Écran — MeshBasicMaterial (pas affecté par éclairage = lumineux comme un vrai écran)
+            const screenMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
             screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), screenMat);
             screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.01);
             scene.add(screenMesh);
 
-            // Reflet au sol — miroir sombre, l'élément clé
-            const reflGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 7);
+            // Reflet au sol — miroir sombre
+            const reflGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 8);
             const reflMat = new THREE.MeshBasicMaterial({
-                map: renderTarget.texture,
+                color: 0xffffff,
                 transparent: true,
-                opacity: 0.12,
+                opacity: 0.15,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             });
-            const refl = new THREE.Mesh(reflGeo, reflMat);
-            refl.rotation.x = -Math.PI / 2;
-            // Flip UV vertically for mirror effect
-            refl.geometry.attributes.uv.array[1] = 0;
-            refl.geometry.attributes.uv.array[3] = 0;
-            refl.geometry.attributes.uv.array[5] = 1;
-            refl.geometry.attributes.uv.array[7] = 1;
-            refl.geometry.attributes.uv.needsUpdate = true;
-            refl.position.set(0, 0.002, -ROOM_D / 2 + 4);
-            scene.add(refl);
+            reflectMesh = new THREE.Mesh(reflGeo, reflMat);
+            reflectMesh.rotation.x = -Math.PI / 2;
+            // Flip UV vertically for mirror
+            const uv = reflectMesh.geometry.attributes.uv.array;
+            uv[1] = 0; uv[3] = 0; uv[5] = 1; uv[7] = 1;
+            reflectMesh.geometry.attributes.uv.needsUpdate = true;
+            reflectMesh.position.set(0, 0.002, -ROOM_D / 2 + 4.5);
+            scene.add(reflectMesh);
 
-            // Fade-out du reflet (gradient d'opacité)
-            const fadeGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 4);
+            // Gradient d'estompage du reflet (plus loin = plus sombre)
+            const fadeGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 5);
             const fadeMat = new THREE.MeshBasicMaterial({
-                color: 0x000000, transparent: true, opacity: 0.7,
-                depthWrite: false
+                color: 0x000000, transparent: true, opacity: 0.85, depthWrite: false
             });
             const fade = new THREE.Mesh(fadeGeo, fadeMat);
             fade.rotation.x = -Math.PI / 2;
-            fade.position.set(0, 0.003, -ROOM_D / 2 + 7.5);
+            fade.position.set(0, 0.003, -ROOM_D / 2 + 9);
             scene.add(fade);
         }
 
         // =============================================
-        // ÉCLAIRAGE — OBSCURITÉ DOMINANTE
+        // ÉCLAIRAGE
         // =============================================
         function buildLighting() {
-            // Ambient quasi nulle
-            scene.add(new THREE.AmbientLight(0xffffff, 0.03));
+            // Ambient — assez pour deviner les murs
+            scene.add(new THREE.AmbientLight(0xffffff, 0.08));
 
-            // UN spot discret au plafond → éclaire le sol devant l'écran (pas l'écran)
-            const spot = new THREE.SpotLight(0xfff8f0, 0.4, 18, Math.PI / 8, 0.8, 2);
-            spot.position.set(0, ROOM_H - 0.1, -ROOM_D / 2 + 5);
+            // Lumière projetée par l'écran — cyan turquoise irradiant dans la salle
+            // Simule la lumière réelle d'un écran monumental dans le noir
+            const screenLight = new THREE.PointLight(0x17A6B3, 2.0, 16, 1.5);
+            screenLight.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 2);
+            scene.add(screenLight);
+
+            // Deuxième point light plus bas pour éclairer le sol
+            const floorLight = new THREE.PointLight(0x17A6B3, 1.0, 12, 2);
+            floorLight.position.set(0, 0.8, -ROOM_D / 2 + 3);
+            scene.add(floorLight);
+
+            // Spot unique discret au plafond → sol devant l'écran
+            const spot = new THREE.SpotLight(0xfff8f0, 0.3, 20, Math.PI / 7, 0.9, 2);
+            spot.position.set(0, ROOM_H - 0.1, -ROOM_D / 2 + 6);
             spot.target.position.set(0, 0, -ROOM_D / 2 + 4);
             spot.castShadow = true;
             spot.shadow.mapSize.set(1024, 1024);
             spot.shadow.bias = -0.002;
             scene.add(spot);
             scene.add(spot.target);
-
-            // Irradiation de l'écran — turquoise
-            const screenGlow = new THREE.PointLight(0x29AC9C, 1.5, 14, 2);
-            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 1.5);
-            scene.add(screenGlow);
-
-            // Halo bleuté secondaire plus bas (reflet au sol)
-            const floorGlow = new THREE.PointLight(0x017979, 0.4, 10, 2);
-            floorGlow.position.set(0, 0.5, -ROOM_D / 2 + 3);
-            scene.add(floorGlow);
         }
 
         // =============================================
         // CHEMIN LED AU SOL
         // =============================================
         function buildLedPath() {
-            // Ligne de LEDs très subtile de l'entrée vers la zone d'interaction
             const pathMat = new THREE.LineBasicMaterial({
                 color: 0xffffff, transparent: true, opacity: 0.07
             });
             const startZ = ROOM_D / 2 - 2;
             const endZ = -ROOM_D / 2 + INTERACTION_DIST + 1;
-            const segments = 40;
             const pts = [];
+            const segments = 40;
             for (let i = 0; i <= segments; i++) {
                 const t = i / segments;
                 const z = startZ + (endZ - startZ) * t;
-                // Légère sinuosité
                 const x = Math.sin(t * Math.PI * 2) * 0.15;
                 pts.push(new THREE.Vector3(x, 0.003, z));
             }
             scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), pathMat));
 
-            // Petits points lumineux le long du chemin (tous les 2m)
             const dotMat = new THREE.MeshBasicMaterial({
-                color: 0xffffff, transparent: true, opacity: 0.08
+                color: 0xffffff, transparent: true, opacity: 0.06
             });
             for (let i = 0; i <= segments; i += 5) {
-                const dot = new THREE.Mesh(new THREE.CircleGeometry(0.03, 8), dotMat);
+                const dot = new THREE.Mesh(new THREE.CircleGeometry(0.025, 8), dotMat);
                 dot.rotation.x = -Math.PI / 2;
                 dot.position.copy(pts[i]);
                 dot.position.y = 0.004;
@@ -360,31 +595,26 @@
             canvas.width = cW; canvas.height = cH;
             const ctx = canvas.getContext('2d');
 
-            // Fond sombre translucide
-            ctx.fillStyle = 'rgba(15, 15, 15, 0.95)';
+            ctx.fillStyle = 'rgba(12, 12, 12, 0.95)';
             ctx.fillRect(0, 0, cW, cH);
 
-            // Texte lumineux
-            ctx.fillStyle = '#cccccc';
+            ctx.fillStyle = '#bbbbbb';
             ctx.font = '500 26px "Helvetica Neue", Helvetica, Arial, sans-serif';
             ctx.fillText('VOLUME PHOTOGRAPHIQUE', 36, 50);
 
-            ctx.fillStyle = '#555555';
+            ctx.fillStyle = '#444';
             ctx.fillRect(36, 70, 50, 1);
 
             ctx.font = '300 17px "Helvetica Neue", Helvetica, Arial, sans-serif';
-            ctx.fillStyle = '#888888';
+            ctx.fillStyle = '#777';
             const lines = [
-                'Holosene, 2025-2026',
-                '',
+                'Holosene, 2025-2026', '',
                 'Photographies : Nicolas Floc\'h',
                 'Série Invisible, Calanques, 2018-2020',
                 'Palette : La couleur de l\'eau,',
-                'FRAC PACA, 2020',
-                '',
+                'FRAC PACA, 2020', '',
                 'Three.js, Web Audio API,',
-                'Depth Anything V2',
-                '',
+                'Depth Anything V2', '',
                 'Expérience web interactive'
             ];
             let y = 100;
@@ -395,30 +625,27 @@
 
             const tex = new THREE.CanvasTexture(canvas);
             tex.encoding = THREE.sRGBEncoding;
-
-            // Plaque translucide rétro-éclairée
-            const cartelMat = new THREE.MeshBasicMaterial({
-                map: tex, transparent: true, opacity: 0.9
-            });
             const cartel = new THREE.Mesh(
                 new THREE.PlaneGeometry(0.5, 0.5 * cH / cW),
-                cartelMat
+                new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.9 })
             );
             cartel.position.set(SCREEN_W / 2 + 0.8, SCREEN_BOTTOM + 0.5, -ROOM_D / 2 + 0.015);
             scene.add(cartel);
 
-            // Halo derrière le cartel
-            const haloMat = new THREE.MeshBasicMaterial({
-                color: 0xffffff, transparent: true, opacity: 0.02,
-                blending: THREE.AdditiveBlending
-            });
-            const halo = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.6), haloMat);
+            // Subtle halo behind
+            const halo = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.7, 0.6),
+                new THREE.MeshBasicMaterial({
+                    color: 0xffffff, transparent: true, opacity: 0.015,
+                    blending: THREE.AdditiveBlending
+                })
+            );
             halo.position.set(cartel.position.x, cartel.position.y, -ROOM_D / 2 + 0.005);
             scene.add(halo);
         }
 
         // =============================================
-        // CAPTEUR DE DISTANCE
+        // CAPTEUR
         // =============================================
         let sensorLedMat;
         function buildSensor() {
@@ -427,24 +654,20 @@
                 color: 0x0a0a0a, roughness: 0.3, metalness: 0.8
             });
 
-            // Base
             const base = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.01, 12), metalMat);
             base.position.set(0, 0.005, sZ);
             scene.add(base);
 
-            // Tige ultra fine
             const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.0075, 0.0075, 1.2, 6), metalMat);
             pole.position.set(0, 0.61, sZ);
             pole.castShadow = true;
             scene.add(pole);
 
-            // LED pulsante au sommet
             sensorLedMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), sensorLedMat);
             led.position.set(0, 1.22, sZ);
             scene.add(led);
 
-            // Lumière de la LED
             const ledLight = new THREE.PointLight(0x00ffff, 0.15, 2, 2);
             ledLight.position.set(0, 1.22, sZ);
             scene.add(ledLight);
@@ -454,38 +677,28 @@
         // SILHOUETTES GIACOMETTI
         // =============================================
         function buildSilhouettes() {
-            const silMat = new THREE.MeshStandardMaterial({
-                color: 0x111111, roughness: 0.95, metalness: 0
-            });
+            const silMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.95 });
 
             function makePerson(x, z, lookAngle) {
                 const g = new THREE.Group();
 
-                // Jambes — fines, légèrement écartées
+                // Jambes fines écartées
                 const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.90, 6);
-                const legL = new THREE.Mesh(legGeo, silMat);
-                legL.position.set(-0.065, 0.45, 0);
-                legL.castShadow = true;
-                g.add(legL);
-                const legR = new THREE.Mesh(legGeo, silMat);
-                legR.position.set(0.065, 0.45, 0);
-                legR.castShadow = true;
-                g.add(legR);
+                for (const s of [-1, 1]) {
+                    const leg = new THREE.Mesh(legGeo, silMat);
+                    leg.position.set(s * 0.065, 0.45, 0);
+                    leg.castShadow = true;
+                    g.add(leg);
+                }
 
-                // Torse — parallélépipède fin
-                const torso = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.30, 0.50, 0.08),
-                    silMat
-                );
+                // Torse parallélépipède fin
+                const torso = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.50, 0.08), silMat);
                 torso.position.y = 1.15;
                 torso.castShadow = true;
                 g.add(torso);
 
                 // Cou
-                const neck = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.02, 0.025, 0.12, 6),
-                    silMat
-                );
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.12, 6), silMat);
                 neck.position.y = 1.46;
                 g.add(neck);
 
@@ -495,16 +708,14 @@
                 head.castShadow = true;
                 g.add(head);
 
-                // Bras — très fins, le long du corps
+                // Bras très fins
                 const armGeo = new THREE.CylinderGeometry(0.02, 0.018, 0.60, 6);
-                const armL = new THREE.Mesh(armGeo, silMat);
-                armL.position.set(-0.18, 1.0, 0);
-                armL.rotation.z = 0.05;
-                g.add(armL);
-                const armR = new THREE.Mesh(armGeo, silMat);
-                armR.position.set(0.18, 1.0, 0);
-                armR.rotation.z = -0.05;
-                g.add(armR);
+                for (const s of [-1, 1]) {
+                    const arm = new THREE.Mesh(armGeo, silMat);
+                    arm.position.set(s * 0.18, 1.0, 0);
+                    arm.rotation.z = s * 0.05;
+                    g.add(arm);
+                }
 
                 g.position.set(x, 0, z);
                 g.rotation.y = lookAngle || 0;
@@ -512,61 +723,46 @@
                 return g;
             }
 
-            // Silhouette 1 : dans la zone d'interaction, face à l'écran
+            // Silhouette 1 : zone interaction, face à l'écran
             makePerson(-1.2, -ROOM_D / 2 + 4.5, 0);
-
-            // Silhouette 2 : en retrait (8m de l'écran), tournée 3/4
+            // Silhouette 2 : en retrait, 3/4
             makePerson(3, -ROOM_D / 2 + 8, -0.4);
 
-            // Silhouette 3 : assise sur le banc (jambes croisées simplifiées)
+            // Silhouette 3 : assise sur le banc
             const benchZ = -ROOM_D / 2 + 10;
             const seated = new THREE.Group();
 
-            // Torse assis
             const sTorso = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.45, 0.08), silMat);
-            sTorso.position.y = 0.42 + 0.025 + 0.225;
+            sTorso.position.y = 0.67;
             seated.add(sTorso);
 
-            // Tête assise
-            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), silMat);
-            sHead.position.y = 0.42 + 0.025 + 0.45 + 0.06 + 0.095;
-            seated.add(sHead);
-
-            // Cou
             const sNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 6), silMat);
-            sNeck.position.y = 0.42 + 0.025 + 0.45 + 0.03;
+            sNeck.position.y = 0.93;
             seated.add(sNeck);
 
-            // Cuisse gauche (horizontale vers l'avant)
-            const thighL = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
-            thighL.rotation.x = Math.PI / 2;
-            thighL.position.set(-0.06, 0.42, 0.18);
-            seated.add(thighL);
+            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), silMat);
+            sHead.position.y = 1.05;
+            seated.add(sHead);
 
-            // Cuisse droite (croisée)
-            const thighR = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
-            thighR.rotation.x = Math.PI / 2;
-            thighR.rotation.z = 0.15;
-            thighR.position.set(0.06, 0.44, 0.18);
-            seated.add(thighR);
-
-            // Tibias pendants
-            for (const side of [-1, 1]) {
+            // Cuisses horizontales
+            for (const s of [-1, 1]) {
+                const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
+                thigh.rotation.x = Math.PI / 2;
+                thigh.position.set(s * 0.06, 0.42, 0.18);
+                seated.add(thigh);
                 const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.022, 0.40, 6), silMat);
-                shin.position.set(side * 0.06, 0.2, 0.36);
+                shin.position.set(s * 0.06 + (s > 0 ? 0.04 : 0), 0.2, 0.36);
                 shin.rotation.x = -0.1;
                 seated.add(shin);
             }
 
-            // Bras au repos
-            const sArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
-            sArmL.position.set(-0.17, 0.55, 0.05);
-            sArmL.rotation.z = 0.1;
-            seated.add(sArmL);
-            const sArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
-            sArmR.position.set(0.17, 0.55, 0.05);
-            sArmR.rotation.z = -0.1;
-            seated.add(sArmR);
+            // Bras repos
+            for (const s of [-1, 1]) {
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
+                arm.position.set(s * 0.17, 0.55, 0.05);
+                arm.rotation.z = s * 0.1;
+                seated.add(arm);
+            }
 
             seated.position.set(0.5, 0, benchZ);
             scene.add(seated);
@@ -577,17 +773,15 @@
         // =============================================
         function buildBench() {
             const benchZ = -ROOM_D / 2 + 10;
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.6, metalness: 0.0 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.6 });
             const metalMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3, metalness: 0.8 });
 
-            // Assise — planche unique
             const seat = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.04, 0.40), woodMat);
             seat.position.set(0, 0.42, benchZ);
             seat.castShadow = true;
             seat.receiveShadow = true;
             scene.add(seat);
 
-            // 2 pieds fins en métal
             for (const x of [-1.0, 1.0]) {
                 const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.40, 0.35), metalMat);
                 leg.position.set(x, 0.20, benchZ);
@@ -597,290 +791,9 @@
         }
 
         // =============================================
-        // SYSTÈME DE PARTICULES — MOTEUR COMPLET
+        // CONTRÔLES
         // =============================================
-        let particles, sceneGroup;
-        let currentImageIndex = 0;
-        let imageData = []; // { colors, depths, loaded }
-        let zoomLevel = 0, targetZoomLevel = 0;
-        let scrollPhase = 'zoomIn';
-        let hasTriggeredTransition = false;
-        let transitionOld = null, transitionNew = null;
-        let currentAppliedDisparity = 0;
-        let particleMovementOffsets = null;
-
-        // Seeded random for deterministic jitter
-        function seededRandom(x, y, seed) {
-            let h = seed + x * 374761393 + y * 668265263;
-            h = (h ^ (h >> 13)) * 1274126177;
-            h = h ^ (h >> 16);
-            return (h & 0x7fffffff) / 0x7fffffff;
-        }
-
-        function colorFromLuminance(luminance, gradientIndex) {
-            const grad = GRADIENTS[gradientIndex];
-            const depth = luminance - 0.5; // map 0..1 to -0.5..+0.5
-            // Find enclosing stops
-            let lo = grad[0], hi = grad[grad.length - 1];
-            for (let i = 0; i < grad.length - 1; i++) {
-                if (depth >= grad[i].d && depth <= grad[i + 1].d) {
-                    lo = grad[i]; hi = grad[i + 1];
-                    break;
-                }
-            }
-            const range = hi.d - lo.d;
-            const t = range > 0 ? (depth - lo.d) / range : 0;
-            // Multiply by luminance * 2 to preserve grayscale contrast
-            const lm = luminance * 2.0;
-            return {
-                r: (lo.r + (hi.r - lo.r) * t) * lm,
-                g: (lo.g + (hi.g - lo.g) * t) * lm,
-                b: (lo.b + (hi.b - lo.b) * t) * lm
-            };
-        }
-
-        function interpolateUXState(progress) {
-            const scaled = progress * (UX_STATES.length - 1);
-            const idx = Math.min(Math.floor(scaled), UX_STATES.length - 2);
-            const t = scaled - idx;
-            return {
-                disparity: UX_STATES[idx].disparity + (UX_STATES[idx + 1].disparity - UX_STATES[idx].disparity) * t,
-                movement: UX_STATES[idx].movement + (UX_STATES[idx + 1].movement - UX_STATES[idx].movement) * t
-            };
-        }
-
-        function buildParticles() {
-            sceneGroup = new THREE.Group();
-            particleScene.add(sceneGroup);
-
-            const count = PARTICLE_COUNT;
-            const positions = new Float32Array(count * 3);
-            const colors = new Float32Array(count * 3);
-            const depths = new Float32Array(count);
-
-            // Initial procedural layout using gradient 2 (cyan-teal, default)
-            const gridW = Math.ceil(Math.sqrt(count * (16 / 9)));
-            const gridH = Math.ceil(count / gridW);
-            const scaleFactor = 50;
-
-            for (let i = 0; i < count; i++) {
-                const gx = i % gridW;
-                const gy = Math.floor(i / gridW);
-                const nx = gx / gridW, ny = gy / gridH;
-
-                const x = (nx - 0.5) * (RT_W / scaleFactor);
-                const y = (0.5 - ny) * (RT_H / scaleFactor);
-
-                // Procedural depth
-                const d = Math.sin(nx * 2.5 * Math.PI) * Math.cos(ny * 1.8 * Math.PI) * 0.5
-                        + Math.sin(nx * 5 * Math.PI + 1.3) * Math.cos(ny * 5 * Math.PI + 0.7) * 0.2
-                        + (1 - ny) * 0.3 - 0.15;
-
-                depths[i] = d;
-
-                // Jitter
-                const jx = (seededRandom(gx, gy, 7) - 0.5) * 0.4;
-                const jy = (seededRandom(gx, gy, 8) - 0.5) * 0.4;
-
-                positions[i * 3]     = x + jx;
-                positions[i * 3 + 1] = y + jy;
-                positions[i * 3 + 2] = 0;
-
-                // Color from default gradient (index 2)
-                const lum = (d + 0.5);
-                const c = colorFromLuminance(lum, 2);
-                colors[i * 3]     = c.r;
-                colors[i * 3 + 1] = c.g;
-                colors[i * 3 + 2] = c.b;
-            }
-
-            // Movement offsets (permanent per-particle)
-            particleMovementOffsets = new Float32Array(count * 2);
-            for (let i = 0; i < count; i++) {
-                particleMovementOffsets[i * 2]     = (seededRandom(i, 0, 11) - 0.5) * 2;
-                particleMovementOffsets[i * 2 + 1] = (seededRandom(i, 0, 12) - 0.5) * 2;
-            }
-
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-            // Circle texture
-            const texCanvas = document.createElement('canvas');
-            texCanvas.width = 64; texCanvas.height = 64;
-            const tCtx = texCanvas.getContext('2d');
-            const grad = tCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-            grad.addColorStop(0, 'rgba(255,255,255,1)');
-            grad.addColorStop(0.5, 'rgba(255,255,255,1)');
-            grad.addColorStop(1, 'rgba(255,255,255,0)');
-            tCtx.fillStyle = grad;
-            tCtx.fillRect(0, 0, 64, 64);
-            const pointTex = new THREE.CanvasTexture(texCanvas);
-
-            particles = new THREE.Points(geo, new THREE.PointsMaterial({
-                size: 0.04,
-                vertexColors: true,
-                sizeAttenuation: true,
-                transparent: true,
-                opacity: 1,
-                map: pointTex,
-                depthWrite: false,
-                blending: THREE.NormalBlending
-            }));
-            particles.rotation.x = Math.PI; // flip vertical
-            particles.userData.depths = depths;
-            particles.userData.basePositions = new Float32Array(positions);
-            sceneGroup.add(particles);
-        }
-
-        // =============================================
-        // IMAGE LOADING
-        // =============================================
-        function loadImage(index, callback) {
-            if (imageData[index] && imageData[index].loaded) {
-                if (callback) callback(imageData[index]);
-                return;
-            }
-
-            const imgPath = './Ressources/photographies/IMG_' + String(index + 1).padStart(3, '0') + '.jpg';
-            const depthPath = './Ressources/photographies/IMG_' + String(index + 1).padStart(3, '0') + '_depth.png';
-
-            const img = new Image();
-            const depthImg = new Image();
-            let imgLoaded = false, depthLoaded = false, depthFailed = false;
-
-            function tryFinalize() {
-                if (!imgLoaded || (!depthLoaded && !depthFailed)) return;
-
-                const cvs = document.createElement('canvas');
-                const sampleW = 420;
-                const sampleH = Math.round(sampleW * img.height / img.width);
-                cvs.width = sampleW; cvs.height = sampleH;
-                const ctx = cvs.getContext('2d');
-                ctx.drawImage(img, 0, 0, sampleW, sampleH);
-                const imgPx = ctx.getImageData(0, 0, sampleW, sampleH).data;
-
-                let depthPx = null;
-                if (depthLoaded) {
-                    const dCvs = document.createElement('canvas');
-                    dCvs.width = sampleW; dCvs.height = sampleH;
-                    const dCtx = dCvs.getContext('2d');
-                    dCtx.drawImage(depthImg, 0, 0, sampleW, sampleH);
-                    depthPx = dCtx.getImageData(0, 0, sampleW, sampleH).data;
-                }
-
-                const count = Math.min(PARTICLE_COUNT, sampleW * sampleH);
-                const step = Math.max(1, Math.floor(sampleW * sampleH / count));
-                const newColors = new Float32Array(count * 3);
-                const newDepths = new Float32Array(count);
-                const scaleFactor = 50;
-
-                let idx = 0;
-                for (let p = 0; p < sampleW * sampleH && idx < count; p += step) {
-                    const px = p % sampleW, py = Math.floor(p / sampleW);
-                    const pi = (py * sampleW + px) * 4;
-                    const r = imgPx[pi] / 255, g = imgPx[pi + 1] / 255, b = imgPx[pi + 2] / 255;
-                    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-
-                    // Hybrid depth
-                    let macroDepth = lum - 0.5;
-                    if (depthPx) {
-                        macroDepth = depthPx[pi] / 255 - 0.5;
-                    }
-                    const microDepth = lum - 0.5;
-                    const noise = (seededRandom(px, py, 3) - 0.5) * 0.02;
-                    newDepths[idx] = depthPx
-                        ? macroDepth * 0.9 + microDepth * 0.1 + noise
-                        : microDepth + noise;
-
-                    // Color from Floc'h gradient
-                    const c = colorFromLuminance(lum, index);
-                    newColors[idx * 3]     = r * 0.15 + c.r * 0.85;
-                    newColors[idx * 3 + 1] = g * 0.15 + c.g * 0.85;
-                    newColors[idx * 3 + 2] = b * 0.15 + c.b * 0.85;
-
-                    idx++;
-                }
-
-                imageData[index] = {
-                    colors: newColors,
-                    depths: newDepths,
-                    loaded: true,
-                    count: idx,
-                    w: sampleW, h: sampleH
-                };
-
-                // Update base positions to match image sampling
-                if (particles && idx > 0) {
-                    const bp = particles.userData.basePositions;
-                    let bi = 0;
-                    for (let p = 0; p < sampleW * sampleH && bi < count; p += step) {
-                        const px = p % sampleW, py = Math.floor(p / sampleW);
-                        const jx = (seededRandom(px, py, 7) - 0.5) * 0.4;
-                        const jy = (seededRandom(px, py, 8) - 0.5) * 0.4;
-                        bp[bi * 3]     = (px / sampleW - 0.5) * (RT_W / scaleFactor) + jx;
-                        bp[bi * 3 + 1] = (0.5 - py / sampleH) * (RT_H / scaleFactor) + jy;
-                        bi++;
-                    }
-                }
-
-                if (callback) callback(imageData[index]);
-            }
-
-            img.onload = () => { imgLoaded = true; tryFinalize(); };
-            img.onerror = () => {
-                // Fallback: use procedural
-                imgLoaded = true; depthFailed = true;
-                tryFinalize();
-            };
-
-            depthImg.onload = () => { depthLoaded = true; tryFinalize(); };
-            depthImg.onerror = () => { depthFailed = true; tryFinalize(); };
-
-            img.src = imgPath;
-            depthImg.src = depthPath;
-        }
-
-        function applyImageData(data) {
-            if (!particles || !data || !data.loaded) return;
-            const col = particles.geometry.attributes.color.array;
-            const dep = particles.userData.depths;
-            const count = Math.min(data.count, dep.length);
-            for (let i = 0; i < count * 3; i++) col[i] = data.colors[i];
-            for (let i = 0; i < count; i++) dep[i] = data.depths[i];
-            particles.geometry.attributes.color.needsUpdate = true;
-        }
-
-        function transitionToNextImage() {
-            const nextIdx = (currentImageIndex + 1) % 7;
-            const curDep = particles.userData.depths;
-            const curCol = particles.geometry.attributes.color.array;
-            const count = curDep.length;
-
-            transitionOld = {
-                colors: new Float32Array(curCol),
-                depths: new Float32Array(curDep)
-            };
-
-            const doTransition = (data) => {
-                transitionNew = {
-                    colors: data.colors,
-                    depths: data.depths
-                };
-                currentImageIndex = nextIdx;
-            };
-
-            if (imageData[nextIdx] && imageData[nextIdx].loaded) {
-                doTransition(imageData[nextIdx]);
-            } else {
-                loadImage(nextIdx, doTransition);
-            }
-        }
-
-        // =============================================
-        // MODE CONTRÔLE
-        // =============================================
-        let controlMode = 'gallery'; // 'gallery' | 'installation'
+        let controlMode = 'gallery';
         let yaw = 0, pitch = 0;
         const keys = {};
         let isLocked = false;
@@ -890,17 +803,16 @@
         const vignetteEl = document.getElementById('vignette');
         const hintEl = document.getElementById('hint');
 
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', () => {
             if (!isLocked) {
                 renderer.domElement.requestPointerLock();
                 return;
             }
 
-            // Check if clicking on screen in gallery mode
-            if (controlMode === 'gallery' && isLocked) {
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-                const hits = raycaster.intersectObject(screenMesh);
+            if (controlMode === 'gallery' && isLocked && screenMesh) {
+                const ray = new THREE.Raycaster();
+                ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const hits = ray.intersectObject(screenMesh);
                 if (hits.length > 0) {
                     const dist = camera.position.distanceTo(screenMesh.position);
                     if (dist < INTERACTION_DIST + 5) {
@@ -918,14 +830,14 @@
 
         function exitInstallationMode() {
             controlMode = 'gallery';
-            crosshairEl.style.display = 'block';
+            crosshairEl.style.display = isLocked ? 'block' : 'none';
         }
 
         document.addEventListener('pointerlockchange', () => {
             isLocked = !!document.pointerLockElement;
             if (isLocked) {
                 instructionsEl.classList.add('hidden');
-                crosshairEl.style.display = 'block';
+                crosshairEl.style.display = controlMode === 'gallery' ? 'block' : 'none';
                 vignetteEl.style.display = 'block';
             } else {
                 crosshairEl.style.display = 'none';
@@ -948,33 +860,42 @@
         });
         document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        // Scroll → zoom in installation mode
-        let wheelAccum = 0;
-        let deadZoneAccum = 0;
+        // Scroll
+        let deadZoneAccum = 0, inDeadZone = false;
         const DEAD_ZONE = 0.1;
-        let inDeadZone = false;
 
         document.addEventListener('wheel', (e) => {
             if (controlMode !== 'installation') return;
             e.preventDefault();
 
-            const delta = Math.abs(e.deltaY) * 0.00045;
-
-            if (inDeadZone) {
-                deadZoneAccum += delta;
-                if (deadZoneAccum >= DEAD_ZONE) {
-                    inDeadZone = false;
-                    deadZoneAccum = 0;
+            // If iframe is active, forward scroll to it
+            if (iframeReady && iframeWindow) {
+                try {
+                    iframeWindow.dispatchEvent(new WheelEvent('wheel', {
+                        deltaY: e.deltaY,
+                        deltaX: e.deltaX,
+                        deltaMode: e.deltaMode,
+                        bubbles: true,
+                        cancelable: true
+                    }));
+                } catch (err) {
+                    // fallback handled below
                 }
-                return;
             }
 
-            if (scrollPhase === 'zoomIn') {
-                targetZoomLevel += delta;
-                targetZoomLevel = Math.min(targetZoomLevel, MAX_ZOOM_LEVEL);
-            } else {
-                targetZoomLevel -= delta;
-                targetZoomLevel = Math.max(targetZoomLevel, 0);
+            // Also drive fallback engine (active if useFallback, harmless otherwise)
+            if (useFallback) {
+                const delta = Math.abs(e.deltaY) * 0.00045;
+                if (inDeadZone) {
+                    deadZoneAccum += delta;
+                    if (deadZoneAccum >= DEAD_ZONE) { inDeadZone = false; deadZoneAccum = 0; }
+                    return;
+                }
+                if (scrollPhase === 'zoomIn') {
+                    targetZoomLevel = Math.min(targetZoomLevel + delta, MAX_ZOOM_LEVEL);
+                } else {
+                    targetZoomLevel = Math.max(targetZoomLevel - delta, 0);
+                }
             }
         }, { passive: false });
 
@@ -996,32 +917,24 @@
             }
 
             const m = 0.3;
-            camera.position.x = Math.max(-ROOM_W / 2 + m, Math.min(ROOM_W / 2 - m, camera.position.x));
-            camera.position.z = Math.max(-ROOM_D / 2 + m, Math.min(ROOM_D / 2 - m, camera.position.z));
+            camera.position.x = Math.max(-ROOM_W/2 + m, Math.min(ROOM_W/2 - m, camera.position.x));
+            camera.position.z = Math.max(-ROOM_D/2 + m, Math.min(ROOM_D/2 - m, camera.position.z));
             camera.position.y = EYE_HEIGHT;
 
             camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
         }
 
-        // =============================================
-        // HINT CONTEXTUEL
-        // =============================================
         function updateHint() {
             if (controlMode === 'installation' || !isLocked) {
                 hintEl.classList.remove('visible');
                 return;
             }
-            const screenPos = new THREE.Vector3(0, SCREEN_CENTER_Y, -ROOM_D / 2);
-            const dist = camera.position.distanceTo(screenPos);
-            if (dist < INTERACTION_DIST + 3) {
-                hintEl.classList.add('visible');
-            } else {
-                hintEl.classList.remove('visible');
-            }
+            const dist = camera.position.distanceTo(new THREE.Vector3(0, SCREEN_CENTER_Y, -ROOM_D / 2));
+            hintEl.classList.toggle('visible', dist < INTERACTION_DIST + 3);
         }
 
         // =============================================
-        // ANIMATION
+        // BOUCLE D'ANIMATION
         // =============================================
         let prevTime = performance.now();
 
@@ -1042,12 +955,17 @@
                 sensorLedMat.color.setRGB(0, pulse, pulse);
             }
 
-            // ---- PARTICLE ENGINE ----
-            if (particles) {
+            // Update screen texture from iframe
+            if (iframeReady && screenTexture) {
+                screenTexture.needsUpdate = true;
+            }
+
+            // Fallback particle engine
+            if (useFallback && particles) {
                 const pos = particles.geometry.attributes.position.array;
-                const col = particles.geometry.attributes.color.array;
                 const dep = particles.userData.depths;
                 const bp = particles.userData.basePositions;
+                const col = particles.geometry.attributes.color.array;
                 const count = dep.length;
 
                 // Zoom smoothing
@@ -1070,71 +988,59 @@
 
                 // Transition interpolation
                 if (transitionOld && transitionNew) {
-                    const progress = Math.min(1, (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE);
+                    const prog = Math.min(1, (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE);
                     for (let i = 0; i < count; i++) {
                         const i3 = i * 3;
                         if (i < transitionNew.depths.length) {
-                            col[i3]     = transitionOld.colors[i3]     + (transitionNew.colors[i3]     - transitionOld.colors[i3])     * progress;
-                            col[i3 + 1] = transitionOld.colors[i3 + 1] + (transitionNew.colors[i3 + 1] - transitionOld.colors[i3 + 1]) * progress;
-                            col[i3 + 2] = transitionOld.colors[i3 + 2] + (transitionNew.colors[i3 + 2] - transitionOld.colors[i3 + 2]) * progress;
-                            dep[i] = transitionOld.depths[i] + (transitionNew.depths[i] - transitionOld.depths[i]) * progress;
+                            col[i3]   = transitionOld.colors[i3]   + (transitionNew.colors[i3]   - transitionOld.colors[i3])   * prog;
+                            col[i3+1] = transitionOld.colors[i3+1] + (transitionNew.colors[i3+1] - transitionOld.colors[i3+1]) * prog;
+                            col[i3+2] = transitionOld.colors[i3+2] + (transitionNew.colors[i3+2] - transitionOld.colors[i3+2]) * prog;
+                            dep[i] = transitionOld.depths[i] + (transitionNew.depths[i] - transitionOld.depths[i]) * prog;
                         }
                     }
                     particles.geometry.attributes.color.needsUpdate = true;
-
                     if (zoomLevel < TRANSITION_END_ZOOM && scrollPhase === 'zoomOut') {
-                        // Finalize transition
                         applyImageData(imageData[currentImageIndex]);
-                        transitionOld = null;
-                        transitionNew = null;
-                        // Preload next
+                        transitionOld = null; transitionNew = null;
                         loadImage((currentImageIndex + 1) % 7);
                     }
                 }
 
-                // UX state interpolation
-                const uxState = interpolateUXState(zoomLevel / MAX_ZOOM_LEVEL);
-                const targetDisp = uxState.disparity;
-                currentAppliedDisparity += (targetDisp - currentAppliedDisparity) * 0.23;
+                // UX state
+                const ux = interpolateUXState(zoomLevel / MAX_ZOOM_LEVEL);
+                currentAppliedDisparity += (ux.disparity - currentAppliedDisparity) * 0.23;
+                const mv = ux.movement;
 
-                const movement = uxState.movement;
-
-                // Update positions
                 for (let i = 0; i < count; i++) {
                     const i3 = i * 3;
-                    const mx = movement > 0 ? Math.sin(t * 0.8 + particleMovementOffsets[i * 2] * 5) * movement * 0.5 : 0;
-                    const my = movement > 0 ? Math.cos(t * 0.6 + particleMovementOffsets[i * 2 + 1] * 5) * movement * 0.5 : 0;
-
-                    pos[i3]     = bp[i3] + mx;
-                    pos[i3 + 1] = bp[i3 + 1] + my;
-                    pos[i3 + 2] = dep[i] * currentAppliedDisparity;
+                    const mx = mv > 0 ? Math.sin(t * 0.8 + particleMovementOffsets[i*2] * 5) * mv * 0.5 : 0;
+                    const my = mv > 0 ? Math.cos(t * 0.6 + particleMovementOffsets[i*2+1] * 5) * mv * 0.5 : 0;
+                    pos[i3]   = bp[i3] + mx;
+                    pos[i3+1] = bp[i3+1] + my;
+                    pos[i3+2] = dep[i] * currentAppliedDisparity;
                 }
                 particles.geometry.attributes.position.needsUpdate = true;
 
-                // Camera zoom: z = 25 - 23 * zoomLevel
+                // Camera
                 if (controlMode === 'installation') {
-                    particleCamera.position.z = 25 - 23 * zoomLevel;
-                    particleCamera.position.x = 0;
-                    particleCamera.position.y = 0;
-                    particleCamera.lookAt(0, 0, 0);
+                    particleCamera.position.set(0, 0, 25 - 23 * zoomLevel);
                 } else {
-                    // Idle camera movement in gallery mode
-                    const cycle = t * (2 * Math.PI / 20);
+                    const cyc = t * (2 * Math.PI / 20);
                     particleCamera.position.set(
-                        Math.sin(cycle * 0.5) * 0.3,
-                        Math.sin(cycle * 0.3 + 1) * 0.15,
-                        25 - 5 * (Math.sin(cycle) * 0.5 + 0.5)
+                        Math.sin(cyc * 0.5) * 0.3,
+                        Math.sin(cyc * 0.3 + 1) * 0.15,
+                        25 - 5 * (Math.sin(cyc) * 0.5 + 0.5)
                     );
-                    particleCamera.lookAt(0, 0, 0);
                 }
+                particleCamera.lookAt(0, 0, 0);
+
+                // Render particles to RT
+                renderer.setRenderTarget(renderTarget);
+                renderer.render(particleScene, particleCamera);
+                renderer.setRenderTarget(null);
             }
 
-            // Render particle scene to RT
-            renderer.setRenderTarget(renderTarget);
-            renderer.render(particleScene, particleCamera);
-
             // Render gallery
-            renderer.setRenderTarget(null);
             renderer.render(scene, camera);
         }
 
@@ -1158,13 +1064,17 @@
         buildSensor();
         buildBench();
         buildSilhouettes();
-        buildParticles();
 
-        // Load first image immediately, preload next
-        loadImage(0, (data) => {
-            applyImageData(data);
-            loadImage(1); // preload
-        });
+        // Try iframe first, fallback to built-in engine
+        setupIframe();
+
+        // Safety: if iframe doesn't produce a canvas after 12s, use fallback
+        setTimeout(() => {
+            if (!iframeReady && !useFallback) {
+                console.warn('Iframe timeout — switching to fallback particle engine');
+                setupFallbackParticles();
+            }
+        }, 12000);
 
         animate();
 
