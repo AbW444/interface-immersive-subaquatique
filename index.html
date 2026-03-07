@@ -1044,7 +1044,7 @@
       font-family: 'Space Grotesk', sans-serif;
       font-size: clamp(15px, 2vw, 20px);
       font-weight: 300;
-      line-height: 1.55;
+      line-height: 1.25;
       letter-spacing: 0.01em;
       color: rgba(255, 255, 255, 0.85);
       opacity: 0;
@@ -1669,6 +1669,7 @@
 
     // GROUPE pour contenir les particules
     const sceneGroup = new THREE.Group();
+    sceneGroup.scale.set(0.55, 0.55, 0.55); // Start small, animate to 1.0 on dismissIntro
     scene.add(sceneGroup);
 
     let particles;
@@ -4822,7 +4823,7 @@
 
     let scrollIndDelayTimer = null;
     function toggleInfoOverlay(show) {
-      if (clickGateActive || landingActive) return;
+      if (clickGateActive || landingActive || introActive) return;
       const visible = show !== undefined ? show : !infoOverlay.classList.contains('visible');
       infoOverlay.classList.toggle('visible', visible);
       // Cursor perfectly synced with info overlay
