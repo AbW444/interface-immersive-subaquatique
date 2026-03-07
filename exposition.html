@@ -11,34 +11,42 @@
         #instructions {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.88);
+            background: transparent;
             color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             z-index: 100; cursor: pointer; user-select: none;
-            transition: opacity 0.8s ease;
+            transition: opacity 1s ease;
         }
         #instructions.hidden { opacity: 0; pointer-events: none; }
         #instructions h1 {
-            font-size: 2rem; font-weight: 300; letter-spacing: 0.2em;
-            margin-bottom: 2.5rem; text-transform: uppercase;
+            font-size: 1.1rem; font-weight: 300; letter-spacing: 0.25em;
+            margin-bottom: 2rem; text-transform: uppercase;
         }
         #instructions p {
-            font-size: 0.9rem; font-weight: 300; letter-spacing: 0.1em;
-            color: #888; line-height: 2.2; text-align: center;
+            font-size: 0.75rem; font-weight: 300; letter-spacing: 0.2em;
+            color: #666; line-height: 2.4; text-align: center;
         }
         #crosshair {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 16px; height: 16px; z-index: 50; pointer-events: none; display: none;
+            width: 12px; height: 12px; z-index: 50; pointer-events: none; display: none;
         }
         #crosshair::before, #crosshair::after {
-            content: ''; position: absolute; background: rgba(255,255,255,0.3);
+            content: ''; position: absolute; background: rgba(255,255,255,0.2);
         }
         #crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
         #crosshair::after { width: 100%; height: 1px; top: 50%; left: 0; }
         #vignette {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 10; display: none;
-            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+            background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
         }
+        #hint {
+            position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+            color: #fff; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+            pointer-events: none; z-index: 60;
+            opacity: 0; transition: opacity 0.8s ease;
+        }
+        #hint.visible { opacity: 0.4; }
     </style>
 </head>
 <body>
@@ -48,6 +56,7 @@
     </div>
     <div id="crosshair"></div>
     <div id="vignette"></div>
+    <div id="hint">Cliquer sur la projection</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -55,20 +64,100 @@
         'use strict';
 
         // =============================================
-        // CONSTANTES
+        // CONSTANTES ESPACE
         // =============================================
-        const ROOM_W = 18, ROOM_D = 12, ROOM_H = 5;
-        const EYE_HEIGHT = 1.6;
-        const MOVE_SPEED = 2.5;
+        const ROOM_W = 30, ROOM_D = 20, ROOM_H = 8;
+        const EYE_HEIGHT = 1.65;
+        const MOVE_SPEED = 3.5;
         const MOUSE_SENS = 0.002;
-        const PITCH_LIMIT = Math.PI * 80 / 180;
+        const PITCH_LIMIT = Math.PI * 85 / 180;
 
-        const SCREEN_W = 6, SCREEN_H = 3.375; // exact 16:9
-        const SCREEN_BOTTOM = 0.8;
+        const SCREEN_W = 10, SCREEN_H = 5.625; // 16:9
+        const SCREEN_BOTTOM = 1.0;
         const SCREEN_CENTER_Y = SCREEN_BOTTOM + SCREEN_H / 2;
 
-        const PARTICLE_COUNT = 100000;
+        const INTERACTION_DIST = 5;
+
+        // =============================================
+        // PARTICLE ENGINE CONSTANTS (from index.html)
+        // =============================================
+        const PARTICLE_COUNT = 120000;
         const RT_W = 1920, RT_H = 1080;
+
+        const MAX_ZOOM_LEVEL = 0.826632;
+        const TRANSITION_END_ZOOM = 0.418116;
+        const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM;
+
+        // 7 Floc'h gradients — exact values from index.html
+        const GRADIENTS = [
+            // IMG_001 — Coast / green
+            [
+                { d: -0.50, r: 0.059, g: 0.137, b: 0.102 },
+                { d: -0.25, r: 0.067, g: 0.200, b: 0.125 },
+                { d:  0.00, r: 0.075, g: 0.373, b: 0.184 },
+                { d:  0.25, r: 0.153, g: 0.498, b: 0.267 },
+                { d:  0.50, r: 0.212, g: 0.518, b: 0.290 }
+            ],
+            // IMG_002 — Turquoise-green
+            [
+                { d: -0.50, r: 0.047, g: 0.192, b: 0.149 },
+                { d: -0.25, r: 0.043, g: 0.329, b: 0.235 },
+                { d:  0.00, r: 0.086, g: 0.482, b: 0.353 },
+                { d:  0.25, r: 0.224, g: 0.624, b: 0.506 },
+                { d:  0.50, r: 0.325, g: 0.651, b: 0.549 }
+            ],
+            // IMG_003 — Cyan-teal
+            [
+                { d: -0.50, r: 0.008, g: 0.227, b: 0.267 },
+                { d: -0.25, r: 0.004, g: 0.212, b: 0.216 },
+                { d:  0.00, r: 0.004, g: 0.475, b: 0.475 },
+                { d:  0.25, r: 0.055, g: 0.580, b: 0.553 },
+                { d:  0.50, r: 0.161, g: 0.675, b: 0.612 }
+            ],
+            // IMG_004 — Cyan-blue
+            [
+                { d: -0.50, r: 0.016, g: 0.173, b: 0.227 },
+                { d: -0.25, r: 0.016, g: 0.267, b: 0.333 },
+                { d:  0.00, r: 0.004, g: 0.420, b: 0.486 },
+                { d:  0.25, r: 0.039, g: 0.553, b: 0.592 },
+                { d:  0.50, r: 0.090, g: 0.651, b: 0.702 }
+            ],
+            // IMG_005 — Blue-cyan
+            [
+                { d: -0.50, r: 0.008, g: 0.176, b: 0.310 },
+                { d: -0.25, r: 0.004, g: 0.255, b: 0.424 },
+                { d:  0.00, r: 0.004, g: 0.373, b: 0.537 },
+                { d:  0.25, r: 0.004, g: 0.506, b: 0.663 },
+                { d:  0.50, r: 0.004, g: 0.588, b: 0.702 }
+            ],
+            // IMG_006 — Frank blue
+            [
+                { d: -0.50, r: 0.004, g: 0.169, b: 0.310 },
+                { d: -0.25, r: 0.004, g: 0.251, b: 0.447 },
+                { d:  0.00, r: 0.004, g: 0.396, b: 0.620 },
+                { d:  0.25, r: 0.004, g: 0.525, b: 0.714 },
+                { d:  0.50, r: 0.004, g: 0.596, b: 0.749 }
+            ],
+            // IMG_007 — Deep blue
+            [
+                { d: -0.50, r: 0.000, g: 0.141, b: 0.271 },
+                { d: -0.25, r: 0.004, g: 0.204, b: 0.388 },
+                { d:  0.00, r: 0.004, g: 0.286, b: 0.525 },
+                { d:  0.25, r: 0.004, g: 0.357, b: 0.616 },
+                { d:  0.50, r: 0.004, g: 0.400, b: 0.675 }
+            ]
+        ];
+
+        // 7 UX states: [disparity, movement]
+        const UX_STATES = [
+            { disparity: 0,   movement: 0 },
+            { disparity: 0.7, movement: 0.008 },
+            { disparity: 2.0, movement: 0.025 },
+            { disparity: 3.5, movement: 0.06 },
+            { disparity: 5.2, movement: 0.15 },
+            { disparity: 6.2, movement: 0.35 },
+            { disparity: 7.0, movement: 0.5 }
+        ];
 
         // =============================================
         // RENDERER
@@ -79,7 +168,7 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.85;
+        renderer.toneMappingExposure = 0.7;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.physicallyCorrectLights = true;
         document.body.appendChild(renderer.domElement);
@@ -89,15 +178,17 @@
         // =============================================
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
-        scene.fog = new THREE.FogExp2(0x000000, 0.012);
+        scene.fog = new THREE.FogExp2(0x000000, 0.008);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 50);
-        camera.position.set(0, EYE_HEIGHT, 4.5);
+        // Start at back of room, facing screen
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 60);
+        camera.position.set(0, EYE_HEIGHT, ROOM_D / 2 - 3); // 15m from screen (back of room)
 
+        // Particle scene
         const particleScene = new THREE.Scene();
-        particleScene.background = new THREE.Color(0x010308);
+        particleScene.background = new THREE.Color(0x000000);
         const particleCamera = new THREE.PerspectiveCamera(45, RT_W / RT_H, 0.1, 100);
-        particleCamera.position.set(0, 0, 8);
+        particleCamera.position.set(0, 0, 25);
 
         const renderTarget = new THREE.WebGLRenderTarget(RT_W, RT_H, {
             minFilter: THREE.LinearFilter,
@@ -106,27 +197,22 @@
         });
 
         // =============================================
-        // GALLERY ARCHITECTURE
+        // GALLERY — DARK CATHEDRAL
         // =============================================
         function buildGallery() {
-            // Sol béton ciré
+            // Sol béton poli noir — miroir sombre
             const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x1a1a1a, roughness: 0.25, metalness: 0.15
+                color: 0x0a0a0a, roughness: 0.15, metalness: 0.2
             });
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
 
-            // Plafond
-            const ceilMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.95 });
-            const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), ceilMat);
-            ceiling.rotation.x = Math.PI / 2;
-            ceiling.position.y = ROOM_H;
-            scene.add(ceiling);
-
-            // Murs
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.92 });
+            // Murs béton brut anthracite
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0x181818, roughness: 0.8, metalness: 0.0
+            });
 
             // Mur du fond
             const backWall = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_H), wallMat);
@@ -152,288 +238,273 @@
             rightWall.rotation.y = -Math.PI / 2;
             scene.add(rightWall);
 
-            // Plinthes (baseboards) — listel sombre en bas des murs
-            const plintheMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6, metalness: 0.1 });
-            const plintheH = 0.08;
-
-            // Plinthe fond
-            const pB = new THREE.Mesh(new THREE.BoxGeometry(ROOM_W, plintheH, 0.02), plintheMat);
-            pB.position.set(0, plintheH / 2, -ROOM_D / 2 + 0.01);
-            scene.add(pB);
-            // Plinthe entrée
-            const pF = new THREE.Mesh(new THREE.BoxGeometry(ROOM_W, plintheH, 0.02), plintheMat);
-            pF.position.set(0, plintheH / 2, ROOM_D / 2 - 0.01);
-            scene.add(pF);
-            // Plinthe gauche
-            const pL = new THREE.Mesh(new THREE.BoxGeometry(0.02, plintheH, ROOM_D), plintheMat);
-            pL.position.set(-ROOM_W / 2 + 0.01, plintheH / 2, 0);
-            scene.add(pL);
-            // Plinthe droite
-            const pR = new THREE.Mesh(new THREE.BoxGeometry(0.02, plintheH, ROOM_D), plintheMat);
-            pR.position.set(ROOM_W / 2 - 0.01, plintheH / 2, 0);
-            scene.add(pR);
+            // Plafond — noir, invisible
+            const ceilMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1.0 });
+            const ceil = new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W, ROOM_D), ceilMat);
+            ceil.rotation.x = Math.PI / 2;
+            ceil.position.y = ROOM_H;
+            scene.add(ceil);
         }
 
         // =============================================
-        // ÉCRAN + REFLETS
+        // ÉCRAN MONUMENTAL
         // =============================================
         let screenMesh;
         function buildScreen() {
-            // Cadre noir fin autour de l'écran (bord-à-bord)
-            const frameMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.4, metalness: 0.3 });
-            const frameDepth = 0.04;
-            const frameBorder = 0.03;
-            const frame = new THREE.Mesh(
-                new THREE.BoxGeometry(SCREEN_W + frameBorder * 2, SCREEN_H + frameBorder * 2, frameDepth),
-                frameMat
-            );
-            frame.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + frameDepth / 2 + 0.005);
-            scene.add(frame);
-
-            // Écran (projection)
+            // Écran — MeshBasicMaterial pour luminosité maximale
             const screenMat = new THREE.MeshBasicMaterial({ map: renderTarget.texture });
             screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W, SCREEN_H), screenMat);
-            screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + frameDepth + 0.008);
+            screenMesh.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.01);
             scene.add(screenMesh);
 
-            // Reflet au sol — plan horizontal avec la texture de l'écran
-            const reflectGeo = new THREE.PlaneGeometry(SCREEN_W * 1.3, 4);
-            const reflectMat = new THREE.MeshBasicMaterial({
+            // Reflet au sol — miroir sombre, l'élément clé
+            const reflGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 7);
+            const reflMat = new THREE.MeshBasicMaterial({
                 map: renderTarget.texture,
                 transparent: true,
-                opacity: 0.06,
+                opacity: 0.12,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false
             });
-            const reflect = new THREE.Mesh(reflectGeo, reflectMat);
-            reflect.rotation.x = -Math.PI / 2;
-            reflect.position.set(0, 0.003, -ROOM_D / 2 + 2.5);
-            scene.add(reflect);
+            const refl = new THREE.Mesh(reflGeo, reflMat);
+            refl.rotation.x = -Math.PI / 2;
+            // Flip UV vertically for mirror effect
+            refl.geometry.attributes.uv.array[1] = 0;
+            refl.geometry.attributes.uv.array[3] = 0;
+            refl.geometry.attributes.uv.array[5] = 1;
+            refl.geometry.attributes.uv.array[7] = 1;
+            refl.geometry.attributes.uv.needsUpdate = true;
+            refl.position.set(0, 0.002, -ROOM_D / 2 + 4);
+            scene.add(refl);
 
-            // Halo lumineux diffus au sol (plus large, plus doux)
-            const haloMat = new THREE.MeshBasicMaterial({
-                color: 0x0d3d3d,
-                transparent: true,
-                opacity: 0.06,
-                blending: THREE.AdditiveBlending,
+            // Fade-out du reflet (gradient d'opacité)
+            const fadeGeo = new THREE.PlaneGeometry(SCREEN_W * 1.4, 4);
+            const fadeMat = new THREE.MeshBasicMaterial({
+                color: 0x000000, transparent: true, opacity: 0.7,
                 depthWrite: false
             });
-            const halo = new THREE.Mesh(new THREE.PlaneGeometry(10, 7), haloMat);
-            halo.rotation.x = -Math.PI / 2;
-            halo.position.set(0, 0.004, -ROOM_D / 2 + 4);
-            scene.add(halo);
+            const fade = new THREE.Mesh(fadeGeo, fadeMat);
+            fade.rotation.x = -Math.PI / 2;
+            fade.position.set(0, 0.003, -ROOM_D / 2 + 7.5);
+            scene.add(fade);
         }
 
         // =============================================
-        // ÉCLAIRAGE
+        // ÉCLAIRAGE — OBSCURITÉ DOMINANTE
         // =============================================
         function buildLighting() {
-            // Ambient très faible (pénombre galerie)
-            scene.add(new THREE.AmbientLight(0xffffff, 0.12));
+            // Ambient quasi nulle
+            scene.add(new THREE.AmbientLight(0xffffff, 0.03));
 
-            // Hemisphere light pour douceur
-            const hemi = new THREE.HemisphereLight(0xfff8f0, 0x080808, 0.15);
-            scene.add(hemi);
+            // UN spot discret au plafond → éclaire le sol devant l'écran (pas l'écran)
+            const spot = new THREE.SpotLight(0xfff8f0, 0.4, 18, Math.PI / 8, 0.8, 2);
+            spot.position.set(0, ROOM_H - 0.1, -ROOM_D / 2 + 5);
+            spot.target.position.set(0, 0, -ROOM_D / 2 + 4);
+            spot.castShadow = true;
+            spot.shadow.mapSize.set(1024, 1024);
+            spot.shadow.bias = -0.002;
+            scene.add(spot);
+            scene.add(spot.target);
 
-            // 2 spots sur l'écran depuis le plafond
-            const spotParams = { color: 0xfff5e6, intensity: 1.2, distance: 12, angle: Math.PI / 5.5, penumbra: 0.6, decay: 1.5 };
-            for (const xOff of [-1.8, 1.8]) {
-                const spot = new THREE.SpotLight(spotParams.color, spotParams.intensity, spotParams.distance, spotParams.angle, spotParams.penumbra, spotParams.decay);
-                spot.position.set(xOff, ROOM_H - 0.05, -ROOM_D / 2 + 3.5);
-                spot.target.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2);
-                spot.castShadow = true;
-                spot.shadow.mapSize.set(1024, 1024);
-                spot.shadow.bias = -0.001;
-                scene.add(spot);
-                scene.add(spot.target);
-
-                // Spot housing visible au plafond (petit cylindre noir)
-                const housing = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.08, 0.12, 8),
-                    new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.6 })
-                );
-                housing.position.set(xOff, ROOM_H - 0.06, -ROOM_D / 2 + 3.5);
-                scene.add(housing);
-            }
-
-            // Rail d'éclairage au plafond (barre horizontale)
-            const railMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, metalness: 0.6 });
-            const rail = new THREE.Mesh(new THREE.BoxGeometry(5, 0.03, 0.03), railMat);
-            rail.position.set(0, ROOM_H - 0.015, -ROOM_D / 2 + 3.5);
-            scene.add(rail);
-
-            // Irradiation de l'écran (point light turquoise)
-            const screenGlow = new THREE.PointLight(0x29AC9C, 0.6, 8, 2);
-            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 0.8);
+            // Irradiation de l'écran — turquoise
+            const screenGlow = new THREE.PointLight(0x29AC9C, 1.5, 14, 2);
+            screenGlow.position.set(0, SCREEN_CENTER_Y, -ROOM_D / 2 + 1.5);
             scene.add(screenGlow);
 
-            // Légère lumière chaude au fond pour les murs latéraux
-            const warmFill = new THREE.PointLight(0xfff0e0, 0.08, 15, 2);
-            warmFill.position.set(0, 3, 2);
-            scene.add(warmFill);
+            // Halo bleuté secondaire plus bas (reflet au sol)
+            const floorGlow = new THREE.PointLight(0x017979, 0.4, 10, 2);
+            floorGlow.position.set(0, 0.5, -ROOM_D / 2 + 3);
+            scene.add(floorGlow);
         }
 
         // =============================================
-        // CARTEL
+        // CHEMIN LED AU SOL
+        // =============================================
+        function buildLedPath() {
+            // Ligne de LEDs très subtile de l'entrée vers la zone d'interaction
+            const pathMat = new THREE.LineBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 0.07
+            });
+            const startZ = ROOM_D / 2 - 2;
+            const endZ = -ROOM_D / 2 + INTERACTION_DIST + 1;
+            const segments = 40;
+            const pts = [];
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const z = startZ + (endZ - startZ) * t;
+                // Légère sinuosité
+                const x = Math.sin(t * Math.PI * 2) * 0.15;
+                pts.push(new THREE.Vector3(x, 0.003, z));
+            }
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), pathMat));
+
+            // Petits points lumineux le long du chemin (tous les 2m)
+            const dotMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 0.08
+            });
+            for (let i = 0; i <= segments; i += 5) {
+                const dot = new THREE.Mesh(new THREE.CircleGeometry(0.03, 8), dotMat);
+                dot.rotation.x = -Math.PI / 2;
+                dot.position.copy(pts[i]);
+                dot.position.y = 0.004;
+                scene.add(dot);
+            }
+        }
+
+        // =============================================
+        // CARTEL RÉTRO-ÉCLAIRÉ
         // =============================================
         function buildCartel() {
             const canvas = document.createElement('canvas');
-            const cW = 600, cH = 480;
-            canvas.width = cW;
-            canvas.height = cH;
+            const cW = 600, cH = 500;
+            canvas.width = cW; canvas.height = cH;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = '#ffffff';
+            // Fond sombre translucide
+            ctx.fillStyle = 'rgba(15, 15, 15, 0.95)';
             ctx.fillRect(0, 0, cW, cH);
 
-            // Titre
-            ctx.fillStyle = '#0a0a0a';
-            ctx.font = '600 30px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            // Texte lumineux
+            ctx.fillStyle = '#cccccc';
+            ctx.font = '500 26px "Helvetica Neue", Helvetica, Arial, sans-serif';
             ctx.fillText('VOLUME PHOTOGRAPHIQUE', 36, 50);
 
-            // Filet
-            ctx.fillRect(36, 72, 60, 1.5);
+            ctx.fillStyle = '#555555';
+            ctx.fillRect(36, 70, 50, 1);
 
-            // Corps du cartel
-            ctx.font = '300 19px "Helvetica Neue", Helvetica, Arial, sans-serif';
-            ctx.fillStyle = '#2a2a2a';
+            ctx.font = '300 17px "Helvetica Neue", Helvetica, Arial, sans-serif';
+            ctx.fillStyle = '#888888';
             const lines = [
-                { t: 'Holosene, 2025-2026', gap: 28 },
-                { t: '', gap: 14 },
-                { t: 'Photographies : Nicolas Floc\'h', gap: 26 },
-                { t: 'Série Invisible, Calanques, 2018-2020', gap: 26 },
-                { t: 'Palette : La couleur de l\'eau,', gap: 26 },
-                { t: 'FRAC PACA, 2020', gap: 26 },
-                { t: '', gap: 14 },
-                { t: 'Three.js, Web Audio API,', gap: 26 },
-                { t: 'Depth Anything V2', gap: 26 },
-                { t: '', gap: 14 },
-                { t: 'Expérience web interactive', gap: 26 },
+                'Holosene, 2025-2026',
+                '',
+                'Photographies : Nicolas Floc\'h',
+                'Série Invisible, Calanques, 2018-2020',
+                'Palette : La couleur de l\'eau,',
+                'FRAC PACA, 2020',
+                '',
+                'Three.js, Web Audio API,',
+                'Depth Anything V2',
+                '',
+                'Expérience web interactive'
             ];
             let y = 100;
             for (const l of lines) {
-                if (l.t) ctx.fillText(l.t, 36, y);
-                y += l.gap;
+                if (l) ctx.fillText(l, 36, y);
+                y += l ? 26 : 14;
             }
 
             const tex = new THREE.CanvasTexture(canvas);
             tex.encoding = THREE.sRGBEncoding;
 
+            // Plaque translucide rétro-éclairée
+            const cartelMat = new THREE.MeshBasicMaterial({
+                map: tex, transparent: true, opacity: 0.9
+            });
             const cartel = new THREE.Mesh(
-                new THREE.PlaneGeometry(0.42, 0.42 * cH / cW),
-                new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })
+                new THREE.PlaneGeometry(0.5, 0.5 * cH / cW),
+                cartelMat
             );
-            cartel.position.set(SCREEN_W / 2 + 0.72, 1.5, -ROOM_D / 2 + 0.015);
+            cartel.position.set(SCREEN_W / 2 + 0.8, SCREEN_BOTTOM + 0.5, -ROOM_D / 2 + 0.015);
             scene.add(cartel);
+
+            // Halo derrière le cartel
+            const haloMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, transparent: true, opacity: 0.02,
+                blending: THREE.AdditiveBlending
+            });
+            const halo = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.6), haloMat);
+            halo.position.set(cartel.position.x, cartel.position.y, -ROOM_D / 2 + 0.005);
+            scene.add(halo);
         }
 
         // =============================================
-        // ZONE D'INTERACTION + CAPTEUR
+        // CAPTEUR DE DISTANCE
         // =============================================
-        function buildInteractionZone() {
-            const zoneZ = -ROOM_D / 2 + 3;
-            const zoneW = 3, zoneD = 2;
-
-            // Rectangle au sol
-            const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 });
-            const pts = [
-                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ - zoneD / 2),
-                new THREE.Vector3( zoneW / 2, 0.003, zoneZ - zoneD / 2),
-                new THREE.Vector3( zoneW / 2, 0.003, zoneZ + zoneD / 2),
-                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ + zoneD / 2),
-                new THREE.Vector3(-zoneW / 2, 0.003, zoneZ - zoneD / 2),
-            ];
-            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
-
-            // Capteur sur pied
-            const metalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.7 });
+        let sensorLedMat;
+        function buildSensor() {
+            const sZ = -ROOM_D / 2 + 4;
+            const metalMat = new THREE.MeshStandardMaterial({
+                color: 0x0a0a0a, roughness: 0.3, metalness: 0.8
+            });
 
             // Base
-            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.015, 16), metalMat);
-            base.position.set(0, 0.0075, zoneZ);
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.01, 12), metalMat);
+            base.position.set(0, 0.005, sZ);
             scene.add(base);
 
-            // Tige
-            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 1.1, 8), metalMat);
-            pole.position.set(0, 0.565, zoneZ);
+            // Tige ultra fine
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.0075, 0.0075, 1.2, 6), metalMat);
+            pole.position.set(0, 0.61, sZ);
             pole.castShadow = true;
             scene.add(pole);
 
-            // Tête capteur
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.2, metalness: 0.85 });
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.06), headMat);
-            head.position.set(0, 1.14, zoneZ);
-            scene.add(head);
-
-            // LED
-            const led = new THREE.Mesh(
-                new THREE.SphereGeometry(0.006, 8, 6),
-                new THREE.MeshBasicMaterial({ color: 0x29AC9C })
-            );
-            led.position.set(0, 1.14, zoneZ - 0.032);
+            // LED pulsante au sommet
+            sensorLedMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const led = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), sensorLedMat);
+            led.position.set(0, 1.22, sZ);
             scene.add(led);
 
-            // Point light minuscule pour la LED
-            const ledLight = new THREE.PointLight(0x29AC9C, 0.05, 0.5, 2);
-            ledLight.position.copy(led.position);
+            // Lumière de la LED
+            const ledLight = new THREE.PointLight(0x00ffff, 0.15, 2, 2);
+            ledLight.position.set(0, 1.22, sZ);
             scene.add(ledLight);
         }
 
         // =============================================
-        // SILHOUETTES HUMAINES
+        // SILHOUETTES GIACOMETTI
         // =============================================
         function buildSilhouettes() {
-            const silMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 0.95 });
+            const silMat = new THREE.MeshStandardMaterial({
+                color: 0x111111, roughness: 0.95, metalness: 0
+            });
 
-            function makePerson(x, z, h, lookAngle) {
+            function makePerson(x, z, lookAngle) {
                 const g = new THREE.Group();
-                const scale = h / 1.75;
 
-                // Jambes
-                const legH = 0.85 * scale;
-                const legGeo = new THREE.CylinderGeometry(0.055 * scale, 0.05 * scale, legH, 6);
-                for (const side of [-1, 1]) {
-                    const leg = new THREE.Mesh(legGeo, silMat);
-                    leg.position.set(side * 0.075 * scale, legH / 2, 0);
-                    leg.castShadow = true;
-                    g.add(leg);
-                }
+                // Jambes — fines, légèrement écartées
+                const legGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.90, 6);
+                const legL = new THREE.Mesh(legGeo, silMat);
+                legL.position.set(-0.065, 0.45, 0);
+                legL.castShadow = true;
+                g.add(legL);
+                const legR = new THREE.Mesh(legGeo, silMat);
+                legR.position.set(0.065, 0.45, 0);
+                legR.castShadow = true;
+                g.add(legR);
 
-                // Torse
-                const torsoH = 0.55 * scale;
+                // Torse — parallélépipède fin
                 const torso = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.14 * scale, 0.13 * scale, torsoH, 8),
+                    new THREE.BoxGeometry(0.30, 0.50, 0.08),
                     silMat
                 );
-                torso.position.y = legH + torsoH / 2;
+                torso.position.y = 1.15;
                 torso.castShadow = true;
                 g.add(torso);
 
                 // Cou
-                const neckH = 0.08 * scale;
                 const neck = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.04 * scale, 0.05 * scale, neckH, 6),
+                    new THREE.CylinderGeometry(0.02, 0.025, 0.12, 6),
                     silMat
                 );
-                neck.position.y = legH + torsoH + neckH / 2;
+                neck.position.y = 1.46;
                 g.add(neck);
 
                 // Tête
-                const headR = 0.1 * scale;
-                const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 12, 10), silMat);
-                head.position.y = legH + torsoH + neckH + headR;
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.10, 12, 10), silMat);
+                head.position.y = 1.62;
                 head.castShadow = true;
                 g.add(head);
 
-                // Bras
-                const armH = 0.6 * scale;
-                const armGeo = new THREE.CylinderGeometry(0.035 * scale, 0.03 * scale, armH, 6);
-                for (const side of [-1, 1]) {
-                    const arm = new THREE.Mesh(armGeo, silMat);
-                    arm.position.set(side * 0.18 * scale, legH + torsoH * 0.65 - armH / 2 + 0.05, 0);
-                    arm.rotation.z = side * 0.08;
-                    g.add(arm);
-                }
+                // Bras — très fins, le long du corps
+                const armGeo = new THREE.CylinderGeometry(0.02, 0.018, 0.60, 6);
+                const armL = new THREE.Mesh(armGeo, silMat);
+                armL.position.set(-0.18, 1.0, 0);
+                armL.rotation.z = 0.05;
+                g.add(armL);
+                const armR = new THREE.Mesh(armGeo, silMat);
+                armR.position.set(0.18, 1.0, 0);
+                armR.rotation.z = -0.05;
+                g.add(armR);
 
                 g.position.set(x, 0, z);
                 g.rotation.y = lookAngle || 0;
@@ -441,228 +512,474 @@
                 return g;
             }
 
-            // Visiteur 1 : dans la zone, proche de l'écran, regarde l'oeuvre
-            makePerson(-0.9, -ROOM_D / 2 + 2.8, 1.72, 0.06);
+            // Silhouette 1 : dans la zone d'interaction, face à l'écran
+            makePerson(-1.2, -ROOM_D / 2 + 4.5, 0);
 
-            // Visiteur 2 : en retrait, côté droit, observe
-            makePerson(3.2, -0.5, 1.68, -0.15);
+            // Silhouette 2 : en retrait (8m de l'écran), tournée 3/4
+            makePerson(3, -ROOM_D / 2 + 8, -0.4);
 
-            // Visiteur 3 : assis sur le banc
-            const benchZ = ROOM_D / 2 - 3.5;
+            // Silhouette 3 : assise sur le banc (jambes croisées simplifiées)
+            const benchZ = -ROOM_D / 2 + 10;
             const seated = new THREE.Group();
-            const sMat = silMat;
+
             // Torse assis
-            const sTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.5, 8), sMat);
-            sTorso.position.y = 0.44 + 0.03 + 0.25; // bench height + cushion + half torso
+            const sTorso = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.45, 0.08), silMat);
+            sTorso.position.y = 0.42 + 0.025 + 0.225;
             seated.add(sTorso);
+
             // Tête assise
-            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), sMat);
-            sHead.position.y = 0.44 + 0.03 + 0.5 + 0.07 + 0.095;
+            const sHead = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 8), silMat);
+            sHead.position.y = 0.42 + 0.025 + 0.45 + 0.06 + 0.095;
             seated.add(sHead);
-            // Cuisses (horizontales)
+
+            // Cou
+            const sNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.06, 6), silMat);
+            sNeck.position.y = 0.42 + 0.025 + 0.45 + 0.03;
+            seated.add(sNeck);
+
+            // Cuisse gauche (horizontale vers l'avant)
+            const thighL = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
+            thighL.rotation.x = Math.PI / 2;
+            thighL.position.set(-0.06, 0.42, 0.18);
+            seated.add(thighL);
+
+            // Cuisse droite (croisée)
+            const thighR = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.028, 0.40, 6), silMat);
+            thighR.rotation.x = Math.PI / 2;
+            thighR.rotation.z = 0.15;
+            thighR.position.set(0.06, 0.44, 0.18);
+            seated.add(thighR);
+
+            // Tibias pendants
             for (const side of [-1, 1]) {
-                const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.42, 6), sMat);
-                thigh.rotation.x = Math.PI / 2;
-                thigh.position.set(side * 0.08, 0.44 + 0.02, 0.18);
-                seated.add(thigh);
-                // Tibias (verticaux vers le bas)
-                const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.035, 0.42, 6), sMat);
-                shin.position.set(side * 0.08, 0.22, 0.38);
+                const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.022, 0.40, 6), silMat);
+                shin.position.set(side * 0.06, 0.2, 0.36);
+                shin.rotation.x = -0.1;
                 seated.add(shin);
             }
-            seated.position.set(-0.4, 0, benchZ);
+
+            // Bras au repos
+            const sArmL = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
+            sArmL.position.set(-0.17, 0.55, 0.05);
+            sArmL.rotation.z = 0.1;
+            seated.add(sArmL);
+            const sArmR = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.018, 0.50, 6), silMat);
+            sArmR.position.set(0.17, 0.55, 0.05);
+            sArmR.rotation.z = -0.1;
+            seated.add(sArmR);
+
+            seated.position.set(0.5, 0, benchZ);
             scene.add(seated);
         }
 
         // =============================================
-        // BANC
+        // BANC MINIMALISTE
         // =============================================
         function buildBench() {
-            const benchZ = ROOM_D / 2 - 3.5;
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a1f14, roughness: 0.7, metalness: 0.05 });
-            const metalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.75 });
+            const benchZ = -ROOM_D / 2 + 10;
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.6, metalness: 0.0 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3, metalness: 0.8 });
 
-            // Assise
-            const seat = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, 0.38), woodMat);
-            seat.position.set(0, 0.44, benchZ);
+            // Assise — planche unique
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.04, 0.40), woodMat);
+            seat.position.set(0, 0.42, benchZ);
             seat.castShadow = true;
             seat.receiveShadow = true;
             scene.add(seat);
 
-            // 2 pieds en U (style galerie)
-            const legGeo = new THREE.BoxGeometry(0.035, 0.435, 0.035);
-            const barGeo = new THREE.BoxGeometry(0.035, 0.035, 0.34);
-            for (const xOff of [-0.95, 0.95]) {
-                // Pieds verticaux
-                for (const zOff of [-0.14, 0.14]) {
-                    const leg = new THREE.Mesh(legGeo, metalMat);
-                    leg.position.set(xOff, 0.2175, benchZ + zOff);
-                    leg.castShadow = true;
-                    scene.add(leg);
-                }
-                // Traverse horizontale
-                const bar = new THREE.Mesh(barGeo, metalMat);
-                bar.position.set(xOff, 0.02, benchZ);
-                scene.add(bar);
+            // 2 pieds fins en métal
+            for (const x of [-1.0, 1.0]) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.40, 0.35), metalMat);
+                leg.position.set(x, 0.20, benchZ);
+                leg.castShadow = true;
+                scene.add(leg);
             }
         }
 
         // =============================================
-        // SYSTÈME DE PARTICULES (écran virtuel)
+        // SYSTÈME DE PARTICULES — MOTEUR COMPLET
         // =============================================
-        let particles;
-        let basePositions; // pour animer sans dériver
+        let particles, sceneGroup;
+        let currentImageIndex = 0;
+        let imageData = []; // { colors, depths, loaded }
+        let zoomLevel = 0, targetZoomLevel = 0;
+        let scrollPhase = 'zoomIn';
+        let hasTriggeredTransition = false;
+        let transitionOld = null, transitionNew = null;
+        let currentAppliedDisparity = 0;
+        let particleMovementOffsets = null;
+
+        // Seeded random for deterministic jitter
+        function seededRandom(x, y, seed) {
+            let h = seed + x * 374761393 + y * 668265263;
+            h = (h ^ (h >> 13)) * 1274126177;
+            h = h ^ (h >> 16);
+            return (h & 0x7fffffff) / 0x7fffffff;
+        }
+
+        function colorFromLuminance(luminance, gradientIndex) {
+            const grad = GRADIENTS[gradientIndex];
+            const depth = luminance - 0.5; // map 0..1 to -0.5..+0.5
+            // Find enclosing stops
+            let lo = grad[0], hi = grad[grad.length - 1];
+            for (let i = 0; i < grad.length - 1; i++) {
+                if (depth >= grad[i].d && depth <= grad[i + 1].d) {
+                    lo = grad[i]; hi = grad[i + 1];
+                    break;
+                }
+            }
+            const range = hi.d - lo.d;
+            const t = range > 0 ? (depth - lo.d) / range : 0;
+            // Multiply by luminance * 2 to preserve grayscale contrast
+            const lm = luminance * 2.0;
+            return {
+                r: (lo.r + (hi.r - lo.r) * t) * lm,
+                g: (lo.g + (hi.g - lo.g) * t) * lm,
+                b: (lo.b + (hi.b - lo.b) * t) * lm
+            };
+        }
+
+        function interpolateUXState(progress) {
+            const scaled = progress * (UX_STATES.length - 1);
+            const idx = Math.min(Math.floor(scaled), UX_STATES.length - 2);
+            const t = scaled - idx;
+            return {
+                disparity: UX_STATES[idx].disparity + (UX_STATES[idx + 1].disparity - UX_STATES[idx].disparity) * t,
+                movement: UX_STATES[idx].movement + (UX_STATES[idx + 1].movement - UX_STATES[idx].movement) * t
+            };
+        }
 
         function buildParticles() {
+            sceneGroup = new THREE.Group();
+            particleScene.add(sceneGroup);
+
             const count = PARTICLE_COUNT;
             const positions = new Float32Array(count * 3);
             const colors = new Float32Array(count * 3);
             const depths = new Float32Array(count);
 
-            const colorDeep    = new THREE.Color(0x011d3a);
-            const colorMid     = new THREE.Color(0x017979);
-            const colorSurface = new THREE.Color(0x3cc4b1);
-
+            // Initial procedural layout using gradient 2 (cyan-teal, default)
             const gridW = Math.ceil(Math.sqrt(count * (16 / 9)));
             const gridH = Math.ceil(count / gridW);
-            const spreadX = 7, spreadY = spreadX / (16 / 9);
+            const scaleFactor = 50;
 
             for (let i = 0; i < count; i++) {
                 const gx = i % gridW;
                 const gy = Math.floor(i / gridW);
                 const nx = gx / gridW, ny = gy / gridH;
 
-                const x = (nx - 0.5) * spreadX + (Math.random() - 0.5) * 0.012;
-                const y = (0.5 - ny) * spreadY + (Math.random() - 0.5) * 0.012;
+                const x = (nx - 0.5) * (RT_W / scaleFactor);
+                const y = (0.5 - ny) * (RT_H / scaleFactor);
 
-                // Profondeur procédurale organique (paysage sous-marin)
+                // Procedural depth
                 const d = Math.sin(nx * 2.5 * Math.PI) * Math.cos(ny * 1.8 * Math.PI) * 0.5
-                        + Math.sin(nx * 5.2 * Math.PI + 1.3) * Math.cos(ny * 4.8 * Math.PI + 0.7) * 0.25
-                        + Math.sin(nx * 9 * Math.PI + 2.1) * Math.sin(ny * 7 * Math.PI + 1.1) * 0.1
-                        + (1 - ny) * 0.35 - 0.18;
+                        + Math.sin(nx * 5 * Math.PI + 1.3) * Math.cos(ny * 5 * Math.PI + 0.7) * 0.2
+                        + (1 - ny) * 0.3 - 0.15;
 
                 depths[i] = d;
-                positions[i * 3]     = x;
-                positions[i * 3 + 1] = y;
-                positions[i * 3 + 2] = d * 2;
 
-                // Couleur
-                const tc = Math.max(0, Math.min(1, (d + 0.7) / 1.4));
-                const c = new THREE.Color();
-                if (tc < 0.5) c.lerpColors(colorDeep, colorMid, tc * 2);
-                else c.lerpColors(colorMid, colorSurface, (tc - 0.5) * 2);
-                colors[i * 3] = c.r;
+                // Jitter
+                const jx = (seededRandom(gx, gy, 7) - 0.5) * 0.4;
+                const jy = (seededRandom(gx, gy, 8) - 0.5) * 0.4;
+
+                positions[i * 3]     = x + jx;
+                positions[i * 3 + 1] = y + jy;
+                positions[i * 3 + 2] = 0;
+
+                // Color from default gradient (index 2)
+                const lum = (d + 0.5);
+                const c = colorFromLuminance(lum, 2);
+                colors[i * 3]     = c.r;
                 colors[i * 3 + 1] = c.g;
                 colors[i * 3 + 2] = c.b;
             }
 
-            basePositions = new Float32Array(positions);
+            // Movement offsets (permanent per-particle)
+            particleMovementOffsets = new Float32Array(count * 2);
+            for (let i = 0; i < count; i++) {
+                particleMovementOffsets[i * 2]     = (seededRandom(i, 0, 11) - 0.5) * 2;
+                particleMovementOffsets[i * 2 + 1] = (seededRandom(i, 0, 12) - 0.5) * 2;
+            }
 
             const geo = new THREE.BufferGeometry();
             geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
+            // Circle texture
+            const texCanvas = document.createElement('canvas');
+            texCanvas.width = 64; texCanvas.height = 64;
+            const tCtx = texCanvas.getContext('2d');
+            const grad = tCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.5, 'rgba(255,255,255,1)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            tCtx.fillStyle = grad;
+            tCtx.fillRect(0, 0, 64, 64);
+            const pointTex = new THREE.CanvasTexture(texCanvas);
+
             particles = new THREE.Points(geo, new THREE.PointsMaterial({
-                size: 0.022,
+                size: 0.04,
                 vertexColors: true,
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: 0.88,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
+                opacity: 1,
+                map: pointTex,
+                depthWrite: false,
+                blending: THREE.NormalBlending
             }));
+            particles.rotation.x = Math.PI; // flip vertical
             particles.userData.depths = depths;
-            particleScene.add(particles);
+            particles.userData.basePositions = new Float32Array(positions);
+            sceneGroup.add(particles);
         }
 
-        // Tentative de chargement d'une vraie photo
-        function tryLoadImageParticles() {
+        // =============================================
+        // IMAGE LOADING
+        // =============================================
+        function loadImage(index, callback) {
+            if (imageData[index] && imageData[index].loaded) {
+                if (callback) callback(imageData[index]);
+                return;
+            }
+
+            const imgPath = './Ressources/photographies/IMG_' + String(index + 1).padStart(3, '0') + '.jpg';
+            const depthPath = './Ressources/photographies/IMG_' + String(index + 1).padStart(3, '0') + '_depth.png';
+
             const img = new Image();
-            img.onload = function() {
+            const depthImg = new Image();
+            let imgLoaded = false, depthLoaded = false, depthFailed = false;
+
+            function tryFinalize() {
+                if (!imgLoaded || (!depthLoaded && !depthFailed)) return;
+
                 const cvs = document.createElement('canvas');
-                const w = 420, h = Math.round(420 * img.height / img.width);
-                cvs.width = w; cvs.height = h;
+                const sampleW = 420;
+                const sampleH = Math.round(sampleW * img.height / img.width);
+                cvs.width = sampleW; cvs.height = sampleH;
                 const ctx = cvs.getContext('2d');
-                ctx.drawImage(img, 0, 0, w, h);
-                const data = ctx.getImageData(0, 0, w, h).data;
+                ctx.drawImage(img, 0, 0, sampleW, sampleH);
+                const imgPx = ctx.getImageData(0, 0, sampleW, sampleH).data;
 
-                const pos = particles.geometry.attributes.position.array;
-                const col = particles.geometry.attributes.color.array;
-                const dep = particles.userData.depths;
-                const count = Math.min(PARTICLE_COUNT, w * h);
-                const aspect = w / h;
-                const spreadX = 7, spreadY = spreadX / aspect;
+                let depthPx = null;
+                if (depthLoaded) {
+                    const dCvs = document.createElement('canvas');
+                    dCvs.width = sampleW; dCvs.height = sampleH;
+                    const dCtx = dCvs.getContext('2d');
+                    dCtx.drawImage(depthImg, 0, 0, sampleW, sampleH);
+                    depthPx = dCtx.getImageData(0, 0, sampleW, sampleH).data;
+                }
 
-                const cD = new THREE.Color(0x011d3a);
-                const cM = new THREE.Color(0x017979);
-                const cS = new THREE.Color(0x3cc4b1);
+                const count = Math.min(PARTICLE_COUNT, sampleW * sampleH);
+                const step = Math.max(1, Math.floor(sampleW * sampleH / count));
+                const newColors = new Float32Array(count * 3);
+                const newDepths = new Float32Array(count);
+                const scaleFactor = 50;
 
-                const step = Math.max(1, Math.floor(w * h / count));
                 let idx = 0;
-                for (let p = 0; p < w * h && idx < count; p += step) {
-                    const px = p % w, py = Math.floor(p / w);
-                    const pi = (py * w + px) * 4;
-                    const r = data[pi] / 255, g = data[pi+1] / 255, b = data[pi+2] / 255;
+                for (let p = 0; p < sampleW * sampleH && idx < count; p += step) {
+                    const px = p % sampleW, py = Math.floor(p / sampleW);
+                    const pi = (py * sampleW + px) * 4;
+                    const r = imgPx[pi] / 255, g = imgPx[pi + 1] / 255, b = imgPx[pi + 2] / 255;
                     const lum = 0.299 * r + 0.587 * g + 0.114 * b;
 
-                    pos[idx * 3]     = (px / w - 0.5) * spreadX;
-                    pos[idx * 3 + 1] = (0.5 - py / h) * spreadY;
-                    pos[idx * 3 + 2] = (lum - 0.5) * 2.8;
-                    dep[idx] = lum - 0.5;
+                    // Hybrid depth
+                    let macroDepth = lum - 0.5;
+                    if (depthPx) {
+                        macroDepth = depthPx[pi] / 255 - 0.5;
+                    }
+                    const microDepth = lum - 0.5;
+                    const noise = (seededRandom(px, py, 3) - 0.5) * 0.02;
+                    newDepths[idx] = depthPx
+                        ? macroDepth * 0.9 + microDepth * 0.1 + noise
+                        : microDepth + noise;
 
-                    const tc = Math.max(0, Math.min(1, lum));
-                    const pc = new THREE.Color();
-                    if (tc < 0.5) pc.lerpColors(cD, cM, tc * 2);
-                    else pc.lerpColors(cM, cS, (tc - 0.5) * 2);
-                    col[idx * 3]     = r * 0.25 + pc.r * 0.75;
-                    col[idx * 3 + 1] = g * 0.25 + pc.g * 0.75;
-                    col[idx * 3 + 2] = b * 0.25 + pc.b * 0.75;
+                    // Color from Floc'h gradient
+                    const c = colorFromLuminance(lum, index);
+                    newColors[idx * 3]     = r * 0.15 + c.r * 0.85;
+                    newColors[idx * 3 + 1] = g * 0.15 + c.g * 0.85;
+                    newColors[idx * 3 + 2] = b * 0.15 + c.b * 0.85;
+
                     idx++;
                 }
-                basePositions = new Float32Array(pos);
-                particles.geometry.attributes.position.needsUpdate = true;
-                particles.geometry.attributes.color.needsUpdate = true;
+
+                imageData[index] = {
+                    colors: newColors,
+                    depths: newDepths,
+                    loaded: true,
+                    count: idx,
+                    w: sampleW, h: sampleH
+                };
+
+                // Update base positions to match image sampling
+                if (particles && idx > 0) {
+                    const bp = particles.userData.basePositions;
+                    let bi = 0;
+                    for (let p = 0; p < sampleW * sampleH && bi < count; p += step) {
+                        const px = p % sampleW, py = Math.floor(p / sampleW);
+                        const jx = (seededRandom(px, py, 7) - 0.5) * 0.4;
+                        const jy = (seededRandom(px, py, 8) - 0.5) * 0.4;
+                        bp[bi * 3]     = (px / sampleW - 0.5) * (RT_W / scaleFactor) + jx;
+                        bp[bi * 3 + 1] = (0.5 - py / sampleH) * (RT_H / scaleFactor) + jy;
+                        bi++;
+                    }
+                }
+
+                if (callback) callback(imageData[index]);
+            }
+
+            img.onload = () => { imgLoaded = true; tryFinalize(); };
+            img.onerror = () => {
+                // Fallback: use procedural
+                imgLoaded = true; depthFailed = true;
+                tryFinalize();
             };
-            img.src = 'Ressources/IMG_001.jpg';
+
+            depthImg.onload = () => { depthLoaded = true; tryFinalize(); };
+            depthImg.onerror = () => { depthFailed = true; tryFinalize(); };
+
+            img.src = imgPath;
+            depthImg.src = depthPath;
+        }
+
+        function applyImageData(data) {
+            if (!particles || !data || !data.loaded) return;
+            const col = particles.geometry.attributes.color.array;
+            const dep = particles.userData.depths;
+            const count = Math.min(data.count, dep.length);
+            for (let i = 0; i < count * 3; i++) col[i] = data.colors[i];
+            for (let i = 0; i < count; i++) dep[i] = data.depths[i];
+            particles.geometry.attributes.color.needsUpdate = true;
+        }
+
+        function transitionToNextImage() {
+            const nextIdx = (currentImageIndex + 1) % 7;
+            const curDep = particles.userData.depths;
+            const curCol = particles.geometry.attributes.color.array;
+            const count = curDep.length;
+
+            transitionOld = {
+                colors: new Float32Array(curCol),
+                depths: new Float32Array(curDep)
+            };
+
+            const doTransition = (data) => {
+                transitionNew = {
+                    colors: data.colors,
+                    depths: data.depths
+                };
+                currentImageIndex = nextIdx;
+            };
+
+            if (imageData[nextIdx] && imageData[nextIdx].loaded) {
+                doTransition(imageData[nextIdx]);
+            } else {
+                loadImage(nextIdx, doTransition);
+            }
         }
 
         // =============================================
-        // CONTRÔLES FPS
+        // MODE CONTRÔLE
         // =============================================
+        let controlMode = 'gallery'; // 'gallery' | 'installation'
         let yaw = 0, pitch = 0;
         const keys = {};
         let isLocked = false;
 
-        const instructions = document.getElementById('instructions');
-        const crosshair = document.getElementById('crosshair');
-        const vignette = document.getElementById('vignette');
+        const instructionsEl = document.getElementById('instructions');
+        const crosshairEl = document.getElementById('crosshair');
+        const vignetteEl = document.getElementById('vignette');
+        const hintEl = document.getElementById('hint');
 
-        document.addEventListener('click', () => {
-            if (!isLocked) renderer.domElement.requestPointerLock();
+        document.addEventListener('click', (e) => {
+            if (!isLocked) {
+                renderer.domElement.requestPointerLock();
+                return;
+            }
+
+            // Check if clicking on screen in gallery mode
+            if (controlMode === 'gallery' && isLocked) {
+                const raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const hits = raycaster.intersectObject(screenMesh);
+                if (hits.length > 0) {
+                    const dist = camera.position.distanceTo(screenMesh.position);
+                    if (dist < INTERACTION_DIST + 5) {
+                        enterInstallationMode();
+                    }
+                }
+            }
         });
+
+        function enterInstallationMode() {
+            controlMode = 'installation';
+            hintEl.classList.remove('visible');
+            crosshairEl.style.display = 'none';
+        }
+
+        function exitInstallationMode() {
+            controlMode = 'gallery';
+            crosshairEl.style.display = 'block';
+        }
 
         document.addEventListener('pointerlockchange', () => {
             isLocked = !!document.pointerLockElement;
             if (isLocked) {
-                instructions.classList.add('hidden');
-                crosshair.style.display = 'block';
-                vignette.style.display = 'block';
+                instructionsEl.classList.add('hidden');
+                crosshairEl.style.display = 'block';
+                vignetteEl.style.display = 'block';
             } else {
-                crosshair.style.display = 'none';
+                crosshairEl.style.display = 'none';
+                if (controlMode === 'installation') exitInstallationMode();
             }
         });
 
         document.addEventListener('mousemove', (e) => {
-            if (!isLocked) return;
+            if (!isLocked || controlMode === 'installation') return;
             yaw -= e.movementX * MOUSE_SENS;
             pitch = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, pitch - e.movementY * MOUSE_SENS));
         });
 
-        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.key === 'Escape' && controlMode === 'installation') {
+                exitInstallationMode();
+                e.preventDefault();
+            }
+        });
         document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
+        // Scroll → zoom in installation mode
+        let wheelAccum = 0;
+        let deadZoneAccum = 0;
+        const DEAD_ZONE = 0.1;
+        let inDeadZone = false;
+
+        document.addEventListener('wheel', (e) => {
+            if (controlMode !== 'installation') return;
+            e.preventDefault();
+
+            const delta = Math.abs(e.deltaY) * 0.00045;
+
+            if (inDeadZone) {
+                deadZoneAccum += delta;
+                if (deadZoneAccum >= DEAD_ZONE) {
+                    inDeadZone = false;
+                    deadZoneAccum = 0;
+                }
+                return;
+            }
+
+            if (scrollPhase === 'zoomIn') {
+                targetZoomLevel += delta;
+                targetZoomLevel = Math.min(targetZoomLevel, MAX_ZOOM_LEVEL);
+            } else {
+                targetZoomLevel -= delta;
+                targetZoomLevel = Math.max(targetZoomLevel, 0);
+            }
+        }, { passive: false });
+
         function updateMovement(dt) {
-            if (!isLocked) return;
+            if (!isLocked || controlMode !== 'gallery') return;
 
             const fwd = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
             const rgt = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
@@ -678,17 +995,33 @@
                 camera.position.add(vel);
             }
 
-            // Collisions murs
             const m = 0.3;
-            camera.position.x = Math.max(-ROOM_W/2 + m, Math.min(ROOM_W/2 - m, camera.position.x));
-            camera.position.z = Math.max(-ROOM_D/2 + m, Math.min(ROOM_D/2 - m, camera.position.z));
+            camera.position.x = Math.max(-ROOM_W / 2 + m, Math.min(ROOM_W / 2 - m, camera.position.x));
+            camera.position.z = Math.max(-ROOM_D / 2 + m, Math.min(ROOM_D / 2 - m, camera.position.z));
             camera.position.y = EYE_HEIGHT;
 
             camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
         }
 
         // =============================================
-        // BOUCLE D'ANIMATION
+        // HINT CONTEXTUEL
+        // =============================================
+        function updateHint() {
+            if (controlMode === 'installation' || !isLocked) {
+                hintEl.classList.remove('visible');
+                return;
+            }
+            const screenPos = new THREE.Vector3(0, SCREEN_CENTER_Y, -ROOM_D / 2);
+            const dist = camera.position.distanceTo(screenPos);
+            if (dist < INTERACTION_DIST + 3) {
+                hintEl.classList.add('visible');
+            } else {
+                hintEl.classList.remove('visible');
+            }
+        }
+
+        // =============================================
+        // ANIMATION
         // =============================================
         let prevTime = performance.now();
 
@@ -701,45 +1034,106 @@
             const t = now / 1000;
 
             updateMovement(dt);
+            updateHint();
 
-            // Animation particules
-            if (particles && basePositions) {
+            // Sensor LED pulse
+            if (sensorLedMat) {
+                const pulse = Math.sin(t * 1.5) * 0.3 + 0.7;
+                sensorLedMat.color.setRGB(0, pulse, pulse);
+            }
+
+            // ---- PARTICLE ENGINE ----
+            if (particles) {
                 const pos = particles.geometry.attributes.position.array;
+                const col = particles.geometry.attributes.color.array;
                 const dep = particles.userData.depths;
+                const bp = particles.userData.basePositions;
                 const count = dep.length;
 
-                // Cycle de zoom : 15s
-                const cycle = t * (2 * Math.PI / 15);
-                const depthMultiplier = 1.8 + Math.sin(cycle) * 0.8; // varie de 1.0 à 2.6
+                // Zoom smoothing
+                zoomLevel += (targetZoomLevel - zoomLevel) * 0.12;
 
+                // Phase transitions
+                if (scrollPhase === 'zoomIn' && zoomLevel >= MAX_ZOOM_LEVEL - 0.001) {
+                    if (!hasTriggeredTransition) {
+                        transitionToNextImage();
+                        hasTriggeredTransition = true;
+                    }
+                    scrollPhase = 'zoomOut';
+                } else if (scrollPhase === 'zoomOut' && zoomLevel <= 0.001) {
+                    scrollPhase = 'zoomIn';
+                    targetZoomLevel = 0;
+                    hasTriggeredTransition = false;
+                    inDeadZone = true;
+                    deadZoneAccum = 0;
+                }
+
+                // Transition interpolation
+                if (transitionOld && transitionNew) {
+                    const progress = Math.min(1, (MAX_ZOOM_LEVEL - zoomLevel) / TRANSITION_DISTANCE);
+                    for (let i = 0; i < count; i++) {
+                        const i3 = i * 3;
+                        if (i < transitionNew.depths.length) {
+                            col[i3]     = transitionOld.colors[i3]     + (transitionNew.colors[i3]     - transitionOld.colors[i3])     * progress;
+                            col[i3 + 1] = transitionOld.colors[i3 + 1] + (transitionNew.colors[i3 + 1] - transitionOld.colors[i3 + 1]) * progress;
+                            col[i3 + 2] = transitionOld.colors[i3 + 2] + (transitionNew.colors[i3 + 2] - transitionOld.colors[i3 + 2]) * progress;
+                            dep[i] = transitionOld.depths[i] + (transitionNew.depths[i] - transitionOld.depths[i]) * progress;
+                        }
+                    }
+                    particles.geometry.attributes.color.needsUpdate = true;
+
+                    if (zoomLevel < TRANSITION_END_ZOOM && scrollPhase === 'zoomOut') {
+                        // Finalize transition
+                        applyImageData(imageData[currentImageIndex]);
+                        transitionOld = null;
+                        transitionNew = null;
+                        // Preload next
+                        loadImage((currentImageIndex + 1) % 7);
+                    }
+                }
+
+                // UX state interpolation
+                const uxState = interpolateUXState(zoomLevel / MAX_ZOOM_LEVEL);
+                const targetDisp = uxState.disparity;
+                currentAppliedDisparity += (targetDisp - currentAppliedDisparity) * 0.23;
+
+                const movement = uxState.movement;
+
+                // Update positions
                 for (let i = 0; i < count; i++) {
-                    const bx = basePositions[i * 3];
-                    const by = basePositions[i * 3 + 1];
-                    const d = dep[i];
+                    const i3 = i * 3;
+                    const mx = movement > 0 ? Math.sin(t * 0.8 + particleMovementOffsets[i * 2] * 5) * movement * 0.5 : 0;
+                    const my = movement > 0 ? Math.cos(t * 0.6 + particleMovementOffsets[i * 2 + 1] * 5) * movement * 0.5 : 0;
 
-                    // Breathing avec phase spatiale
-                    const phase = bx * 0.4 + by * 0.6;
-                    const breath = Math.sin(t * 0.8 * Math.PI + phase) * 0.1 * (0.4 + Math.abs(d));
-
-                    pos[i * 3]     = bx;
-                    pos[i * 3 + 1] = by;
-                    pos[i * 3 + 2] = d * depthMultiplier + breath;
+                    pos[i3]     = bp[i3] + mx;
+                    pos[i3 + 1] = bp[i3 + 1] + my;
+                    pos[i3 + 2] = dep[i] * currentAppliedDisparity;
                 }
                 particles.geometry.attributes.position.needsUpdate = true;
 
-                // Caméra particules
-                const zoomZ = Math.sin(cycle) * 2.5;
-                particleCamera.position.set(
-                    Math.sin(cycle * 0.6) * 0.3,
-                    Math.sin(cycle * 0.4 + 1) * 0.15,
-                    7.5 + zoomZ
-                );
-                particleCamera.lookAt(0, 0, 0);
+                // Camera zoom: z = 25 - 23 * zoomLevel
+                if (controlMode === 'installation') {
+                    particleCamera.position.z = 25 - 23 * zoomLevel;
+                    particleCamera.position.x = 0;
+                    particleCamera.position.y = 0;
+                    particleCamera.lookAt(0, 0, 0);
+                } else {
+                    // Idle camera movement in gallery mode
+                    const cycle = t * (2 * Math.PI / 20);
+                    particleCamera.position.set(
+                        Math.sin(cycle * 0.5) * 0.3,
+                        Math.sin(cycle * 0.3 + 1) * 0.15,
+                        25 - 5 * (Math.sin(cycle) * 0.5 + 0.5)
+                    );
+                    particleCamera.lookAt(0, 0, 0);
+                }
             }
 
-            // Rendu dans le RenderTarget puis galerie
+            // Render particle scene to RT
             renderer.setRenderTarget(renderTarget);
             renderer.render(particleScene, particleCamera);
+
+            // Render gallery
             renderer.setRenderTarget(null);
             renderer.render(scene, camera);
         }
@@ -759,12 +1153,19 @@
         buildGallery();
         buildScreen();
         buildLighting();
+        buildLedPath();
         buildCartel();
-        buildInteractionZone();
+        buildSensor();
         buildBench();
         buildSilhouettes();
         buildParticles();
-        tryLoadImageParticles();
+
+        // Load first image immediately, preload next
+        loadImage(0, (data) => {
+            applyImageData(data);
+            loadImage(1); // preload
+        });
+
         animate();
 
     })();
