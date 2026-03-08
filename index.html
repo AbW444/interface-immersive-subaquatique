@@ -1703,8 +1703,8 @@
     const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.408516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
-    // === INACTIVITÉ: retour automatique au stade 0 après 60s sans interaction ===
-    const INACTIVITY_TIMEOUT = 60000; // 60 secondes
+    // === INACTIVITÉ: retour automatique au stade 0 après 30s sans interaction ===
+    const INACTIVITY_TIMEOUT = 30000; // 30 secondes
     const INACTIVITY_RETURN_SPEED = 0.015; // Vitesse de retour (lerp par frame)
     let lastUserActivity = performance.now();
     let inactivityReturning = false; // En cours de retour automatique
