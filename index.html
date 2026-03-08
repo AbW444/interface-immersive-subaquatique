@@ -1703,6 +1703,26 @@
     const TRANSITION_DISTANCE = MAX_ZOOM_LEVEL - TRANSITION_END_ZOOM; // 0.408516
     let scrollPhase = 'zoomIn';  // 'zoomIn' ou 'zoomOut' (cycle infini bidirectionnel)
 
+    // === INACTIVITÉ: retour automatique au stade 0 après 60s sans interaction ===
+    const INACTIVITY_TIMEOUT = 60000; // 60 secondes
+    const INACTIVITY_RETURN_SPEED = 0.015; // Vitesse de retour (lerp par frame)
+    let lastUserActivity = performance.now();
+    let inactivityReturning = false; // En cours de retour automatique
+
+    function registerUserActivity() {
+      lastUserActivity = performance.now();
+      if (inactivityReturning) {
+        inactivityReturning = false;
+      }
+      // Réactiver le son si coupé par inactivité
+      if (window._inactivityMuted) {
+        window._inactivityMuted = false;
+        if (!audioMuted) {
+          AudioEngine.unmute();
+        }
+      }
+    }
+
     // Variables pour transition fluide entre images (basée sur position, pas temps)
     let isTransitioning = false;
     let oldColors = null;
@@ -3697,6 +3717,7 @@
         playDismissWhoosh,
         _onVisibilityChange,
         _getCtxState() { return ctx ? ctx.state : 'closed'; },
+        _suspendCtx() { if (ctx && ctx.state === 'running') ctx.suspend(); },
         get isActive() { return isActive; },
         get currentTheme() { return currentTheme; },
         get themeName() { return currentTheme > 0 ? THEMES[currentTheme].name : 'OFF'; },
@@ -3706,14 +3727,26 @@
 
     // === FONDU AUDIO QUAND ON QUITTE / REVIENT SUR LA PAGE ===
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        // Page redevient visible: toujours relancer le contexte, même si isActive est false
-        // (le contexte peut avoir été suspendu par le navigateur)
+      if (document.hidden) {
+        // Page cachée: fondu out puis suspendre le contexte pour garantir le silence
+        if (AudioEngine.isActive) {
+          AudioEngine._onVisibilityChange(true);
+        }
+        // Suspendre le contexte audio après le fondu (garantit 0 son)
+        if (AudioEngine._getCtxState() === 'running') {
+          setTimeout(() => {
+            if (document.hidden) { // Vérifier encore (l'utilisateur a pu revenir)
+              try { AudioEngine._suspendCtx && AudioEngine._suspendCtx(); } catch(e) {}
+            }
+          }, 900); // Après le fondu de 0.8s
+        }
+      } else {
+        // Page redevient visible: relancer le contexte
         AudioEngine.ensureContextRunning();
-      }
-      // Fondu in/out seulement si l'audio est actif
-      if (AudioEngine.isActive) {
-        AudioEngine._onVisibilityChange(document.hidden);
+        // Fondu in seulement si l'audio était actif (pas muté)
+        if (AudioEngine.isActive) {
+          AudioEngine._onVisibilityChange(false);
+        }
       }
     });
 
@@ -3841,6 +3874,50 @@
         scrollDeadZoneAccumulator = 0;
         wheelScrollAccumulator = 0;
         trackpadScrollAccumulator = 0;
+      }
+
+      // === INACTIVITÉ: retour automatique au stade 0 ===
+      if (!landingActive && !introActive && !clickGateActive && !isTransitioning) {
+        const timeSinceActivity = _now - lastUserActivity;
+        if (timeSinceActivity > INACTIVITY_TIMEOUT && zoomLevel > 0.005) {
+          if (!inactivityReturning) {
+            inactivityReturning = true;
+            // Annuler tout precompute en cours
+            hasPrecomputed = false;
+            precomputedTransition = null;
+          }
+          // Ramener doucement targetZoomLevel vers 0
+          targetZoomLevel = Math.max(0, targetZoomLevel - INACTIVITY_RETURN_SPEED);
+          if (targetZoomLevel < 0.001) targetZoomLevel = 0;
+          // Forcer le scrollPhase en zoomIn pour le retour cohérent
+          if (scrollPhase === 'zoomOut') {
+            scrollPhase = 'zoomIn';
+            hasTriggeredTransition = false;
+          }
+        }
+        // Arrivé à 0: réafficher l'info overlay
+        if (inactivityReturning && zoomLevel <= 0.005) {
+          inactivityReturning = false;
+          targetZoomLevel = 0;
+          zoomLevel = 0;
+          scrollPhase = 'zoomIn';
+          hasTriggeredTransition = false;
+          hasPrecomputed = false;
+          precomputedTransition = null;
+          isInDeadZone = false;
+          scrollDeadZoneAccumulator = 0;
+          wheelScrollAccumulator = 0;
+          trackpadScrollAccumulator = 0;
+          // Réafficher la page info
+          toggleInfoOverlay(true);
+          infoHasReachedZero = true;
+          // Couper le son en fondu
+          if (AudioEngine.isActive && !audioMuted) {
+            AudioEngine.mute();
+            // Marquer comme muté pour que le retour d'activité le réactive
+            window._inactivityMuted = true;
+          }
+        }
       }
 
       // Zoom fluide progressif (interpolation vers la cible - configurable)
@@ -4648,6 +4725,7 @@
     // (comme une caméra qui pivote sur place, pas de déplacement)
     // ═══════════════════════════════════════════════
     window.addEventListener('mousedown', (e) => {
+      registerUserActivity();
       if (clickGateActive || landingActive || introActive) return;
       if (e.button !== 0) return;
       if (e.target.closest('#settings-panel, #ux-states-panel, #scroll-config-panel, #debug-panel, #info-overlay, .admin-panel')) return;
@@ -4682,6 +4760,7 @@
 
     window.addEventListener('wheel', (event) => {
       event.preventDefault();
+      registerUserActivity();
       // Bloquer tout scroll tant que le click-gate est actif
       if (clickGateActive) return;
       AudioEngine.ensureContextRunning();
@@ -4748,6 +4827,7 @@
 
     // TOUCH SCROLL — Event listeners (variables et processTouchMomentum déclarés plus haut)
     window.addEventListener('touchstart', (e) => {
+      registerUserActivity();
       if (clickGateActive) return;
       if (e.touches.length !== 1) return;
       touchLastY = e.touches[0].clientY;
@@ -5019,6 +5099,7 @@
     let numBufferTimer = null;
 
     window.addEventListener('keydown', (event) => {
+      registerUserActivity();
       AudioEngine.ensureContextRunning();
       // Landing/intro active: block all keyboard shortcuts except Escape to dismiss
       if (landingActive) {
