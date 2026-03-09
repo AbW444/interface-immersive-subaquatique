@@ -3895,7 +3895,7 @@
 
       // === INACTIVITÉ: retour automatique au stade 0 ===
       if (!landingActive && !introActive && !clickGateActive && !isTransitioning) {
-        const timeSinceActivity = _now - lastUserActivity;
+        const timeSinceActivity = performance.now() - lastUserActivity;
         if (timeSinceActivity > INACTIVITY_TIMEOUT && zoomLevel > 0.005) {
           if (!inactivityReturning) {
             inactivityReturning = true;
