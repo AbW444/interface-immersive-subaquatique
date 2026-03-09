@@ -1667,6 +1667,23 @@
       throw error;
     }
 
+    // === GESTION PERTE / RESTAURATION DU CONTEXTE WEBGL ===
+    renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault(); // Permet la restauration automatique
+      console.warn('WebGL context lost — waiting for restore...');
+    });
+    renderer.domElement.addEventListener('webglcontextrestored', () => {
+      console.log('WebGL context restored — reinitializing renderer');
+      // Reconfigurer le renderer après restauration
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      // Forcer un re-render
+      if (particles && particles.geometry) {
+        if (particles.geometry.attributes.position) particles.geometry.attributes.position.needsUpdate = true;
+        if (particles.geometry.attributes.color) particles.geometry.attributes.color.needsUpdate = true;
+      }
+    });
+
     // GROUPE pour contenir les particules
     const sceneGroup = new THREE.Group();
     sceneGroup.scale.set(0.55, 0.55, 0.55); // Start small, animate to 1.0 on dismissIntro
@@ -3597,7 +3614,7 @@
 
       // Resume AudioContext on user interaction (browsers suspend after inactivity)
       function ensureContextRunning() {
-        if (!isInitialized) init();
+        if (!isInitialized) return; // N'initialise PAS ici — attendre un vrai user gesture (click-gate/landing)
         if (!ctx) return;
         if (ctx.state === 'suspended') {
           ctx.resume().then(() => {
@@ -4485,6 +4502,7 @@
       if (!clickGateActive || !clickGate) return;
       clickGateActive = false;
       // CE CLIC EST UN USER GESTURE VALIDE → initialiser l'AudioContext immédiatement
+      AudioEngine.init();
       AudioEngine.ensureContextRunning();
       // Son de dismiss whoosh
       AudioEngine.playDismissWhoosh();
@@ -4606,6 +4624,7 @@
       clearTimeout(landingHintTimer);
       // Pré-initialiser l'AudioContext dès ce user gesture (click/scroll landing)
       // pour qu'il soit 'running' quand dismissIntro appellera startAt()
+      AudioEngine.init();
       AudioEngine.ensureContextRunning();
       // Son de transition whoosh (accompagne l'animation de zoom-out)
       AudioEngine.playDismissWhoosh();
